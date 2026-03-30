@@ -16,7 +16,8 @@ internal record InvoiceLineProjection(
     decimal TaxPercent,
     string CurrencyCode,
     string? Region,
-    bool IsPaid
+    bool IsPaid,
+    string? PartyName
 );
 
 internal record ReceivedInvoiceProjection(
@@ -81,7 +82,8 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
                 line.BusinessItem.TaxCategory != null ? line.BusinessItem.TaxCategory.Percent : 0,
                 i.Currency.Code,
                 i.Party != null && i.Party.Address != null ? i.Party.Address.State : null,
-                i.PaymentStatus == FIRSAccessPoint.Models.Enumerators.PaymentStatus.Paid
+                i.PaymentStatus == FIRSAccessPoint.Models.Enumerators.PaymentStatus.Paid,
+                i.Party != null ? i.Party.Name : null
             )))
             .ToListAsync(cancellationToken);
 
@@ -100,6 +102,7 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
         var vatTrendAnalysis = CalculateVATTrendAnalysis(invoiceLines, receivedInvoices, startDate);
         var salesAndPayment = CalculateSalesAndPayment(invoiceLines, startDate);
         var salesPerRegion = CalculateSalesPerRegion(invoiceLines, startDate);
+        var topParties = CalculateSalesPerParty(invoiceLines);
 
         return new GeneralDashboardDto
         {
@@ -107,7 +110,8 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
             SalesVsPurchases = salesVsPurchases,
             VATTrendAnalysis = vatTrendAnalysis,
             SalesAndPaymentPerMonth = salesAndPayment,
-            SalesPerRegion = salesPerRegion
+            SalesPerRegion = salesPerRegion,
+            TopParties = topParties
         };
     }
 
@@ -135,7 +139,8 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
                 line.BusinessItem.TaxCategory != null ? line.BusinessItem.TaxCategory.Percent : 0,
                 i.Currency.Code,
                 null,
-                false
+                false,
+                null
             )))
             .ToListAsync(cancellationToken);
 
@@ -474,6 +479,21 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
                     CurrencyAmounts = currencyAmounts
                 };
             })
+            .ToList();
+    }
+
+    private static List<SalesPerPartyDto> CalculateSalesPerParty(List<InvoiceLineProjection> invoiceLines)
+    {
+        return invoiceLines
+            .GroupBy(l => l.PartyName ?? "Unknown")
+            .Select(g => new SalesPerPartyDto
+            {
+                PartyName = g.Key,
+                TotalSalesAmount = g.Sum(CalculateLineTotal),
+                InvoiceCount = g.Select(l => l.CreatedAt.Date).Distinct().Count()
+            })
+            .OrderByDescending(p => p.TotalSalesAmount)
+            .Take(10)
             .ToList();
     }
 

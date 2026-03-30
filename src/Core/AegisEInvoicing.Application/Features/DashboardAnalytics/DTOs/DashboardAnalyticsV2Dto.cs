@@ -15,6 +15,14 @@ public record GeneralDashboardDto
     public List<VATTrendAnalysisMonthlyDto> VATTrendAnalysis { get; init; } = [];
     public List<SalesAndPaymentMonthlyDto> SalesAndPaymentPerMonth { get; init; } = [];
     public List<SalesPerRegionMonthlyDto> SalesPerRegion { get; init; } = [];
+    public List<SalesPerPartyDto> TopParties { get; init; } = [];
+}
+
+public record SalesPerPartyDto
+{
+    public string PartyName { get; init; } = string.Empty;
+    public decimal TotalSalesAmount { get; init; }
+    public int InvoiceCount { get; init; }
 }
 
 public record VATTableDashboardDto
