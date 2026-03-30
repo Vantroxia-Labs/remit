@@ -1,0 +1,21 @@
+namespace AegisEInvoicing.Domain.Enums;
+
+public enum InvoiceStatus
+{
+    REJECTED = 0,
+    DRAFT,
+    CREATED,
+    PENDING_APPROVAL,
+    APPROVED,
+    VALIDATED,
+    VALIDATIONFAILED,
+    SUBMITTED,
+    SIGNED,
+    SIGNINGFAILED,
+    TRANSMITTING,
+    TRANSMITTED,
+    TRANSMISSIONFAILED,
+    ACKNOWLEDGED,
+    COMPLETELYTRANSMITTED,
+    FAILED
+}

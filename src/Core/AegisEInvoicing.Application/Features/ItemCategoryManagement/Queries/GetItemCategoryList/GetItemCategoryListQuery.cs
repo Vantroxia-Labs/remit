@@ -1,0 +1,12 @@
+using AegisEInvoicing.Application.Common.Models;
+using AegisEInvoicing.Application.Features.ItemCategoryManagement.DTOs;
+using MediatR;
+
+namespace AegisEInvoicing.Application.Features.ItemCategoryManagement.Queries.GetItemCategoryList;
+
+public record GetItemCategoryListQuery(
+    int PageNumber = 1,
+    int PageSize = 10,
+    string? SearchTerm = null,
+    string? SortBy = "Name",
+    bool SortDescending = false) : IRequest<PaginatedList<ItemCategorySummaryDto>>;

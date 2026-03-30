@@ -1,0 +1,146 @@
+services:
+  einvoice-background-service:
+    build:
+      context: .
+      dockerfile: src/Presentation/EInvoiceIntegrator.BackgroundService/Dockerfile
+    container_name: einvoice-integrator-bg-service
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - DOTNET_RUNNING_IN_CONTAINER=true
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      # Override sensitive configuration via environment variables
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-Host=pg-2ec9c3a8-aresdims-2dc9.g.aivencloud.com;Port=22331;Database=EInvoiceUsermgtDb;Username=avnadmin;Password=AVNS_De_tHsKg5She-pUD_IC;Pooling=true;SSL Mode=Prefer;Trust Server Certificate=true}
+      - MailKit__SmtpServer=${SMTP_SERVER:-email-smtp.us-east-1.amazonaws.com}
+      - MailKit__SmtpPort=${SMTP_PORT:-587}
+      - MailKit__Username=${SMTP_USERNAME:-AKIA4ESZHHNERFGJFKMF}
+      - MailKit__Password=${SMTP_PASSWORD:-BNBtIWD1XdUo7M8UlGWTZvkWHI3atVL8G1V9Sh6NGoqY}
+      - MailKit__UseSsl=${SMTP_USE_SSL:-true}
+      - SFTPDetails__Connections__0__Host=${SFTP_HOST:-172.236.28.121}
+      - SFTPDetails__Connections__0__UserName=${SFTP_USERNAME:-kpmg}
+      - SFTPDetails__Connections__0__Password=${SFTP_PASSWORD:-Nigeriasns19$}
+      - Processing__ProcessingIntervalSeconds=${PROCESSING_INTERVAL:-30}
+      - Processing__MaxFilesPerBatch=${MAX_FILES_PER_BATCH:-50}
+      - Processing__EnableParallelProcessing=${ENABLE_PARALLEL_PROCESSING:-true}
+      - Logging__LogLevel__Default=${LOG_LEVEL:-Information}
+      - Logging__LogLevel__EInvoiceIntegrator.BackgroundService.Jobs=Information
+      - Logging__LogLevel__Quartz=Information
+      - Logging__LogLevel__Quartz.Core=Debug
+      - Security__EncryptionKey=${ENCRYPTION_KEY:-your-32-character-encryption-key-here12345}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-32-character-encryption-key-here12345}
+    volumes:
+      - ./logs:/app/logs:rw
+      - ./data:/app/data:rw
+      - app-temp:/tmp
+    networks:
+      - einvoice-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.einvoiceintegrator.service=background-service"
+      - "com.einvoiceintegrator.version=1.0"
+      - "com.einvoiceintegrator.description=EInvoice Integrator Background Service with Quartz Scheduler"
+
+  # Console-only background service (recommended for production)
+  einvoice-background-console:
+    build:
+      context: .
+      dockerfile: src/Presentation/EInvoiceIntegrator.BackgroundService/Dockerfile.Console
+    container_name: einvoice-integrator-console
+    restart: unless-stopped
+    environment:
+      - DOTNET_RUNNING_IN_CONTAINER=true
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      # Override sensitive configuration via environment variables
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-Host=pg-2ec9c3a8-aresdims-2dc9.g.aivencloud.com;Port=22331;Database=EInvoiceUsermgtDb;Username=avnadmin;Password=AVNS_De_tHsKg5She-pUD_IC;Pooling=true;SSL Mode=Prefer;Trust Server Certificate=true}
+      - MailKit__SmtpServer=${SMTP_SERVER:-email-smtp.us-east-1.amazonaws.com}
+      - MailKit__SmtpPort=${SMTP_PORT:-587}
+      - MailKit__Username=${SMTP_USERNAME:-AKIA4ESZHHNERFGJFKMF}
+      - MailKit__Password=${SMTP_PASSWORD:-BNBtIWD1XdUo7M8UlGWTZvkWHI3atVL8G1V9Sh6NGoqY}
+      - MailKit__UseSsl=${SMTP_USE_SSL:-true}
+      - SFTPDetails__Connections__0__Host=${SFTP_HOST:-172.236.28.121}
+      - SFTPDetails__Connections__0__UserName=${SFTP_USERNAME:-kpmg}
+      - SFTPDetails__Connections__0__Password=${SFTP_PASSWORD:-Nigeriasns19$}
+      - Processing__ProcessingIntervalSeconds=${PROCESSING_INTERVAL:-30}
+      - Processing__MaxFilesPerBatch=${MAX_FILES_PER_BATCH:-50}
+      - Processing__EnableParallelProcessing=${ENABLE_PARALLEL_PROCESSING:-true}
+      - Logging__LogLevel__Default=${LOG_LEVEL:-Information}
+      - Logging__LogLevel__EInvoiceIntegrator.BackgroundService.Jobs=Information
+      - Logging__LogLevel__Quartz=Information
+      - Security__EncryptionKey=${ENCRYPTION_KEY:-your-32-character-encryption-key-here12345}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-32-character-encryption-key-here12345}
+    volumes:
+      - ./logs:/app/logs:rw
+      - ./data:/app/data:rw
+    networks:
+      - einvoice-network
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "dotnet.*EInvoiceIntegrator.BackgroundService.dll"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.einvoiceintegrator.service=background-console"
+      - "com.einvoiceintegrator.version=1.0"
+      - "com.einvoiceintegrator.description=EInvoice Integrator Console Background Service"
+
+  postgresql:
+    image: postgres:15-alpine
+    container_name: einvoice-postgres
+    environment:
+      POSTGRES_DB: einvoiceintegrator_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d einvoiceintegrator_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - einvoice-network
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: einvoice-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@einvoice.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8080:80"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    restart: unless-stopped
+    networks:
+      - einvoice-network
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  app-temp:
+    driver: local
+
+networks:
+  einvoice-network:
+    driver: bridge

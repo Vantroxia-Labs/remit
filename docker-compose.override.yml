@@ -1,0 +1,111 @@
+# Docker Compose Override for Development
+# This file is automatically used with docker-compose up (alongside docker-compose.full.yml)
+# It provides development-specific configurations
+
+version: '3.8'
+
+services:
+  # =============================================
+  # Development Overrides for Application Services
+  # =============================================
+
+  einvoice-api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Logging__LogLevel__Default=Debug
+      - Logging__LogLevel__Microsoft.AspNetCore=Information
+    volumes:
+      # Mount source code for hot reload (if using dotnet watch)
+      - ./src:/src:ro
+    ports:
+      # Expose additional ports for debugging
+      - "5010:8080"
+
+  einvoice-saas-api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Logging__LogLevel__Default=Debug
+      - Logging__LogLevel__Microsoft.AspNetCore=Information
+    volumes:
+      - ./src:/src:ro
+    ports:
+      - "5020:8080"
+
+  einvoice-background-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Logging__LogLevel__Default=Debug
+      - Processing__ProcessingIntervalSeconds=60
+    volumes:
+      - ./src:/src:ro
+
+  # =============================================
+  # Development Database with Exposed Ports
+  # =============================================
+
+  postgresql:
+    environment:
+      - POSTGRES_DB=einvoiceintegrator_dev
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts with local PostgreSQL
+    volumes:
+      # Add volume for database initialization scripts
+      - ./docker/init/dev:/docker-entrypoint-initdb.d:ro
+
+  # =============================================
+  # Development Tools
+  # =============================================
+
+  # Adminer - Lightweight database management (alternative to pgAdmin)
+  adminer:
+    image: adminer:latest
+    container_name: einvoice-adminer
+    restart: unless-stopped
+    ports:
+      - "8083:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgresql
+      ADMINER_DESIGN: pepa-linha
+    depends_on:
+      - postgresql
+    networks:
+      - einvoice-network
+    labels:
+      - "com.einvoiceintegrator.service=adminer"
+      - "com.einvoiceintegrator.description=Lightweight Database Management"
+
+  # Mailhog - Email testing server
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: einvoice-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - einvoice-network
+    labels:
+      - "com.einvoiceintegrator.service=mailhog"
+      - "com.einvoiceintegrator.description=Email Testing Server"
+
+  # Seq - Centralized logging (optional)
+  seq:
+    image: datalust/seq:latest
+    container_name: einvoice-seq
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: Y
+    ports:
+      - "5341:80"  # Web UI
+      - "5342:5341"  # Ingestion
+    volumes:
+      - seq_data:/data
+    networks:
+      - einvoice-network
+    labels:
+      - "com.einvoiceintegrator.service=seq"
+      - "com.einvoiceintegrator.description=Centralized Logging"
+
+volumes:
+  seq_data:
+    driver: local

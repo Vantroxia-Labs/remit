@@ -1,0 +1,41 @@
+{
+  "common": {
+    "idle_timeout": 15,
+    "create_default_dir": true
+  },
+  "sftpd": {
+    "bindings": [
+      {
+        "port": 2222,
+        "address": "0.0.0.0"
+      }
+    ],
+    "max_auth_tries": 3
+  },
+  "httpd": {
+    "bindings": [
+      {
+        "port": 8080,
+        "address": "127.0.0.1",
+        "enable_web_admin": true,
+        "enable_web_client": false,
+        "enable_rest_api": true
+      }
+    ],
+    "templates_path": "C:/Program Files/SFTPGo/templates"
+  },
+  "data_provider": {
+    "driver": "memory",
+    "external_auth_hook": "http://localhost:5138/api/sftp-auth/check-credentials",
+    "external_auth_scope": 1,
+    "users_base_dir": "C:/ftproot",
+    "credentials_path": "sftpgo_users.json"
+  },
+  "smtp": {
+    "host": "",
+    "port": 0
+  },
+  "telemetry": {
+    "bind_port": 0
+  }
+}

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Features\BusinessManagement\Commands\ReactivateBusiness\**" />
+    <Compile Remove="Features\BusinessManagement\Handlers\**" />
+    <Compile Remove="Features\BusinessOnboarding\Commands\**" />
+    <Compile Remove="Features\System\**" />
+    <EmbeddedResource Remove="Features\BusinessManagement\Commands\ReactivateBusiness\**" />
+    <EmbeddedResource Remove="Features\BusinessManagement\Handlers\**" />
+    <EmbeddedResource Remove="Features\BusinessOnboarding\Commands\**" />
+    <EmbeddedResource Remove="Features\System\**" />
+    <None Remove="Features\BusinessManagement\Commands\ReactivateBusiness\**" />
+    <None Remove="Features\BusinessManagement\Handlers\**" />
+    <None Remove="Features\BusinessOnboarding\Commands\**" />
+    <None Remove="Features\System\**" />
+  </ItemGroup>
+  <!-- Include only the specific handlers that are functional -->
+  <ItemGroup>
+    <Compile Include="Features\BusinessManagement\Handlers\RemoveUserFromBusinessCommandHandler.cs" />
+    <Compile Include="Features\BusinessManagement\Handlers\UpdateSubscriptionCommandHandler.cs" />
+    <Compile Include="Features\BusinessManagement\Handlers\AddUserToBusinessCommandHandler.cs" />
+    <Compile Include="Features\BusinessManagement\Handlers\GetBusinessUsersQueryHandler.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Common\Interfaces\IInvoiceValidationService.cs" />
+    <Compile Remove="Services\IDigitalSignatureService.cs" />
+    <Compile Remove="Services\FIRSIntegrationService.cs" />
+    <Compile Remove="Services\IQRCodeService.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.Core" Version="4.0.3.14" />
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="EPPlus" Version="8.4.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.9" />
+    <PackageReference Include="NPOI" Version="2.7.5" />
+    <PackageReference Include="AutoMapper" Version="16.1.1" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageReference Include="MediatR" Version="14.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Polly" Version="8.6.5" />
+    <PackageReference Include="QRCoder" Version="1.7.0" />
+    <PackageReference Include="SSH.NET" Version="2025.1.0" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Features\DashboardAnalytics\Commands\" />
+    <Folder Include="Features\Miscellenous\Commands\" />
+    <Folder Include="Features\PlatformSubscriptions\Commands\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\Email\**\*.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Integrations\AegisEInvoicing.Interswitch\AegisEInvoicing.Interswitch.csproj" />
+    <ProjectReference Include="..\..\Integrations\AegisEInvoicing.NotificationService\AegisEInvoicing.NotificationService.csproj" />
+    <ProjectReference Include="..\..\Integrations\AegisEInvoicing.Paystack\AegisEInvoicing.Paystack.csproj" />
+    <ProjectReference Include="..\AegisEInvoicing.Domain\AegisEInvoicing.Domain.csproj" />
+    <ProjectReference Include="..\..\Integrations\AegisEInvoicing.FIRSAccessPoint\AegisEInvoicing.FIRSAccessPoint.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.ServiceModel.Http" Version="10.0.652802" />
+    <PackageReference Include="System.ServiceModel.NetTcp" Version="10.0.652802" />
+    <PackageReference Include="System.ServiceModel.Primitives" Version="10.0.652802" />
+  </ItemGroup>
+</Project>

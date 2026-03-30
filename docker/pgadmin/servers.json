@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "EInvoice PostgreSQL",
+      "Group": "EInvoice",
+      "Host": "postgresql",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "postgres",
+      "SSLMode": "prefer",
+      "PassFile": "/tmp/pgpassfile"
+    }
+  }
+}
