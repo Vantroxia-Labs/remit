@@ -81,7 +81,7 @@
 		<ProjectReference Include="..\..\Integrations\AegisEInvoicing.NotificationService\AegisEInvoicing.NotificationService.csproj" />
 		<ProjectReference Include="..\..\Integrations\AegisEInvoicing.Paystack\AegisEInvoicing.Paystack.csproj" />
 	</ItemGroup>
-  <ItemGroup>
-    <None Include=".env" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include=".env" CopyToOutputDirectory="PreserveNewest" Condition="Exists('.env')" />
+	</ItemGroup>
 </Project>

@@ -2,6 +2,7 @@ using AegisEInvoicing.Portal.API.Models;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.ActivateRegistration;
 using AegisEInvoicing.Application.Features.BusinessManagement.Queries.GetSubscriptionPlans;
 using AegisEInvoicing.Paystack.Interfaces;
+using AegisEInvoicing.Paystack.Models.Requests;
 using AegisEInvoicing.Paystack.Models.Webhook;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -20,6 +21,55 @@ public class PaymentController(
     IPaystackService paystackService,
     ILogger<PaymentController> logger) : BaseApiController
 {
+    /// <summary>
+    /// Initialize a payment transaction for subscription or other payments
+    /// </summary>
+    [HttpPost("initialize")]
+    [AllowAnonymous]
+    [SwaggerOperation(
+        Summary = "Initialize Payment",
+        Description = "Initialize a Paystack payment transaction and returns the authorization URL for payment.")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentInitializationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> InitializePayment(
+        [FromBody] PaymentInitializationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var reference = string.IsNullOrWhiteSpace(request.Reference) 
+            ? paystackService.GenerateReference() 
+            : request.Reference;
+
+        var paystackRequest = new InitializeTransactionRequest
+        {
+            Email = request.Email,
+            Amount = request.Amount,
+            Currency = request.Currency ?? "NGN",
+            Reference = reference,
+            CallbackUrl = request.CallbackUrl,
+            Metadata = request.Metadata is not null
+                ? new PaystackMetadata
+                {
+                    PendingRegistrationId = request.Metadata.PendingRegistrationId,
+                    PlanId = request.Metadata.PlanId,
+                    BillingCycle = request.Metadata.BillingCycle,
+                    BusinessName = request.Metadata.BusinessName,
+                    AdminEmail = request.Metadata.AdminEmail
+                }
+                : null
+        };
+
+        var result = await paystackService.InitializeTransactionAsync(paystackRequest, cancellationToken);
+
+        if (!result.Status || result.Data is null)
+            return Error(result.Message);
+
+        return Success(new PaymentInitializationResponse(
+            AuthorizationUrl: result.Data.AuthorizationUrl,
+            AccessCode: result.Data.AccessCode,
+            Reference: result.Data.Reference),
+            "Payment initialized successfully. Redirect user to authorization URL.");
+    }
+
     /// <summary>
     /// Paystack webhook — called by Paystack when a payment event occurs.
     /// Activates pending business registrations on charge.success.
@@ -165,3 +215,23 @@ public record PaymentVerificationResponse(
     bool IsSuccessful,
     Guid? BusinessId,
     string Message);
+
+public record PaymentInitializationRequest(
+    string Email,
+    long Amount, // Amount in kobo (NGN 100 = 10000 kobo)
+    string? Currency = "NGN",
+    string? Reference = null,
+    string? CallbackUrl = null,
+    PaymentMetadata? Metadata = null);
+
+public record PaymentMetadata(
+    string? PendingRegistrationId = null,
+    string? PlanId = null,
+    string? BillingCycle = null,
+    string? BusinessName = null,
+    string? AdminEmail = null);
+
+public record PaymentInitializationResponse(
+    string AuthorizationUrl,
+    string AccessCode,
+    string Reference);
