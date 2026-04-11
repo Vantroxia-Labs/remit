@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>AndersenNigeria.Integration.Etranzact</RootNamespace>
+    <AssemblyName>AndersenNigeria.Integration.Etranzact</AssemblyName>
+    <Description>eTranzact e-invoice integration - HMAC-SHA256 authentication, invoice validation, signing, and transmission.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AndersenNigeria.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" />
+    <PackageReference Include="Polly" />
+    <PackageReference Include="Polly.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\AndersenNigeria.Application.Abstractions\AndersenNigeria.Application.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>
