@@ -31,9 +31,7 @@ public sealed record AppLookupTinResult(
 /// </summary>
 public interface IAccessPointProviderClient
 {
-    /// <summary>
-    /// Lowercase provider code matching <see cref="Domain.Entities.AppProviderConfiguration.ProviderCode"/>.
-    /// </summary>
+    /// <summary>\n    /// Lowercase provider code matching the AppProviderConfiguration.ProviderCode property.\n    /// </summary>
     string ProviderCode { get; }
 
     /// <summary>

@@ -198,8 +198,8 @@ public class BusinessConfiguration : IEntityTypeConfiguration<Business>
             .OnDelete(DeleteBehavior.Restrict);
 
         // APP Provider switching
-        builder.Property(e => e.ActiveAppProviderCode)
-            .HasMaxLength(100);
+        builder.Property(e => e.ActiveVendor)
+            .HasConversion<int>();
 
         builder.Property(e => e.AppEnvironmentMode)
             .HasConversion<string>()

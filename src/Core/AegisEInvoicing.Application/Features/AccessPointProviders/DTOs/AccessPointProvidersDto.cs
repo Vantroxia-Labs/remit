@@ -2,23 +2,20 @@ using AegisEInvoicing.Domain.Enums;
 
 namespace AegisEInvoicing.Application.Features.AccessPointProviders.DTOs;
 
+/// <summary>
+/// Read model for an APP provider configuration.
+/// Credentials are never returned — they are encrypted at rest and have no use on the client.
+/// The frontend shows presence indicators (HasProductionCredentials / HasSandboxCredentials)
+/// so the admin knows whether credentials have been configured.
+/// </summary>
 public record AccessPointProvidersDto(
     Guid Id,
-    string ProviderCode,
-    string DisplayName,
-    string Description,
-    AppAuthScheme AuthScheme,
-    string? ApiKeyHeaderName,
-    string? SignatureHeaderName,
-    // Sandbox (credentials masked for non-admin callers)
-    string SandboxBaseUrl,
-    string SandboxApiKey,
-    string SandboxApiSecret,
-    string? SandboxTokenEndpoint,
-    // Production
-    string ProductionBaseUrl,
-    string ProductionApiKey,
-    string ProductionApiSecret,
-    string? ProductionTokenEndpoint,
+    string Name,
+    string? Description,
+    AppVendor Vendor,
+    string BaseUrl,
+    bool HasProductionCredentials,
+    string? SandboxBaseUrl,
+    bool HasSandboxCredentials,
     bool IsActive,
     DateTimeOffset CreatedAt);

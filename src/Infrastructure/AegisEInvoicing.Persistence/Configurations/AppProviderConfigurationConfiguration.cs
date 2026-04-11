@@ -1,5 +1,4 @@
 using AegisEInvoicing.Domain.Entities;
-using AegisEInvoicing.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,56 +12,31 @@ public class AppProviderConfigurationConfiguration : IEntityTypeConfiguration<Ap
 
         builder.HasKey(a => a.Id);
 
-        builder.Property(a => a.ProviderCode)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.Property(a => a.DisplayName)
+        builder.Property(a => a.Name)
             .IsRequired()
             .HasMaxLength(200);
 
         builder.Property(a => a.Description)
-            .IsRequired()
             .HasMaxLength(1000);
 
-        builder.Property(a => a.AuthScheme)
-            .HasConversion<string>()
+        // Stored as integer — enum value determines the adapter wired up by the router
+        builder.Property(a => a.Vendor)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasConversion<int>();
 
-        builder.Property(a => a.ApiKeyHeaderName)
-            .HasMaxLength(100);
+        builder.Property(a => a.BaseUrl)
+            .IsRequired()
+            .HasMaxLength(500);
 
-        builder.Property(a => a.SignatureHeaderName)
-            .HasMaxLength(100);
+        // Credentials are opaque encrypted blobs; no length constraint
+        builder.Property(a => a.EncryptedCredentials)
+            .HasColumnType("text");
 
-        // Sandbox credentials
         builder.Property(a => a.SandboxBaseUrl)
-            .IsRequired()
             .HasMaxLength(500);
 
-        builder.Property(a => a.EncryptedSandboxApiKey)
+        builder.Property(a => a.EncryptedSandboxCredentials)
             .HasColumnType("text");
-
-        builder.Property(a => a.EncryptedSandboxApiSecret)
-            .HasColumnType("text");
-
-        builder.Property(a => a.SandboxTokenEndpoint)
-            .HasMaxLength(500);
-
-        // Production credentials
-        builder.Property(a => a.ProductionBaseUrl)
-            .IsRequired()
-            .HasMaxLength(500);
-
-        builder.Property(a => a.EncryptedProductionApiKey)
-            .HasColumnType("text");
-
-        builder.Property(a => a.EncryptedProductionApiSecret)
-            .HasColumnType("text");
-
-        builder.Property(a => a.ProductionTokenEndpoint)
-            .HasMaxLength(500);
 
         builder.Property(a => a.IsActive)
             .IsRequired()
@@ -90,10 +64,10 @@ public class AppProviderConfigurationConfiguration : IEntityTypeConfiguration<Ap
             .IsRequired()
             .HasDefaultValue(false);
 
-        // ProviderCode must be unique — it is the routing key
-        builder.HasIndex(a => a.ProviderCode)
+        // One configuration per vendor — Vendor is the routing key
+        builder.HasIndex(a => a.Vendor)
             .IsUnique()
-            .HasDatabaseName("IX_AppProviderConfigurations_ProviderCode");
+            .HasDatabaseName("IX_AppProviderConfigurations_Vendor");
 
         builder.HasIndex(a => a.IsActive)
             .HasDatabaseName("IX_AppProviderConfigurations_IsActive");

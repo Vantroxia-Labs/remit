@@ -6,31 +6,26 @@ namespace AegisEInvoicing.Portal.API.Models.AccessPointProvider;
 public class AccessPointProviderRequest
 {
     [Required]
-    public string ProviderCode { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
 
     [Required]
-    public string DisplayName { get; set; } = string.Empty;
+    public AppVendor Vendor { get; set; }
 
     [Required]
-    public string Description { get; set; } = string.Empty;
+    public string BaseUrl { get; set; } = string.Empty;
 
-    [Required]
-    public AppAuthScheme AuthScheme { get; set; }
+    /// <summary>
+    /// Plaintext JSON of production credentials. Shape is vendor-specific.
+    /// The API encrypts this before persistence. Omit to leave existing credentials unchanged.
+    /// </summary>
+    public string? CredentialsJson { get; set; }
 
-    public string? ApiKeyHeaderName { get; set; }
-    public string? SignatureHeaderName { get; set; }
+    public string? SandboxBaseUrl { get; set; }
 
-    // Sandbox
-    [Required]
-    public string SandboxBaseUrl { get; set; } = string.Empty;
-    public string? SandboxApiKey { get; set; }
-    public string? SandboxApiSecret { get; set; }
-    public string? SandboxTokenEndpoint { get; set; }
-
-    // Production
-    [Required]
-    public string ProductionBaseUrl { get; set; } = string.Empty;
-    public string? ProductionApiKey { get; set; }
-    public string? ProductionApiSecret { get; set; }
-    public string? ProductionTokenEndpoint { get; set; }
+    /// <summary>
+    /// Plaintext JSON of sandbox credentials. Omit if this vendor has no sandbox.
+    /// </summary>
+    public string? SandboxCredentialsJson { get; set; }
 }

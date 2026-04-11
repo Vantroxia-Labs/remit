@@ -735,6 +735,15 @@ public class UploadInvoiceCommandHandler(
                     item.ItemDescription,
                     item.UnitPrice);
 
+                if (item.TaxCategories is { Count: > 0 })
+                {
+                    var taxCats = item.TaxCategories.Select(tc =>
+                        tc.IsPercentage
+                            ? BusinessItemTaxCategory.CreatePercentage(tc.Name, tc.Name, tc.Percent!.Value)
+                            : BusinessItemTaxCategory.CreateFlatFee(tc.Name, tc.Name, tc.FlatAmount!.Value)).ToList();
+                    newBusinessItem.UpdateTaxCategories(taxCats);
+                }
+
                 newBusinessItems.Add(newBusinessItem);
                 businessItemsDict[key] = newBusinessItem.Id;
                 businessItemId = newBusinessItem.Id;

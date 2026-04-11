@@ -9,6 +9,7 @@ public record CreateBusinessItemCommand(
     string Name,
     ItemType ItemType,
     CreateServiceCodeDto ServiceCode,
+    IEnumerable<CreateBusinessItemTaxCategoryDto> TaxCategories,
     Guid ItemCategoryId,
     string ItemDescription,
     decimal UnitPrice) : IRequest<BusinessItemResult>, ITransactionalCommand;

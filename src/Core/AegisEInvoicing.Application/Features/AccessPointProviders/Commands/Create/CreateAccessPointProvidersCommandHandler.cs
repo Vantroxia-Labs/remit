@@ -1,6 +1,5 @@
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Entities;
-using AegisEInvoicing.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -21,49 +20,31 @@ public class CreateAccessPointProvidersCommandHandler(
         if (!currentUser.IsPlatformAdmin)
             return new CreateAccessPointProvidersResult(false, "Only AegisAdmin users may manage APP provider configurations.");
 
-        var normalizedCode = request.ProviderCode.ToLowerInvariant().Trim();
-
         var exists = await context.AppProviderConfigurations
-            .AnyAsync(p => p.ProviderCode == normalizedCode && !p.IsDeleted, cancellationToken);
+            .AnyAsync(p => p.Vendor == request.Vendor && !p.IsDeleted, cancellationToken);
 
         if (exists)
-            return new CreateAccessPointProvidersResult(false, $"A provider with code '{normalizedCode}' already exists.");
+            return new CreateAccessPointProvidersResult(false,
+                $"A configuration for vendor '{request.Vendor}' already exists.");
 
-        // Encrypt credentials
-        var encSandboxKey    = await EncryptOptional(request.SandboxApiKey, encryptionService);
-        var encSandboxSecret = await EncryptOptional(request.SandboxApiSecret, encryptionService);
-        var encProdKey       = await EncryptOptional(request.ProductionApiKey, encryptionService);
-        var encProdSecret    = await EncryptOptional(request.ProductionApiSecret, encryptionService);
+        var encryptedCredentials = await EncryptOptional(request.CredentialsJson, encryptionService);
+        var encryptedSandbox     = await EncryptOptional(request.SandboxCredentialsJson, encryptionService);
 
-        AppProviderConfiguration configuration = request.AuthScheme switch
-        {
-            AppAuthScheme.OAuth2ClientCredentials => AppProviderConfiguration.CreateOAuth2Provider(
-                normalizedCode, request.DisplayName, request.Description,
-                request.SandboxBaseUrl, encSandboxKey, encSandboxSecret, request.SandboxTokenEndpoint,
-                request.ProductionBaseUrl, encProdKey, encProdSecret, request.ProductionTokenEndpoint),
-
-            AppAuthScheme.StaticApiKey => AppProviderConfiguration.CreateStaticApiKeyProvider(
-                normalizedCode, request.DisplayName, request.Description,
-                request.ApiKeyHeaderName ?? "X-API-Key",
-                request.SandboxBaseUrl, encSandboxKey,
-                request.ProductionBaseUrl, encProdKey),
-
-            AppAuthScheme.HmacApiKey => AppProviderConfiguration.CreateHmacApiKeyProvider(
-                normalizedCode, request.DisplayName, request.Description,
-                request.ApiKeyHeaderName ?? "X-API-Key",
-                request.SignatureHeaderName ?? "X-API-Signature",
-                request.SandboxBaseUrl, encSandboxKey, encSandboxSecret,
-                request.ProductionBaseUrl, encProdKey, encProdSecret),
-
-            _ => throw new ArgumentOutOfRangeException(nameof(request.AuthScheme))
-        };
+        var configuration = AppProviderConfiguration.Create(
+            request.Name,
+            request.Description,
+            request.Vendor,
+            request.BaseUrl,
+            encryptedCredentials,
+            request.SandboxBaseUrl,
+            encryptedSandbox);
 
         await context.AppProviderConfigurations.AddAsync(configuration, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "AppProviderConfiguration created: ProviderCode={Code}, AuthScheme={Scheme}",
-            normalizedCode, request.AuthScheme);
+            "AppProviderConfiguration created: Vendor={Vendor}, Name={Name}",
+            request.Vendor, request.Name);
 
         return new CreateAccessPointProvidersResult(true, "Access point provider created successfully.", configuration.Id);
     }

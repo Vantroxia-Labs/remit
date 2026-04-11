@@ -85,6 +85,13 @@ public class CreateBusinessItemCommandHandler : IRequestHandler<CreateBusinessIt
             request.ItemDescription,
             request.UnitPrice);
 
+        // Apply tax categories
+        var taxCategories = request.TaxCategories.Select(tc =>
+            tc.IsPercentage
+                ? BusinessItemTaxCategory.CreatePercentage(tc.Code, tc.Name, tc.Percent!.Value)
+                : BusinessItemTaxCategory.CreateFlatFee(tc.Code, tc.Name, tc.FlatAmount!.Value)).ToList();
+        businessItem.UpdateTaxCategories(taxCategories);
+
         // Save to database
         await _context.BusinessItems.AddAsync(businessItem);
         await _context.SaveChangesAsync(cancellationToken);

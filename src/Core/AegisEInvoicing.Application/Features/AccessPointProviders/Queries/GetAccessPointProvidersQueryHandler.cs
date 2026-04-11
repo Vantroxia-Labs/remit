@@ -8,12 +8,9 @@ using Microsoft.EntityFrameworkCore;
 namespace AegisEInvoicing.Application.Features.AccessPointProviders.Queries;
 
 public class GetAccessPointProvidersQueryHandler(
-    IApplicationDbContext context,
-    ICurrentUserService currentUser)
+    IApplicationDbContext context)
     : IRequestHandler<GetAccessPointProvidersQuery, PaginatedList<AccessPointProvidersDto>>
 {
-    private const string Masked = "************";
-
     public async Task<PaginatedList<AccessPointProvidersDto>> Handle(
         GetAccessPointProvidersQuery request,
         CancellationToken cancellationToken)
@@ -26,43 +23,26 @@ public class GetAccessPointProvidersQueryHandler(
         {
             var search = InputSanitizationService.SanitizeSearchTerm(request.SearchTerm);
             if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(p =>
-                    p.ProviderCode.Contains(search) ||
-                    p.DisplayName.ToLower().Contains(search));
-            }
+                query = query.Where(p => p.Name.ToLower().Contains(search));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
-            .OrderBy(p => p.DisplayName)
+            .OrderBy(p => p.Vendor)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        // Credentials are only shown in plaintext (well, still encrypted) to platform admins.
-        // Non-admins see masked values.
-        var isAdmin = currentUser.IsPlatformAdmin;
-
         var dtos = items.Select(p => new AccessPointProvidersDto(
             p.Id,
-            p.ProviderCode,
-            p.DisplayName,
+            p.Name,
             p.Description,
-            p.AuthScheme,
-            p.ApiKeyHeaderName,
-            p.SignatureHeaderName,
-            // Sandbox
+            p.Vendor,
+            p.BaseUrl,
+            HasProductionCredentials: p.EncryptedCredentials is not null,
             p.SandboxBaseUrl,
-            isAdmin ? (p.EncryptedSandboxApiKey ?? string.Empty) : Masked,
-            isAdmin ? (p.EncryptedSandboxApiSecret ?? string.Empty) : Masked,
-            p.SandboxTokenEndpoint,
-            // Production
-            p.ProductionBaseUrl,
-            isAdmin ? (p.EncryptedProductionApiKey ?? string.Empty) : Masked,
-            isAdmin ? (p.EncryptedProductionApiSecret ?? string.Empty) : Masked,
-            p.ProductionTokenEndpoint,
+            HasSandboxCredentials: p.EncryptedSandboxCredentials is not null,
             p.IsActive,
             p.CreatedAt
         )).ToList();

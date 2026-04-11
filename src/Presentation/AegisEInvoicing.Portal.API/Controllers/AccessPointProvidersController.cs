@@ -57,20 +57,13 @@ public class AccessPointProvidersController(
     public async Task<IActionResult> CreateAccessPointProvider([FromBody] AccessPointProviderRequest request)
     {
         var command = new CreateAccessPointProvidersCommand(
-            request.ProviderCode,
-            request.DisplayName,
+            request.Name,
             request.Description,
-            request.AuthScheme,
-            request.ApiKeyHeaderName,
-            request.SignatureHeaderName,
+            request.Vendor,
+            request.BaseUrl,
+            request.CredentialsJson,
             request.SandboxBaseUrl,
-            request.SandboxApiKey,
-            request.SandboxApiSecret,
-            request.SandboxTokenEndpoint,
-            request.ProductionBaseUrl,
-            request.ProductionApiKey,
-            request.ProductionApiSecret,
-            request.ProductionTokenEndpoint);
+            request.SandboxCredentialsJson);
 
         var result = await Mediator.Send(command);
 
@@ -98,18 +91,12 @@ public class AccessPointProvidersController(
     {
         var command = new UpdateAccessPointProvidersCommand(
             configurationId,
-            request.DisplayName,
+            request.Name,
             request.Description,
-            request.ApiKeyHeaderName,
-            request.SignatureHeaderName,
+            request.BaseUrl,
+            request.CredentialsJson,
             request.SandboxBaseUrl,
-            request.SandboxApiKey,
-            request.SandboxApiSecret,
-            request.SandboxTokenEndpoint,
-            request.ProductionBaseUrl,
-            request.ProductionApiKey,
-            request.ProductionApiSecret,
-            request.ProductionTokenEndpoint);
+            request.SandboxCredentialsJson);
 
         var result = await Mediator.Send(command);
 
@@ -146,6 +133,25 @@ public class AccessPointProvidersController(
 
     // ─── Per-business settings (AegisAdmin or ClientAdmin) ───────────────────
 
+    [HttpGet("businesses/{businessId:guid}/settings")]
+    [SwaggerOperation(
+        Summary = "Get current APP provider and environment mode for a business",
+        Description = "Returns the active vendor and environment mode. ClientAdmin can only read their own business.",
+        OperationId = "GetBusinessAppSettings",
+        Tags = new[] { "Access Point Providers" })]
+    [SwaggerResponse(200, "Settings retrieved", typeof(ApiResponse<BusinessAppSettingsDto>))]
+    [SwaggerResponse(404, "Business not found or access denied")]
+    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin)]
+    public async Task<IActionResult> GetBusinessAppSettings(Guid businessId)
+    {
+        var result = await Mediator.Send(new GetBusinessAppSettingsQuery(businessId));
+
+        if (result is null)
+            return NotFound(Error("Business not found or access denied."));
+
+        return Success(result, "Business APP settings");
+    }
+
     [HttpPatch("businesses/{businessId:guid}/provider")]
     [SwaggerOperation(
         Summary = "Set active APP provider for a business",
@@ -160,7 +166,7 @@ public class AccessPointProvidersController(
         Guid businessId,
         [FromBody] SetBusinessAppProviderRequest request)
     {
-        var command = new SetBusinessAppProviderCommand(businessId, request.ProviderCode);
+        var command = new SetBusinessAppProviderCommand(businessId, request.Vendor);
         var result = await Mediator.Send(command);
 
         if (!result.IsSuccess)

@@ -54,10 +54,14 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
 
         var serviceCodeDto = new CreateServiceCodeDto(request.ServiceCode.Code.Trim(), request.ServiceCode.Name.Trim());
 
+        var taxCategories = request.TaxCategories.Select(tc => new CreateBusinessItemTaxCategoryDto(
+            tc.Code, tc.Name, tc.IsPercentage, tc.Percent, tc.FlatAmount));
+
         var command = new CreateBusinessItemCommand(
             request.Name.Trim(),
             request.ItemType,
             serviceCodeDto,
+            taxCategories,
             request.ItemCategoryId,
             request.ItemDescription,
             request.UnitPrice);
@@ -163,7 +167,15 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
             CreatedAt = result.BusinessItem.CreatedAt,
             UpdatedAt = result.BusinessItem.UpdatedAt,
             CreatedBy = result.BusinessItem.CreatedBy,
-            UpdatedBy = result.BusinessItem.UpdatedBy
+            UpdatedBy = result.BusinessItem.UpdatedBy,
+            TaxCategories = result.BusinessItem.TaxCategories.Select(tc => new TaxCategoryItemResponse
+            {
+                Code = tc.Code,
+                Name = tc.Name,
+                IsPercentage = tc.IsPercentage,
+                Percent = tc.Percent,
+                FlatAmount = tc.FlatAmount
+            }).ToList()
         };
 
         return Success(response, "Business item retrieved successfully");
@@ -195,11 +207,15 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
 
         var serviceCodeDto = new UpdateServiceCodeDto(request.ServiceCode.Code, request.ServiceCode.Name);
 
+        var taxCategories = request.TaxCategories.Select(tc => new UpdateBusinessItemTaxCategoryDto(
+            tc.Code, tc.Name, tc.IsPercentage, tc.Percent, tc.FlatAmount));
+
         var command = new UpdateBusinessItemCommand(
             id,
             request.Name,
             request.ItemType,
             serviceCodeDto,
+            taxCategories,
             request.ItemCategoryId,
             request.ItemDescription,
             request.UnitPrice);

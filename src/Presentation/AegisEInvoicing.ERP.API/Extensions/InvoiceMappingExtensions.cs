@@ -75,15 +75,15 @@ public static class InvoiceMappingExtensions
     public static CreateFIRSInvoiceCommand MapToCreateFIRSInvoiceCommand(this CreateInvoiceRequest request)
     {
         var varOcg = new Regex("[^a-zA-Z0-9]");
-        
+
         // Parse InvoiceKind if provided
         AegisEInvoicing.Domain.Enums.InvoiceKind? invoiceKind = null;
-        if (!string.IsNullOrWhiteSpace(request.InvoiceKind) && 
+        if (!string.IsNullOrWhiteSpace(request.InvoiceKind) &&
             Enum.TryParse<AegisEInvoicing.Domain.Enums.InvoiceKind>(request.InvoiceKind, true, out var parsedKind))
         {
             invoiceKind = parsedKind;
         }
-        
+
         return new CreateFIRSInvoiceCommand
         {
             BusinessId = request.AegisBusinessId,
@@ -126,11 +126,13 @@ public static class InvoiceMappingExtensions
                     Code = item.ServiceCode.Code,
                     Name = item.ServiceCode.Name
                 },
-                TaxCategory = new AegisEInvoicing.Application.Features.InvoiceManagement.Commands.CreateFIRSInvoice.TaxCategoryRequest
+                TaxCategories = item.TaxCategories?.Select(tc => new AegisEInvoicing.Application.Features.InvoiceManagement.Commands.CreateFIRSInvoice.TaxCategoryRequest
                 {
-                    Name = item.TaxCategory.Name,
-                    Percent = item.TaxCategory.Percent
-                },
+                    Name = tc.Name,
+                    IsPercentage = tc.IsPercentage,
+                    Percent = tc.Percent,
+                    FlatAmount = tc.FlatAmount
+                }).ToList() ?? [],
                 UnitPrice = item.UnitPrice,
                 Quantity = item.Quantity,
                 DiscountFee = item.DiscountFee,

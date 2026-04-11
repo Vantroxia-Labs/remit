@@ -46,4 +46,9 @@ public class UpdateBusinessItemRequest
     [Required(ErrorMessage = "Unit price is required")]
     [Range(0, double.MaxValue, ErrorMessage = "Unit price must be greater than or equal to 0")]
     public decimal UnitPrice { get; set; }
+
+    /// <summary>
+    /// Tax categories applicable to this item
+    /// </summary>
+    public List<TaxCategoryItemRequest> TaxCategories { get; set; } = [];
 }

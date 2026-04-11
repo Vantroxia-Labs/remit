@@ -1,10 +1,12 @@
+using AegisEInvoicing.Domain.Enums;
+
 namespace AegisEInvoicing.Portal.API.Models.AccessPointProvider;
 
 public class SetBusinessAppProviderRequest
 {
     /// <summary>
-    /// Lowercase provider code (e.g. "interswitch", "bluebridge", "etranzact").
-    /// Pass null to reset to the platform default (Interswitch).
+    /// The vendor to activate for this business.
+    /// Null resets to the platform default (Interswitch).
     /// </summary>
-    public string? ProviderCode { get; set; }
+    public AppVendor? Vendor { get; set; }
 }

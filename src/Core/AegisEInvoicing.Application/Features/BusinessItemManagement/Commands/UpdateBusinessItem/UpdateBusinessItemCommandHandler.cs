@@ -2,6 +2,7 @@ using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.DTOs;
 using AegisEInvoicing.Application.Features.UserManagement.Queries.GetPlatformRoles;
 using AegisEInvoicing.Domain.Constants;
+using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Exceptions;
 using AegisEInvoicing.Domain.ValueObjects;
 using MediatR;
@@ -72,6 +73,13 @@ public class UpdateBusinessItemCommandHandler : IRequestHandler<UpdateBusinessIt
             serviceCode,
             request.ItemCategoryId,
             request.ItemDescription);
+
+        // Update tax categories
+        var taxCategories = request.TaxCategories.Select(tc =>
+            tc.IsPercentage
+                ? BusinessItemTaxCategory.CreatePercentage(tc.Code, tc.Name, tc.Percent!.Value)
+                : BusinessItemTaxCategory.CreateFlatFee(tc.Code, tc.Name, tc.FlatAmount!.Value)).ToList();
+        businessItem.UpdateTaxCategories(taxCategories);
 
         // Handle price change separately - requires approval
         if ((businessItem.UnitPrice != request.UnitPrice) && !_currentUser.Roles.Contains(RoleConstants.ClientAdmin))

@@ -54,7 +54,7 @@ public class CreateFIRSInvoiceCommandValidator : AbstractValidator<CreateFIRSInv
                 // Use FIRS API validation if service is available
                 if (_fIRSCurrencyValidationService != null)
                     return await _fIRSCurrencyValidationService.IsValidCurrencyAsync(currency.Code, cancellationToken);
-                
+
                 // Fallback to config-based validation
                 return BeValidCurrency(currency, _configuration);
             })
@@ -140,7 +140,7 @@ public class CreateFIRSInvoiceCommandValidator : AbstractValidator<CreateFIRSInv
     // ===============================================================
     // REFERENCE DATA VALIDATION METHODS (FIRS Cache)
     // ===============================================================
-    
+
     /// <summary>
     /// Validates invoice type code against FIRS cached reference data.
     /// Cache is loaded at startup and refreshed daily at 12 AM.
@@ -239,7 +239,7 @@ public class CreateFIRSInvoiceCommandValidator : AbstractValidator<CreateFIRSInv
 
         // Use the more restrictive date (backstop vs minimum allowed date)
         var effectiveMinDate = backstopDate > minimumAllowedDate ? backstopDate : minimumAllowedDate;
-        
+
         if (date < effectiveMinDate)
             return false;
 
@@ -340,7 +340,7 @@ public class CreateFIRSInvoiceCommandValidator : AbstractValidator<CreateFIRSInv
 
         // VAPT REQUIREMENT: Minimum date is 2025-01-01
         var minimumAllowedDate = new DateOnly(2025, 1, 1);
-        
+
         // Rule 1: Start date must not be before the minimum allowed date
         if (deliveryPeriod.StartDate < minimumAllowedDate)
             return false;
@@ -440,9 +440,22 @@ public class InvoiceItemRequestValidator : AbstractValidator<InvoiceItemRequest>
             .WithMessage(x => $"Invalid service code '{x.ServiceCode?.Code}' on invoice item '{x.Name}'. " +
                              $"Valid service codes include: {GetValidServiceCodes()}");
 
-        RuleFor(x => x.TaxCategory)
-            .NotNull()
-            .WithMessage("Tax category is required for all invoice items. Please specify the applicable tax category.");
+        RuleForEach(x => x.TaxCategories).ChildRules(tc =>
+        {
+            tc.RuleFor(t => t.Name).NotEmpty().WithMessage("Tax category name is required");
+            tc.When(t => t.IsPercentage, () =>
+            {
+                tc.RuleFor(t => t.Percent)
+                    .NotNull().WithMessage("Percent is required for percentage tax")
+                    .InclusiveBetween(0, 100).WithMessage("Percent must be between 0 and 100");
+            });
+            tc.When(t => !t.IsPercentage, () =>
+            {
+                tc.RuleFor(t => t.FlatAmount)
+                    .NotNull().WithMessage("Flat amount is required for flat fee tax")
+                    .GreaterThanOrEqualTo(0).WithMessage("Flat amount must be non-negative");
+            });
+        });
 
         // VAPT: Validate unit price - must be non-negative and within reasonable bounds
         RuleFor(x => x.UnitPrice)
@@ -453,7 +466,7 @@ public class InvoiceItemRequestValidator : AbstractValidator<InvoiceItemRequest>
 
         // VAPT: Validate quantity - must be zero or positive and within reasonable bounds
         var maxQuantityPerItem = _configuration?.GetValue<decimal>("InvoiceValidation:MaxQuantityPerItem", 1_000_000) ?? 1_000_000;
-        
+
         RuleFor(x => x.Quantity)
             .GreaterThanOrEqualTo(0)
             .WithMessage("Quantity must be zero or positive (negative values are not allowed). Value provided: {PropertyValue}")

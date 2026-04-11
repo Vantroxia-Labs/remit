@@ -388,6 +388,15 @@ public class CreateFIRSInvoiceCommandHandler(
                         itemDto.ItemDescription,
                         itemDto.UnitPrice);
 
+                    if (itemDto.TaxCategories.Count > 0)
+                    {
+                        var taxCategories = itemDto.TaxCategories.Select(tc =>
+                            tc.IsPercentage
+                                ? BusinessItemTaxCategory.CreatePercentage(tc.Name, tc.Name, tc.Percent!.Value)
+                                : BusinessItemTaxCategory.CreateFlatFee(tc.Name, tc.Name, tc.FlatAmount!.Value)).ToList();
+                        businessItem.UpdateTaxCategories(taxCategories);
+                    }
+
                     await _context.BusinessItems.AddAsync(businessItem, cancellationToken);
                     await _context.SaveChangesAsync(cancellationToken);
 

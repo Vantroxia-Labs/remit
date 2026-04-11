@@ -60,6 +60,7 @@ public class GetBusinessItemByIdQueryHandler : IRequestHandler<GetBusinessItemBy
                 businessItem.Name,
                 businessItem.ItemType,
                 new ServiceCodeDto(businessItem.ServiceCode.Code, businessItem.ServiceCode.Name),
+                businessItem.TaxCategories.Select(tc => new BusinessItemTaxCategoryDto(tc.Code, tc.Name, tc.IsPercentage, tc.Percent, tc.FlatAmount)).ToList(),
                 businessItem.ItemCategoryId,
                 businessItem.ItemCategory?.Name,
                 businessItem.ItemDescription,

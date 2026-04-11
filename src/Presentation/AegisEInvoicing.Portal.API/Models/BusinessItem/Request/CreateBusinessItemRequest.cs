@@ -46,6 +46,11 @@ public class CreateBusinessItemRequest
     [Required(ErrorMessage = "Unit price is required")]
     [Range(0, double.MaxValue, ErrorMessage = "Unit price must be greater than or equal to 0")]
     public decimal UnitPrice { get; set; }
+
+    /// <summary>
+    /// Tax categories applicable to this item
+    /// </summary>
+    public List<TaxCategoryItemRequest> TaxCategories { get; set; } = [];
 }
 
 /// <summary>
@@ -66,4 +71,29 @@ public class ServiceCodeRequest
     [Required(ErrorMessage = "Code description is required")]
     [StringLength(200, ErrorMessage = "Code description cannot exceed 200 characters")]
     public string Name { get; set; } = null!;
+}
+
+/// <summary>
+/// Tax category request model
+/// </summary>
+public class TaxCategoryItemRequest
+{
+    /// <summary>FIRS tax category code</summary>
+    [Required(ErrorMessage = "Tax category code is required")]
+    [StringLength(50, ErrorMessage = "Code cannot exceed 50 characters")]
+    public string Code { get; set; } = null!;
+
+    /// <summary>Display name</summary>
+    [Required(ErrorMessage = "Tax category name is required")]
+    [StringLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
+    public string Name { get; set; } = null!;
+
+    /// <summary>True = percentage-based; False = flat fee</summary>
+    public bool IsPercentage { get; set; }
+
+    /// <summary>Rate (0–100) when IsPercentage is true</summary>
+    public decimal? Percent { get; set; }
+
+    /// <summary>Fixed amount when IsPercentage is false</summary>
+    public decimal? FlatAmount { get; set; }
 }

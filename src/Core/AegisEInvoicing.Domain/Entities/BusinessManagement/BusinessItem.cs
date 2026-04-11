@@ -38,6 +38,9 @@ public class BusinessItem : AuditableAggregateRoot
     private readonly List<BusinessItemPriceHistory> _priceHistory = [];
     public IReadOnlyCollection<BusinessItemPriceHistory> PriceHistory => _priceHistory.AsReadOnly();
 
+    private readonly List<BusinessItemTaxCategory> _taxCategories = [];
+    public IReadOnlyCollection<BusinessItemTaxCategory> TaxCategories => _taxCategories.AsReadOnly();
+
     private BusinessItem() { } // Required for EF Core
 
     /// <summary>
@@ -157,6 +160,16 @@ public class BusinessItem : AuditableAggregateRoot
             throw new ArgumentException("Description cannot be empty.", nameof(description));
 
         ItemDescription = description;
+    }
+
+    /// <summary>
+    /// Replaces the entire tax category collection.
+    /// Pass an empty enumerable to clear all tax categories.
+    /// </summary>
+    public void UpdateTaxCategories(IEnumerable<BusinessItemTaxCategory> taxCategories)
+    {
+        _taxCategories.Clear();
+        _taxCategories.AddRange(taxCategories);
     }
 
     /// <summary>

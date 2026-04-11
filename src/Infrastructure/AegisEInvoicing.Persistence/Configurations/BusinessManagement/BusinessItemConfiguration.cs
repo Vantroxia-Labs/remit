@@ -139,6 +139,19 @@ public class BusinessItemConfiguration : IEntityTypeConfiguration<BusinessItem>
         // Add soft delete query filter
         builder.HasQueryFilter(x => !x.IsDeleted);
 
+        // TaxCategories as owned collection
+        builder.OwnsMany(x => x.TaxCategories, taxCat =>
+        {
+            taxCat.ToTable("BusinessItemTaxCategories");
+            taxCat.WithOwner().HasForeignKey("BusinessItemId");
+            taxCat.HasKey("BusinessItemId", "Code");
+            taxCat.Property(p => p.Code).HasMaxLength(50).IsRequired();
+            taxCat.Property(p => p.Name).HasMaxLength(200).IsRequired();
+            taxCat.Property(p => p.IsPercentage).IsRequired();
+            taxCat.Property(p => p.Percent).HasPrecision(18, 4);
+            taxCat.Property(p => p.FlatAmount).HasPrecision(18, 2);
+        });
+
         // Ignore domain events
         builder.Ignore(x => x.DomainEvents);
     }

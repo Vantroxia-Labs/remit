@@ -1,5 +1,6 @@
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Features.VatScheduleManagement.DTOs;
+using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.Exceptions;
@@ -82,7 +83,7 @@ public class GenerateVatScheduleCommandHandler(
                     - (line.DiscountFee?.Amount ?? 0m)
                     + (line.AdditionalFee?.Amount ?? 0m);
                 taxable += lineTotal;
-                vat += 0m; // TaxCategory removed from BusinessItem
+                vat += line.BusinessItem?.TaxCategories.Sum(tc => tc.CalculateTax(lineTotal)) ?? 0m;
             }
 
             items.Add(VatScheduleItem.Create(

@@ -64,10 +64,10 @@ public class Business : AuditableAggregateRoot
 
     // APP (Access Point Provider) switching
     /// <summary>
-    /// The ProviderCode of the AppProviderConfiguration this business uses.
+    /// The vendor this business has selected as its Access Point Provider.
     /// Null means use the platform default (Interswitch).
     /// </summary>
-    public string? ActiveAppProviderCode { get; private set; }
+    public AppVendor? ActiveVendor { get; private set; }
 
     /// <summary>
     /// Whether this business operates in Sandbox or Production mode.
@@ -362,12 +362,12 @@ public class Business : AuditableAggregateRoot
     }
 
     /// <summary>
-    /// Sets the active Access Point Provider for this business.
+    /// Sets the active Access Point Provider vendor for this business.
     /// Pass null to revert to the platform default (Interswitch).
     /// </summary>
-    public void SetAppProvider(string? providerCode, Guid updatedBy)
+    public void SetVendor(AppVendor? vendor, Guid updatedBy)
     {
-        ActiveAppProviderCode = providerCode?.ToLowerInvariant().Trim();
+        ActiveVendor = vendor;
         UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.UtcNow;
     }

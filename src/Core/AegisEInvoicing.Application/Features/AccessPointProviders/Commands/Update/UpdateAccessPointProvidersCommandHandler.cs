@@ -25,34 +25,29 @@ public class UpdateAccessPointProvidersCommandHandler(
         if (config is null)
             return new UpdateAccessPointProvidersResult(false, "Access point provider configuration not found.");
 
-        var encSandboxKey    = await EncryptOptional(request.SandboxApiKey, encryptionService);
-        var encSandboxSecret = await EncryptOptional(request.SandboxApiSecret, encryptionService);
-        var encProdKey       = await EncryptOptional(request.ProductionApiKey, encryptionService);
-        var encProdSecret    = await EncryptOptional(request.ProductionApiSecret, encryptionService);
+        // Encrypt only if new credentials were supplied; otherwise pass null to keep existing
+        var encryptedCredentials = string.IsNullOrWhiteSpace(request.CredentialsJson)
+            ? null
+            : await encryptionService.EncryptAsync(request.CredentialsJson);
 
-        config.UpdateCredentials(
-            request.DisplayName,
+        var encryptedSandbox = string.IsNullOrWhiteSpace(request.SandboxCredentialsJson)
+            ? null
+            : await encryptionService.EncryptAsync(request.SandboxCredentialsJson);
+
+        config.Update(
+            request.Name,
             request.Description,
+            request.BaseUrl,
+            encryptedCredentials,
             request.SandboxBaseUrl,
-            encSandboxKey,
-            encSandboxSecret,
-            request.SandboxTokenEndpoint,
-            request.ProductionBaseUrl,
-            encProdKey,
-            encProdSecret,
-            request.ProductionTokenEndpoint,
-            request.ApiKeyHeaderName,
-            request.SignatureHeaderName);
+            encryptedSandbox);
 
         await context.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "AppProviderConfiguration updated: Id={Id}, ProviderCode={Code}",
-            config.Id, config.ProviderCode);
+            "AppProviderConfiguration updated: Id={Id}, Vendor={Vendor}",
+            config.Id, config.Vendor);
 
         return new UpdateAccessPointProvidersResult(true, "Access point provider updated successfully.");
     }
-
-    private static async Task<string?> EncryptOptional(string? value, IEncryptionService svc)
-        => string.IsNullOrWhiteSpace(value) ? null : await svc.EncryptAsync(value);
 }

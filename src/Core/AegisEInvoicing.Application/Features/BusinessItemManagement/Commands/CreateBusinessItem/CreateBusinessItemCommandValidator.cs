@@ -52,5 +52,23 @@ public class CreateBusinessItemCommandValidator : AbstractValidator<CreateBusine
                 .MaximumLength(200)
                 .WithMessage("Code description must not exceed 200 characters");
         });
+
+        RuleForEach(x => x.TaxCategories).ChildRules(tc =>
+        {
+            tc.RuleFor(x => x.Code).NotEmpty().WithMessage("Tax category code is required");
+            tc.RuleFor(x => x.Name).NotEmpty().WithMessage("Tax category name is required");
+            tc.When(x => x.IsPercentage, () =>
+            {
+                tc.RuleFor(x => x.Percent)
+                    .NotNull().WithMessage("Percent is required for percentage tax")
+                    .InclusiveBetween(0, 100).WithMessage("Percent must be between 0 and 100");
+            });
+            tc.When(x => !x.IsPercentage, () =>
+            {
+                tc.RuleFor(x => x.FlatAmount)
+                    .NotNull().WithMessage("Flat amount is required for flat fee tax")
+                    .GreaterThanOrEqualTo(0).WithMessage("Flat amount must be non-negative");
+            });
+        });
     }
 }

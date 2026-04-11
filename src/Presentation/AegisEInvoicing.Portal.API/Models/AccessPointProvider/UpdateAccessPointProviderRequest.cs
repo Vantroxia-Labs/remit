@@ -5,25 +5,22 @@ namespace AegisEInvoicing.Portal.API.Models.AccessPointProvider;
 public class UpdateAccessPointProviderRequest
 {
     [Required]
-    public string DisplayName { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 
-    [Required]
-    public string Description { get; set; } = string.Empty;
+    public string? Description { get; set; }
 
-    public string? ApiKeyHeaderName { get; set; }
-    public string? SignatureHeaderName { get; set; }
+    /// <summary>Updated production base URL. Omit to keep the existing value.</summary>
+    public string? BaseUrl { get; set; }
 
-    // Sandbox
-    [Required]
-    public string SandboxBaseUrl { get; set; } = string.Empty;
-    public string? SandboxApiKey { get; set; }
-    public string? SandboxApiSecret { get; set; }
-    public string? SandboxTokenEndpoint { get; set; }
+    /// <summary>
+    /// Plaintext JSON of updated production credentials. Omit to keep existing encrypted credentials.
+    /// </summary>
+    public string? CredentialsJson { get; set; }
 
-    // Production
-    [Required]
-    public string ProductionBaseUrl { get; set; } = string.Empty;
-    public string? ProductionApiKey { get; set; }
-    public string? ProductionApiSecret { get; set; }
-    public string? ProductionTokenEndpoint { get; set; }
+    public string? SandboxBaseUrl { get; set; }
+
+    /// <summary>
+    /// Plaintext JSON of updated sandbox credentials. Omit to keep existing encrypted credentials.
+    /// </summary>
+    public string? SandboxCredentialsJson { get; set; }
 }

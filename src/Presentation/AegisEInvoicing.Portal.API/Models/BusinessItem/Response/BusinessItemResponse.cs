@@ -81,6 +81,11 @@ public class BusinessItemResponse
     /// User ID who last updated the item
     /// </summary>
     public Guid? UpdatedBy { get; set; }
+
+    /// <summary>
+    /// Tax categories applicable to this item
+    /// </summary>
+    public List<TaxCategoryItemResponse> TaxCategories { get; set; } = [];
 }
 
 /// <summary>
@@ -97,6 +102,27 @@ public class ServiceCodeResponse
     /// Code description
     /// </summary>
     public string Name { get; set; } = null!;
+}
+
+/// <summary>
+/// Tax category response model
+/// </summary>
+public class TaxCategoryItemResponse
+{
+    /// <summary>FIRS tax category code</summary>
+    public string Code { get; set; } = null!;
+
+    /// <summary>Display name</summary>
+    public string Name { get; set; } = null!;
+
+    /// <summary>True = percentage-based; False = flat fee</summary>
+    public bool IsPercentage { get; set; }
+
+    /// <summary>Rate (0–100) when IsPercentage is true</summary>
+    public decimal? Percent { get; set; }
+
+    /// <summary>Fixed amount when IsPercentage is false</summary>
+    public decimal? FlatAmount { get; set; }
 }
 
 /// <summary>

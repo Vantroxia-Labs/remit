@@ -4,23 +4,16 @@ using MediatR;
 namespace AegisEInvoicing.Application.Features.AccessPointProviders.Commands.Update;
 
 /// <summary>
-/// Updates credentials and display details for an existing <c>AppProviderConfiguration</c>.
-/// AegisAdmin only. Credentials are re-encrypted on update.
+/// Updates display details and, optionally, credentials for an APP provider configuration.
+/// AegisAdmin only. Pass null for credential arguments to keep existing encrypted values.
+/// Vendor cannot be changed — create a new configuration instead.
 /// </summary>
 public record UpdateAccessPointProvidersCommand(
     Guid ConfigurationId,
-    string DisplayName,
-    string Description,
-    string? ApiKeyHeaderName,
-    string? SignatureHeaderName,
-    // Sandbox
-    string SandboxBaseUrl,
-    string? SandboxApiKey,
-    string? SandboxApiSecret,
-    string? SandboxTokenEndpoint,
-    // Production
-    string ProductionBaseUrl,
-    string? ProductionApiKey,
-    string? ProductionApiSecret,
-    string? ProductionTokenEndpoint
+    string Name,
+    string? Description,
+    string? BaseUrl,
+    string? CredentialsJson,
+    string? SandboxBaseUrl,
+    string? SandboxCredentialsJson
 ) : IRequest<UpdateAccessPointProvidersResult>, ITransactionalCommand;

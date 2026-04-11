@@ -230,17 +230,35 @@ public static class FirsInvoiceValidationExtensions
                     discountAmount = item.DiscountFee.Amount;
             }
 
-            var taxSubTotal = new TaxSubtotal
+            var taxableAmount = totalAmount - discountAmount;
+
+            if (item.BusinessItem.TaxCategories.Count > 0)
             {
-                TaxableAmount = totalAmount - discountAmount,
-                TaxAmount = 0m,
-                TaxCategory = new FIRSAccessPoint.Models.Requests.ValidateInvoiceData.TaxCategory
+                foreach (var tc in item.BusinessItem.TaxCategories)
                 {
-                    Id = "",
-                    Percent = 0m
+                    var taxSubTotal = new TaxSubtotal
+                    {
+                        TaxableAmount = taxableAmount,
+                        TaxAmount = tc.CalculateTax(taxableAmount),
+                        TaxCategory = new FIRSAccessPoint.Models.Requests.ValidateInvoiceData.TaxCategory
+                        {
+                            Id = tc.Code,
+                            Percent = tc.IsPercentage ? tc.Percent!.Value : 0m
+                        }
+                    };
+                    taxSubTotals.Add(taxSubTotal);
                 }
-            };
-            taxSubTotals.Add(taxSubTotal);
+            }
+            else
+            {
+                var taxSubTotal = new TaxSubtotal
+                {
+                    TaxableAmount = taxableAmount,
+                    TaxAmount = 0m,
+                    TaxCategory = new FIRSAccessPoint.Models.Requests.ValidateInvoiceData.TaxCategory { Id = "", Percent = 0m }
+                };
+                taxSubTotals.Add(taxSubTotal);
+            }
         }
 
         var taxTotal = new TaxTotal
@@ -373,10 +391,7 @@ public static class FirsInvoiceValidationExtensions
             }
             var actualItemTotal = invoiceItemTotal - discountAmount;
 
-            var tax = 0m;
-            var taxAmount = actualItemTotal * (tax / 100);
-
-            totalTaxAmount += taxAmount;
+            totalTaxAmount += item.BusinessItem.TaxCategories.Sum(tc => tc.CalculateTax(actualItemTotal));
         }
         return totalTaxAmount;
     }

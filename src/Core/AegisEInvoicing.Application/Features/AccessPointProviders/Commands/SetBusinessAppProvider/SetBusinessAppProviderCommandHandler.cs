@@ -1,4 +1,5 @@
 using AegisEInvoicing.Application.Common.Interfaces;
+using AegisEInvoicing.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -29,27 +30,23 @@ public class SetBusinessAppProviderCommandHandler(
         if (business is null)
             return new SetBusinessAppProviderResult(false, "Business not found.");
 
-        var normalizedCode = string.IsNullOrWhiteSpace(request.ProviderCode)
-            ? null
-            : request.ProviderCode.ToLowerInvariant().Trim();
-
-        // If a specific provider code is requested, verify it exists in the DB
-        if (normalizedCode is not null)
+        // If a specific vendor is requested, verify an active configuration exists
+        if (request.Vendor.HasValue)
         {
-            var providerExists = await context.AppProviderConfigurations
-                .AnyAsync(p => p.ProviderCode == normalizedCode && p.IsActive && !p.IsDeleted, cancellationToken);
+            var configExists = await context.AppProviderConfigurations
+                .AnyAsync(p => p.Vendor == request.Vendor.Value && p.IsActive && !p.IsDeleted, cancellationToken);
 
-            if (!providerExists)
+            if (!configExists)
                 return new SetBusinessAppProviderResult(false,
-                    $"No active APP provider configuration found for code '{normalizedCode}'.");
+                    $"No active APP provider configuration found for vendor '{request.Vendor.Value}'.");
         }
 
-        business.SetAppProvider(normalizedCode, currentUser.UserId!.Value);
+        business.SetVendor(request.Vendor, currentUser.UserId!.Value);
         await context.SaveChangesAsync(cancellationToken);
 
-        var label = normalizedCode ?? "interswitch (default)";
+        var label = request.Vendor.HasValue ? request.Vendor.Value.ToString() : "Interswitch (default)";
         logger.LogInformation(
-            "Business {BusinessId} APP provider set to '{Code}' by user {UserId}",
+            "Business {BusinessId} APP vendor set to '{Vendor}' by user {UserId}",
             businessId, label, currentUser.UserId);
 
         return new SetBusinessAppProviderResult(true, $"APP provider updated to '{label}'.");
