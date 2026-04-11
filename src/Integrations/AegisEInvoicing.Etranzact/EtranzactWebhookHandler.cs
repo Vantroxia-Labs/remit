@@ -2,8 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AndersenNigeria.Application.Abstractions.Integration;
-using AndersenNigeria.SharedKernel.Enumerations;
+using AegisEInvoicing.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace AegisEInvoicing.Etranzact;
@@ -16,7 +15,7 @@ namespace AegisEInvoicing.Etranzact;
 public sealed class EtranzactWebhookHandler(ILogger<EtranzactWebhookHandler> logger)
     : IWebhookHandler
 {
-    public AppVendor Vendor => AppVendor.Etranzact;
+    public string ProviderCode => "etranzact";
 
     public Task<(bool Success, ParsedWebhookInvoice? Invoice)> VerifyAndParseAsync(
         string rawBody,
@@ -91,9 +90,9 @@ public sealed class EtranzactWebhookHandler(ILogger<EtranzactWebhookHandler> log
         {
             Irn = payload.Irn,
             InvoiceTypeCode = payload.InvoiceTypeCode ?? string.Empty,
-            IssueDate = payload.IssueDate,
-            IssueTime = payload.IssueTime,
-            DueDate = payload.DueDate,
+            IssueDate = payload.IssueDate.ToString("yyyy-MM-dd"),
+            IssueTime = payload.IssueTime?.ToString("HH:mm:ss"),
+            DueDate = payload.DueDate?.ToString("yyyy-MM-dd"),
             DocumentCurrencyCode = payload.DocumentCurrencyCode ?? string.Empty,
             TaxCurrencyCode = payload.TaxCurrencyCode,
             PaymentStatus = payload.PaymentStatus ?? "PENDING",

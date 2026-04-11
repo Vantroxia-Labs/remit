@@ -1,5 +1,5 @@
 using System.Net;
-using AndersenNigeria.Application.Abstractions.Integration;
+using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Etranzact.Configuration;
 using AegisEInvoicing.Etranzact.Contracts;
 using AegisEInvoicing.Etranzact.Services;
@@ -59,7 +59,7 @@ public static class EtranzactServiceExtensions
             .AddPolicyHandler(GetTimeoutPolicy());
 
         // Register the vendor-agnostic APP adapter
-        services.AddScoped<IAppFinancialDocumentClient, EtranzactAppAdapter>();
+        services.AddScoped<IAccessPointProviderClient, EtranzactAppAdapter>();
 
         // Register the push-based webhook handler
         services.AddScoped<IWebhookHandler, EtranzactWebhookHandler>();

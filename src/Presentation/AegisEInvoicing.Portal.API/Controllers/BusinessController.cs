@@ -7,6 +7,8 @@ using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Common.Models;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.AddFirsApiConfiguration;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.AddQrCodeConfiguration;
+using AegisEInvoicing.Application.Features.BusinessManagement.Commands.ActivateBusiness;
+using AegisEInvoicing.Application.Features.BusinessManagement.Commands.SuspendBusiness;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.UpdateBusiness;
 using AegisEInvoicing.Application.Features.BusinessManagement.DTOs;
 using AegisEInvoicing.Application.Features.BusinessManagement.Queries.GetBusinesses;
@@ -43,7 +45,7 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 [SwaggerTag("Business Operations which includes onboarding, fetching business info")]
 [Authorize]
 public partial class BusinessController(
-    IMediator mediator, 
+    IMediator mediator,
     ILogger<BusinessController> logger,
     IConfiguration configuration) : BaseApiController
 {
@@ -134,7 +136,7 @@ public partial class BusinessController(
         }
     }
 
-    
+
     /// <summary>
     /// Update QR Code Configuration to current business
     /// </summary>
@@ -184,8 +186,8 @@ public partial class BusinessController(
         var request = new GetFirsApiConfigurationQuery();
 
         var result = await _mediator.Send(request, cancellationToken);
-        return GenericResponse(result.Message, result.IsSuccess, 
-            result.StatusCodes, 
+        return GenericResponse(result.Message, result.IsSuccess,
+            result.StatusCodes,
             result.FirsApiConfiguration);
     }
 
@@ -309,7 +311,7 @@ public partial class BusinessController(
     [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<BusinessDetailDto>))]
     [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<BusinessDetailDto>))]
     [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin)]
-    public async Task<IActionResult> GetBusiness([FromQuery]Guid? businessId = null, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetBusiness([FromQuery] Guid? businessId = null, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("fetch business to EInvoice Integrator platform");
 
@@ -342,7 +344,7 @@ public partial class BusinessController(
         [FromBody] BusinessValidationRequest request,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("KMPG platform admin requested business field validation for {FieldCount} fields", 
+        _logger.LogInformation("KMPG platform admin requested business field validation for {FieldCount} fields",
             request.ValidationFields?.Count ?? 0);
 
         if (request.ValidationFields == null || !request.ValidationFields.Any())
@@ -372,7 +374,7 @@ public partial class BusinessController(
             Message = message
         };
 
-        _logger.LogInformation("Business field validation completed. Existing fields: {ExistingCount}, Non-existing fields: {NonExistingCount}", 
+        _logger.LogInformation("Business field validation completed. Existing fields: {ExistingCount}, Non-existing fields: {NonExistingCount}",
             existingFields.Count, nonExistingFields.Count);
 
         return Success(response, message);
@@ -393,6 +395,50 @@ public partial class BusinessController(
         var result = await _mediator.Send(request, cancellationToken);
 
         return Success(result, "List of business roles retrieved successfully");
+    }
+
+    /// <summary>
+    /// Suspend a business (Aegis Platform Admin only)
+    /// </summary>
+    [HttpPost("{businessId:guid}/suspend")]
+    [RequireRole(RoleConstants.AegisAdmin)]
+    [SwaggerOperation(Summary = "Suspend a business", Description = "Suspends a registered business, preventing logins and invoice submissions.")]
+    [SwaggerResponse(200, "Business suspended", typeof(ApiResponse<object>))]
+    [SwaggerResponse(400, "Failed to suspend", typeof(ApiResponse<object>))]
+    [SwaggerResponse(403, "Forbidden", typeof(ApiResponse<object>))]
+    public async Task<IActionResult> SuspendBusiness(Guid businessId, [FromBody] BusinessStatusReasonRequest? request = null, CancellationToken cancellationToken = default)
+    {
+        var command = new SuspendBusinessCommand
+        {
+            BusinessId = businessId,
+            Reason = request?.Reason ?? "Suspended by platform administrator",
+        };
+        var result = await _mediator.Send(command, cancellationToken);
+        if (!result.IsSuccess)
+            return BadRequest(Error(result.Message));
+        return Success<object>(null!, result.Message);
+    }
+
+    /// <summary>
+    /// Reactivate a suspended business (Aegis Platform Admin only)
+    /// </summary>
+    [HttpPost("{businessId:guid}/activate")]
+    [RequireRole(RoleConstants.AegisAdmin)]
+    [SwaggerOperation(Summary = "Activate / reactivate a business", Description = "Reactivates a suspended business, restoring access for its users.")]
+    [SwaggerResponse(200, "Business activated", typeof(ApiResponse<object>))]
+    [SwaggerResponse(400, "Failed to activate", typeof(ApiResponse<object>))]
+    [SwaggerResponse(403, "Forbidden", typeof(ApiResponse<object>))]
+    public async Task<IActionResult> ActivateBusiness(Guid businessId, [FromBody] BusinessStatusReasonRequest? request = null, CancellationToken cancellationToken = default)
+    {
+        var command = new ReactivateBusinessCommand
+        {
+            BusinessId = businessId,
+            Reason = request?.Reason ?? "Reactivated by platform administrator",
+        };
+        var result = await _mediator.Send(command, cancellationToken);
+        if (!result.IsSuccess)
+            return BadRequest(Error(result.Message));
+        return Success<object>(null!, result.Message);
     }
 
 }

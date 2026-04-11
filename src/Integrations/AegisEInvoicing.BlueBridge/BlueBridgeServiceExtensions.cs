@@ -1,5 +1,5 @@
 using System.Net;
-using AndersenNigeria.Application.Abstractions.Integration;
+using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.BlueBridge.Configuration;
 using AegisEInvoicing.BlueBridge.Contracts;
 using AegisEInvoicing.BlueBridge.Services;
@@ -55,7 +55,7 @@ public static class BlueBridgeServiceExtensions
             .AddPolicyHandler(GetTimeoutPolicy());
 
         // Register the vendor-agnostic APP adapter
-        services.AddScoped<IAppFinancialDocumentClient, BlueBridgeAppAdapter>();
+        services.AddScoped<IAccessPointProviderClient, BlueBridgeAppAdapter>();
 
         // Register the push-based webhook handler
         services.AddScoped<IWebhookHandler, BlueBridgeWebhookHandler>();
