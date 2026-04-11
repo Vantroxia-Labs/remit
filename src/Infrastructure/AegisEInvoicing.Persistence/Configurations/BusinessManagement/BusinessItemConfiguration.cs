@@ -1,4 +1,5 @@
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
+using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -43,7 +44,13 @@ public class BusinessItemConfiguration : IEntityTypeConfiguration<BusinessItem>
             .IsRequired();
 
         // Value object configurations
-        
+
+        // ItemType as string column for readability
+        builder.Property(x => x.ItemType)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
         // ServiceCode as owned entity
         builder.OwnsOne(x => x.ServiceCode, sc =>
         {
@@ -56,20 +63,6 @@ public class BusinessItemConfiguration : IEntityTypeConfiguration<BusinessItem>
                 .HasColumnName("ServiceCodeName")
                 .IsRequired()
                 .HasMaxLength(200);
-        });
-
-        // TaxCategory as owned entity
-        builder.OwnsOne(x => x.TaxCategory, tc =>
-        {
-            tc.Property(p => p.Name)
-                .HasColumnName("TaxCategoryName")
-                .IsRequired()
-                .HasMaxLength(500);
-
-            tc.Property(p => p.Percent)
-                .HasColumnName("TaxCategoryPercent")
-                .IsRequired()
-                .HasPrecision(5, 2);
         });
 
         // Navigation properties

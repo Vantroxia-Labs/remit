@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using AegisEInvoicing.Domain.Enums;
 
 namespace AegisEInvoicing.Portal.API.Models.BusinessItem.Request;
 
@@ -15,16 +16,16 @@ public class CreateBusinessItemRequest
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Service code information
+    /// Item type: Goods or Service
     /// </summary>
-    [Required(ErrorMessage = "Service code is required")]
-    public ServiceCodeRequest ServiceCode { get; set; } = null!;
+    [Required(ErrorMessage = "Item type is required")]
+    public ItemType ItemType { get; set; }
 
     /// <summary>
-    /// Tax category information
+    /// Product code (for Goods) or Service code (for Services)
     /// </summary>
-    [Required(ErrorMessage = "Tax category is required")]
-    public TaxCategoryRequest TaxCategory { get; set; } = null!;
+    [Required(ErrorMessage = "Code is required")]
+    public ServiceCodeRequest ServiceCode { get; set; } = null!;
 
     /// <summary>
     /// Item category ID
@@ -48,41 +49,21 @@ public class CreateBusinessItemRequest
 }
 
 /// <summary>
-/// Service code request model
+/// Service/Product code request model
 /// </summary>
 public class ServiceCodeRequest
 {
     /// <summary>
-    /// Service code
+    /// Code value
     /// </summary>
-    [Required(ErrorMessage = "Service code is required")]
-    [StringLength(50, ErrorMessage = "Service code cannot exceed 50 characters")]
+    [Required(ErrorMessage = "Code is required")]
+    [StringLength(50, ErrorMessage = "Code cannot exceed 50 characters")]
     public string Code { get; set; } = null!;
 
     /// <summary>
-    /// Service code name
+    /// Code description
     /// </summary>
-    [Required(ErrorMessage = "Service code name is required")]
-    [StringLength(200, ErrorMessage = "Service code name cannot exceed 200 characters")]
+    [Required(ErrorMessage = "Code description is required")]
+    [StringLength(200, ErrorMessage = "Code description cannot exceed 200 characters")]
     public string Name { get; set; } = null!;
-}
-
-/// <summary>
-/// Tax category request model
-/// </summary>
-public class TaxCategoryRequest
-{
-    /// <summary>
-    /// Tax category name
-    /// </summary>
-    [Required(ErrorMessage = "Tax category name is required")]
-    [StringLength(500, ErrorMessage = "Tax category name cannot exceed 500 characters")]
-    public string Name { get; set; } = null!;
-
-    /// <summary>
-    /// Tax percentage
-    /// </summary>
-    [Required(ErrorMessage = "Tax percentage is required")]
-    [Range(0, 100, ErrorMessage = "Tax percentage must be between 0 and 100")]
-    public decimal Percent { get; set; }
 }

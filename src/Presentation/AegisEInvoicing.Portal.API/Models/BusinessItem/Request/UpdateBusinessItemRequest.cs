@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using AegisEInvoicing.Domain.Enums;
 
 namespace AegisEInvoicing.Portal.API.Models.BusinessItem.Request;
 
@@ -15,16 +16,16 @@ public class UpdateBusinessItemRequest
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Service code information
+    /// Item type: Goods or Service
     /// </summary>
-    [Required(ErrorMessage = "Service code is required")]
-    public ServiceCodeRequest ServiceCode { get; set; } = null!;
+    [Required(ErrorMessage = "Item type is required")]
+    public ItemType ItemType { get; set; }
 
     /// <summary>
-    /// Tax category information
+    /// Product code (for Goods) or Service code (for Services)
     /// </summary>
-    [Required(ErrorMessage = "Tax category is required")]
-    public TaxCategoryRequest TaxCategory { get; set; } = null!;
+    [Required(ErrorMessage = "Code is required")]
+    public ServiceCodeRequest ServiceCode { get; set; } = null!;
 
     /// <summary>
     /// Item category ID

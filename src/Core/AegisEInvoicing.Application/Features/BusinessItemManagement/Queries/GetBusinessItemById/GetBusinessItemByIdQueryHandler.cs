@@ -44,7 +44,7 @@ public class GetBusinessItemByIdQueryHandler : IRequestHandler<GetBusinessItemBy
                 .AsNoTracking()
                 .Include(bi => bi.Business)
                 .Include(bi => bi.ItemCategory)
-                .FirstOrDefaultAsync(bi => bi.Id == request.Id 
+                .FirstOrDefaultAsync(bi => bi.Id == request.Id
                 && bi.BusinessID == _currentUser.BusinessId.Value,
                     cancellationToken);
 
@@ -58,8 +58,8 @@ public class GetBusinessItemByIdQueryHandler : IRequestHandler<GetBusinessItemBy
                 businessItem.Id,
                 businessItem.ItemId,
                 businessItem.Name,
+                businessItem.ItemType,
                 new ServiceCodeDto(businessItem.ServiceCode.Code, businessItem.ServiceCode.Name),
-                new TaxCategoryDto(businessItem.TaxCategory.Name, businessItem.TaxCategory.Percent),
                 businessItem.ItemCategoryId,
                 businessItem.ItemCategory?.Name,
                 businessItem.ItemDescription,
@@ -72,7 +72,7 @@ public class GetBusinessItemByIdQueryHandler : IRequestHandler<GetBusinessItemBy
                 businessItem.UpdatedBy);
 
             _logger.LogDebug("Successfully retrieved business item {BusinessItemId}", request.Id);
-            return new BusinessItemByIdResult(true, 
+            return new BusinessItemByIdResult(true,
                 "Successfully retrieved business item",
                 businessItemDto);
         }

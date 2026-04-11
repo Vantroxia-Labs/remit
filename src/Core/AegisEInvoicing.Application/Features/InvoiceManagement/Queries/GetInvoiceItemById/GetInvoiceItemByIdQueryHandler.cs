@@ -54,7 +54,6 @@ public class GetInvoiceItemByIdQueryHandler : IRequestHandler<GetInvoiceItemById
                 InvoiceId = invoiceItem.InvoiceId,
                 ItemCode = invoiceItem.BusinessItem.ItemId,
                 ServiceCode = invoiceItem.BusinessItem.ServiceCode,
-                TaxCategory = invoiceItem.BusinessItem.TaxCategory,
                 Category = invoiceItem.BusinessItem.ItemCategory.Name,
                 ItemDescription = invoiceItem.BusinessItem.ItemDescription,
                 DiscountFee = invoiceItem.DiscountFee,

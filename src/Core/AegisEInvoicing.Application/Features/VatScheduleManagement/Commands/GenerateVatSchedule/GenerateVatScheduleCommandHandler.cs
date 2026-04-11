@@ -51,7 +51,6 @@ public class GenerateVatScheduleCommandHandler(
             .AsNoTracking()
             .Include(i => i.InvoiceLine)
                 .ThenInclude(l => l.BusinessItem)
-                    .ThenInclude(bi => bi.TaxCategory)
             .Include(i => i.Party)
             .Where(i => !i.IsDeleted
                      && i.BusinessId == businessId
@@ -83,7 +82,7 @@ public class GenerateVatScheduleCommandHandler(
                     - (line.DiscountFee?.Amount ?? 0m)
                     + (line.AdditionalFee?.Amount ?? 0m);
                 taxable += lineTotal;
-                vat += lineTotal * (line.BusinessItem?.TaxCategory?.Percent ?? 0m) / 100m;
+                vat += 0m; // TaxCategory removed from BusinessItem
             }
 
             items.Add(VatScheduleItem.Create(

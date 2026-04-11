@@ -39,6 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Core\AegisEInvoicing.Application\AegisEInvoicing.Application.csproj" />
+    <ProjectReference Include="..\..\Integrations\AegisEInvoicing.Interswitch\AegisEInvoicing.Interswitch.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.ServiceModel.NetTcp" Version="10.0.652802" />

@@ -57,7 +57,7 @@ public static class FirsInvoiceSigningExtensions
             Tin = business.TaxIdentificationNumber.Value
         };
     }
-    
+
 
     public static List<BillingReference> ToSigningBillingReference(this List<InvoiceBillingReference> billingReferences)
     {
@@ -96,8 +96,8 @@ public static class FirsInvoiceSigningExtensions
         if (dispatchDocumentReference is not null)
             return new DispatchDocumentReference
             {
-                 Irn = dispatchDocumentReference.Irn.Value,
-                 IssueDate = dispatchDocumentReference.IssueDate
+                Irn = dispatchDocumentReference.Irn.Value,
+                IssueDate = dispatchDocumentReference.IssueDate
             };
 
         return null;
@@ -236,11 +236,11 @@ public static class FirsInvoiceSigningExtensions
             var taxSubTotal = new TaxSubtotal
             {
                 TaxableAmount = totalAmount - discountAmount,
-                TaxAmount = (totalAmount - discountAmount) * (item.BusinessItem.TaxCategory.Percent / 100),
+                TaxAmount = 0m,
                 TaxCategory = new TaxCategory
                 {
-                    Id = item.BusinessItem.TaxCategory.Name,
-                    Percent = item.BusinessItem.TaxCategory.Percent
+                    Id = "",
+                    Percent = 0m
                 }
             };
             taxSubTotals.Add(taxSubTotal);
@@ -385,7 +385,7 @@ public static class FirsInvoiceSigningExtensions
             }
             var actualItemTotal = invoiceItemTotal - discountAmount;
 
-            var tax = item.BusinessItem.TaxCategory.Percent;
+            var tax = 0m;
             var taxAmount = actualItemTotal * (tax / 100);
 
             totalTaxAmount += taxAmount;

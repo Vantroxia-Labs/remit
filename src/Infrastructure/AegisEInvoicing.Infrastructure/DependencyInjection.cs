@@ -94,6 +94,10 @@ public static class DependencyInjection
         // SFTP Directory Management Service
         services.AddScoped<ISftpDirectoryService, SftpDirectoryService>();
 
+        // APP Provider routing — resolves the correct adapter per business
+        services.AddScoped<InterswitchAppAdapter>();
+        services.AddScoped<IAppProviderRouter, AppProviderRouter>();
+
         // Background Services
         services.AddHostedService<OutboxProcessorService>();
         services.AddHostedService<FIRSConfigurationInitializationService>();

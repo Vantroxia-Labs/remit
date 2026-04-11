@@ -53,12 +53,11 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
         _logger.LogInformation("Creating business item with name: {Name}", request.Name);
 
         var serviceCodeDto = new CreateServiceCodeDto(request.ServiceCode.Code.Trim(), request.ServiceCode.Name.Trim());
-        var taxCategoryDto = new CreateTaxCategoryDto(request.TaxCategory.Name.Trim(), request.TaxCategory.Percent);
 
         var command = new CreateBusinessItemCommand(
             request.Name.Trim(),
+            request.ItemType,
             serviceCodeDto,
-            taxCategoryDto,
             request.ItemCategoryId,
             request.ItemDescription,
             request.UnitPrice);
@@ -149,15 +148,11 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
             Id = result.BusinessItem.Id,
             ItemId = result.BusinessItem.ItemId,
             Name = result.BusinessItem.Name,
+            ItemType = result.BusinessItem.ItemType,
             ServiceCode = new ServiceCodeResponse
             {
                 Code = result.BusinessItem.ServiceCode.Code,
                 Name = result.BusinessItem.ServiceCode.Name
-            },
-            TaxCategory = new TaxCategoryResponse
-            {
-                Name = result.BusinessItem.TaxCategory.Name,
-                Percent = result.BusinessItem.TaxCategory.Percent
             },
             ItemCategoryId = result.BusinessItem.ItemCategoryId,
             ItemCategoryName = result.BusinessItem.ItemCategoryName,
@@ -199,13 +194,12 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
         _logger.LogInformation("Updating business item with ID: {Id}", id);
 
         var serviceCodeDto = new UpdateServiceCodeDto(request.ServiceCode.Code, request.ServiceCode.Name);
-        var taxCategoryDto = new UpdateTaxCategoryDto(request.TaxCategory.Name, request.TaxCategory.Percent);
 
         var command = new UpdateBusinessItemCommand(
             id,
             request.Name,
+            request.ItemType,
             serviceCodeDto,
-            taxCategoryDto,
             request.ItemCategoryId,
             request.ItemDescription,
             request.UnitPrice);

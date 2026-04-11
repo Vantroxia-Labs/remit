@@ -51,6 +51,12 @@ public sealed class InterswitchHttpClient : IInterswitchHttpClient
     private string? _accessToken;
     private DateTime _tokenExpiration = DateTime.MinValue;
 
+    // Runtime-overridable credentials and base URL (set by AppProviderRouter via Configure())
+    private string? _runtimeBaseUrl;
+    private string? _runtimeClientId;
+    private string? _runtimeClientSecret;
+    private string? _runtimeTokenEndpoint;
+
     public InterswitchHttpClient(
         HttpClient httpClient,
         IOptions<InterswitchHttpClientOptions> options,
@@ -72,6 +78,23 @@ public sealed class InterswitchHttpClient : IInterswitchHttpClient
         _jsonOptions.Converters.Add(new InterswitchResponseConverterFactory());
 
         ConfigureHttpClient();
+    }
+
+    /// <inheritdoc />
+    public void Configure(string baseUrl, string clientId, string clientSecret, string tokenEndpoint)
+    {
+        _runtimeBaseUrl = baseUrl.TrimEnd('/');
+        _runtimeClientId = clientId;
+        _runtimeClientSecret = clientSecret;
+        _runtimeTokenEndpoint = tokenEndpoint;
+
+        // Force token refresh on next API call so new credentials are used
+        _accessToken = null;
+        _tokenExpiration = DateTime.MinValue;
+
+        _logger.LogInformation(
+            "InterswitchHttpClient reconfigured: BaseUrl={BaseUrl}, TokenEndpoint={TokenEndpoint}",
+            baseUrl, tokenEndpoint);
     }
 
     private void ConfigureHttpClient()
@@ -113,8 +136,8 @@ public sealed class InterswitchHttpClient : IInterswitchHttpClient
 
             var tokenRequest = new TokenRequest
             {
-                ClientId = _options.ClientId,
-                ClientSecret = _options.ClientSecret
+                ClientId = _runtimeClientId ?? _options.ClientId,
+                ClientSecret = _runtimeClientSecret ?? _options.ClientSecret
             };
 
             var content = new StringContent(
@@ -122,7 +145,12 @@ public sealed class InterswitchHttpClient : IInterswitchHttpClient
                 Encoding.UTF8,
                 "application/json");
 
-            var response = await _httpClient.PostAsync(_options.TokenEndpoint, content, cancellationToken);
+            var tokenEndpointPath = _runtimeTokenEndpoint ?? _options.TokenEndpoint;
+            // Use absolute URL when runtime base URL differs from configured base
+            var tokenEndpoint = _runtimeBaseUrl is not null
+                ? $"{_runtimeBaseUrl}/{tokenEndpointPath.TrimStart('/')}"
+                : tokenEndpointPath;
+            var response = await _httpClient.PostAsync(tokenEndpoint, content, cancellationToken);
             var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
             _logger.LogInformation(
@@ -364,8 +392,13 @@ public sealed class InterswitchHttpClient : IInterswitchHttpClient
                 Encoding.UTF8,
                 "application/json");
 
+            // Build absolute URL when runtime base URL differs from configured HttpClient base
+            var requestUri = _runtimeBaseUrl is not null
+                ? $"{_runtimeBaseUrl}/{endpoint.TrimStart('/')}"
+                : endpoint;
+
             // Create request message to add authorization header
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, endpoint)
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, requestUri)
             {
                 Content = content
             };

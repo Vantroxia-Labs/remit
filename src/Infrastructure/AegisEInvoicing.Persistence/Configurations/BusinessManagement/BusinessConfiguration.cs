@@ -197,6 +197,15 @@ public class BusinessConfiguration : IEntityTypeConfiguration<Business>
             .HasForeignKey<BusinessFIRSApiConfiguration>(bf => bf.BusinessId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // APP Provider switching
+        builder.Property(e => e.ActiveAppProviderCode)
+            .HasMaxLength(100);
+
+        builder.Property(e => e.AppEnvironmentMode)
+            .HasConversion<string>()
+            .HasMaxLength(50)
+            .HasDefaultValue(AegisEInvoicing.Domain.Enums.AppEnvironmentMode.Production);
+
         // Indexes
         builder.HasIndex(e => e.Name).IsUnique();
         builder.HasIndex(e => e.BusinessRegistrationNumber).IsUnique();

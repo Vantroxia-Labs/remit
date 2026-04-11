@@ -233,11 +233,11 @@ public static class FirsInvoiceValidationExtensions
             var taxSubTotal = new TaxSubtotal
             {
                 TaxableAmount = totalAmount - discountAmount,
-                TaxAmount = (totalAmount - discountAmount) * (item.BusinessItem.TaxCategory.Percent / 100),
+                TaxAmount = 0m,
                 TaxCategory = new FIRSAccessPoint.Models.Requests.ValidateInvoiceData.TaxCategory
                 {
-                    Id = item.BusinessItem.TaxCategory.Name,
-                    Percent = item.BusinessItem.TaxCategory.Percent
+                    Id = "",
+                    Percent = 0m
                 }
             };
             taxSubTotals.Add(taxSubTotal);
@@ -346,7 +346,7 @@ public static class FirsInvoiceValidationExtensions
             if (item.DiscountFee != null)
             {
                 if (item.DiscountFee.Code == FeeStandardUnit.Percent)
-                    discountAmount = invoiceItemTotal * (item.DiscountFee.Amount/100);
+                    discountAmount = invoiceItemTotal * (item.DiscountFee.Amount / 100);
                 else
                     discountAmount = item.DiscountFee.Amount;
             }
@@ -373,7 +373,7 @@ public static class FirsInvoiceValidationExtensions
             }
             var actualItemTotal = invoiceItemTotal - discountAmount;
 
-            var tax = item.BusinessItem.TaxCategory.Percent;
+            var tax = 0m;
             var taxAmount = actualItemTotal * (tax / 100);
 
             totalTaxAmount += taxAmount;

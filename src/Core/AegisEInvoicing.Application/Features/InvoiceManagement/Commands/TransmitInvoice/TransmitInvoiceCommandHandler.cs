@@ -3,7 +3,6 @@ using AegisEInvoicing.Domain.Constants;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Entities.UserManagement;
 using AegisEInvoicing.Domain.Enums;
-using AegisEInvoicing.Interswitch.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,8 +12,7 @@ namespace AegisEInvoicing.Application.Features.InvoiceManagement.Commands.Transm
 public class TransmitInvoiceCommandHandler(
     IApplicationDbContext context,
     ICurrentUserService currentUser,
-    IEncryptionService encryptionService,
-     IInterswitchHttpClient interswitchHttpClient,
+    IAppProviderRouter appProviderRouter,
     ILogger<TransmitInvoiceCommandHandler> logger,
     ITelemetryService? telemetryService = null)
     : IRequestHandler<TransmitInvoiceCommand, TransmitInvoiceResult>
@@ -22,8 +20,7 @@ public class TransmitInvoiceCommandHandler(
     private readonly IApplicationDbContext _context = context;
     private readonly ICurrentUserService _currentUser = currentUser;
     private readonly ILogger<TransmitInvoiceCommandHandler> _logger = logger;
-    private readonly IEncryptionService _encryptionService = encryptionService;
-    private readonly IInterswitchHttpClient _interswitchHttpClient = interswitchHttpClient;
+    private readonly IAppProviderRouter _appProviderRouter = appProviderRouter;
     private readonly ITelemetryService? _telemetryService = telemetryService;
 
     public async Task<TransmitInvoiceResult> Handle(TransmitInvoiceCommand request, CancellationToken cancellationToken)
@@ -54,6 +51,9 @@ public class TransmitInvoiceCommandHandler(
             if (invoice is null)
                 return TransmitInvoiceResult.NotFound(ResponseMessages.INVOICE_NOT_FOUND_TRANSMITTED);
 
+            if (invoice.InvoiceKind == InvoiceKind.B2C)
+                return TransmitInvoiceResult.BadRequest(ResponseMessages.B2C_INVOICE_CANNOT_BE_TRANSMITTED);
+
             var validStatuses = new[] { InvoiceStatus.SIGNED, InvoiceStatus.TRANSMISSIONFAILED };
             var validatedStatuses = new[]
             {
@@ -69,104 +69,90 @@ public class TransmitInvoiceCommandHandler(
                    && validatedStatuses.Contains(h.InvoiceStatus)))
                 return TransmitInvoiceResult.BadRequest(ResponseMessages.INVOICE_ALREADY_TRANSMITTED);
 
+            // Resolve the APP provider configured for this business
+            var appProvider = await _appProviderRouter.GetProviderAsync(businessId.Value, cancellationToken);
+
             //Seun: 20/01/2026 FIRS Relaxed TIN Validation
             //Seun: 26/02/2026 - Unrelaxed this because for Tax parties without valid TIN/have not enrolled on the NRS MBS System transmission fails
 
-            var tinLookup = await _interswitchHttpClient.LookupWithTINAsync(new Interswitch.Models.Requests.LookupWithTIN.LookupWithTINRequest
+            if (appProvider.SupportsLookupTin)
             {
-                TIN = invoice.Party.TaxIdentificationNumber.Value
-            }, cancellationToken);
+                var tinLookup = await appProvider.LookupTinAsync(invoice.Party.TaxIdentificationNumber.Value, cancellationToken);
 
-            // Check if TIN is valid and enrolled (up == true)
-            // If up == false, it means either invalid TIN or not enrolled on MBS portal
-            if (tinLookup?.Data?.Data == null || !tinLookup.Data.Data.IsUp)
-            {
-                var errorMessage = ResponseMessages.INVALID_TIN_OR_NOT_ENROLLED;
-                
-                _logger.LogWarning(
-                    "Invoice {InvoiceId} transmission failed. TIN {Tin} is invalid or not enrolled on MBS portal",
-                    invoice.Id, 
-                    MaskTin(invoice.Party.TaxIdentificationNumber.Value));
-                
-                invoice.SetFIRSSubmissionResponseMessage(errorMessage);
-                invoice.UpdateStatus(InvoiceStatus.TRANSMISSIONFAILED);
-                var invoiceApprovalHistory = InvoiceApprovalHistory.Create(invoice.Id, InvoiceStatus.TRANSMISSIONFAILED, errorMessage);
-                _context.InvoiceApprovalHistories.Add(invoiceApprovalHistory);
-                
-                if (invoice.InvoiceSource == InvoiceSource.SFTP)
+                if (!tinLookup.IsSuccess || !tinLookup.IsUp)
                 {
-                    User? currentUser = null;
-                    currentUser = await _context.Users
-                        .FirstOrDefaultAsync(u =>
-                                                 u.BusinessId == request.BusinessId &&
-                                                 !u.IsDeleted, cancellationToken);
+                    var errorMessage = ResponseMessages.INVALID_TIN_OR_NOT_ENROLLED;
 
-                    var createdById = currentUser?.Id ?? Guid.Empty;
-                    invoiceApprovalHistory.CreatedBy = createdById;
+                    _logger.LogWarning(
+                        "Invoice {InvoiceId} transmission failed. TIN {Tin} is invalid or not enrolled on MBS portal",
+                        invoice.Id,
+                        MaskTin(invoice.Party.TaxIdentificationNumber.Value));
+
+                    invoice.SetFIRSSubmissionResponseMessage(errorMessage);
+                    invoice.UpdateStatus(InvoiceStatus.TRANSMISSIONFAILED);
+                    var approvalHistory = InvoiceApprovalHistory.Create(invoice.Id, InvoiceStatus.TRANSMISSIONFAILED, errorMessage);
+                    _context.InvoiceApprovalHistories.Add(approvalHistory);
+
+                    if (invoice.InvoiceSource == InvoiceSource.SFTP)
+                    {
+                        var sftpUser = await _context.Users
+                            .FirstOrDefaultAsync(u => u.BusinessId == request.BusinessId && !u.IsDeleted, cancellationToken);
+                        approvalHistory.CreatedBy = sftpUser?.Id ?? Guid.Empty;
+                    }
+
+                    await _context.SaveChangesAsync(cancellationToken);
+                    return TransmitInvoiceResult.BadRequest(errorMessage);
                 }
-                
-                await _context.SaveChangesAsync(cancellationToken);
-                return TransmitInvoiceResult.BadRequest(errorMessage);
+
+                _logger.LogInformation(
+                    "Invoice {InvoiceId}: TIN validation successful. Business: {BusinessRef}",
+                    invoice.Id,
+                    tinLookup.BusinessReference ?? "N/A");
             }
 
-            _logger.LogInformation(
-                "Invoice {InvoiceId}: TIN validation successful. Business: {BusinessRef}",
-                invoice.Id,
-                tinLookup.Data.Data.BusinessReference ?? "N/A");
-
             var apiCallStart = DateTime.UtcNow;
-            var response = await _interswitchHttpClient.TransmitInvoiceAsync(new Interswitch.Models.Requests.TransmitInvoice.TransmitInvoiceRequest
-            {
-                IRN = invoice.Irn.Value
-            }, cancellationToken);
+            var transmitResult = await appProvider.TransmitAsync(invoice.Irn.Value, cancellationToken);
             var apiCallDuration = DateTime.UtcNow - apiCallStart;
 
-            // Track Interswitch API dependency
             _telemetryService?.TrackDependency(
                 "HTTP",
-                "Interswitch",
+                appProvider.ProviderCode,
                 "TransmitInvoice",
                 apiCallDuration,
-                response?.Data?.Code == 200,
-                response?.Data?.Code,
-                response?.Data?.Code == 200 ? null : response?.Data?.Error?.PublicMessage);
+                transmitResult.IsSuccess,
+                transmitResult.IsSuccess ? 200 : 0,
+                transmitResult.ErrorMessage);
 
-            if (response?.Data?.Code == 200)
+            if (transmitResult.IsSuccess)
             {
                 invoice.SetFIRSSubmissionResponseMessage(ResponseMessages.INVOICE_TRANSMISSION_SUCCESSFUL);
                 invoice.UpdateStatus(InvoiceStatus.TRANSMITTED);
-                _logger.LogInformation("Invoice {InvoiceId} successfully transmitted to Party", invoice.Id);
-                
-                // Track successful transmission
+                _logger.LogInformation("Invoice {InvoiceId} successfully transmitted via {Provider}", invoice.Id, appProvider.ProviderCode);
+
                 var duration = DateTime.UtcNow - startTime;
                 _telemetryService?.TrackInvoiceTransmitted(invoice.Id, true, duration);
-                
+
                 var invoiceApprovalHistory = InvoiceApprovalHistory.Create(invoice.Id, invoice.InvoiceStatus, ResponseMessages.INVOICE_TRANSMISSION_SUCCESSFUL);
                 _context.InvoiceApprovalHistories.Add(invoiceApprovalHistory);
-                result = (response!.Data!.Code, invoice.FIRSSubmissionResponseMessage!);
+                result = (200, invoice.FIRSSubmissionResponseMessage!);
+
                 if (invoice.InvoiceSource == InvoiceSource.SFTP)
                 {
-                    User? currentUser = null;
-                    currentUser = await _context.Users
-                        .FirstOrDefaultAsync(u =>
-                                                 u.BusinessId == request.BusinessId &&
-                                                 !u.IsDeleted, cancellationToken);
-
-                    var createdById = currentUser?.Id ?? Guid.Empty;
-                    invoiceApprovalHistory.CreatedBy = createdById;
+                    var sftpUser = await _context.Users
+                        .FirstOrDefaultAsync(u => u.BusinessId == request.BusinessId && !u.IsDeleted, cancellationToken);
+                    invoiceApprovalHistory.CreatedBy = sftpUser?.Id ?? Guid.Empty;
                 }
             }
             else
             {
-                _logger.LogWarning("Invoice {InvoiceId} transmission failed with code: {Code}, message: {Message}",
-               invoice.Id, response?.Data?.Code, response?.Data?.Error?.PublicMessage ?? response?.Data?.Error?.Details);
-                
-                var errorMessage = response?.Data?.Error?.PublicMessage ?? response?.Data?.Error?.Details ?? "Transmission failed";
-                
-                // Track failed transmission
+                var errorMessage = transmitResult.ErrorMessage ?? "Transmission failed";
+
+                _logger.LogWarning("Invoice {InvoiceId} transmission failed via {Provider}: {Message}",
+                    invoice.Id, appProvider.ProviderCode, errorMessage);
+
                 var duration = DateTime.UtcNow - startTime;
                 _telemetryService?.TrackInvoiceTransmitted(invoice.Id, false, duration, errorMessage);
-                
+
                 invoice.SetFIRSSubmissionResponseMessage(errorMessage);
                 invoice.UpdateStatus(InvoiceStatus.TRANSMISSIONFAILED);
                 var invoiceApprovalHistory = InvoiceApprovalHistory.Create(invoice.Id, invoice.InvoiceStatus, errorMessage);
@@ -174,16 +160,12 @@ public class TransmitInvoiceCommandHandler(
 
                 if (invoice.InvoiceSource == InvoiceSource.SFTP)
                 {
-                    User? currentUser = null;
-                    currentUser = await _context.Users
-                        .FirstOrDefaultAsync(u =>
-                                                 u.BusinessId == request.BusinessId &&
-                                                 !u.IsDeleted, cancellationToken);
-
-                    var createdById = currentUser?.Id ?? Guid.Empty;
-                    invoiceApprovalHistory.CreatedBy = createdById;
+                    var sftpUser = await _context.Users
+                        .FirstOrDefaultAsync(u => u.BusinessId == request.BusinessId && !u.IsDeleted, cancellationToken);
+                    invoiceApprovalHistory.CreatedBy = sftpUser?.Id ?? Guid.Empty;
                 }
-                result = (response!.Data!.Code, invoice.FIRSSubmissionResponseMessage!);
+
+                result = (0, invoice.FIRSSubmissionResponseMessage!);
             }
 
             await _context.SaveChangesAsync(cancellationToken);

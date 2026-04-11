@@ -1,3 +1,5 @@
+using AegisEInvoicing.Domain.Enums;
+
 namespace AegisEInvoicing.Application.Features.BusinessItemManagement.DTOs;
 
 public record BusinessItemResult(
@@ -15,8 +17,8 @@ public record BusinessItemDto(
     Guid Id,
     string ItemId,
     string Name,
+    ItemType ItemType,
     ServiceCodeDto ServiceCode,
-    TaxCategoryDto TaxCategory,
     Guid ItemCategoryId,
     string? ItemCategoryName,
     string ItemDescription,
@@ -30,8 +32,8 @@ public record BusinessItemDto(
 
 public record CreateBusinessItemDto(
     string Name,
+    ItemType ItemType,
     CreateServiceCodeDto ServiceCode,
-    CreateTaxCategoryDto TaxCategory,
     Guid ItemCategoryId,
     string ItemDescription,
     decimal UnitPrice,
@@ -39,8 +41,8 @@ public record CreateBusinessItemDto(
 
 public record UpdateBusinessItemDto(
     string Name,
+    ItemType ItemType,
     UpdateServiceCodeDto ServiceCode,
-    UpdateTaxCategoryDto TaxCategory,
     Guid ItemCategoryId,
     string ItemDescription,
     decimal UnitPrice);
@@ -49,9 +51,9 @@ public record BusinessItemSummaryDto(
     Guid Id,
     string ItemId,
     string Name,
+    ItemType ItemType,
     string ServiceCode,
     string ServiceCodeName,
-    string TaxCategoryName,
     string ItemCategoryName,
     decimal UnitPrice,
     string BusinessName,
@@ -68,15 +70,3 @@ public record CreateServiceCodeDto(
 public record UpdateServiceCodeDto(
     string Code,
     string Name);
-
-public record TaxCategoryDto(
-    string Name,
-    decimal Percent);
-
-public record CreateTaxCategoryDto(
-    string Name,
-    decimal Percent);
-
-public record UpdateTaxCategoryDto(
-    string Name,
-    decimal Percent);

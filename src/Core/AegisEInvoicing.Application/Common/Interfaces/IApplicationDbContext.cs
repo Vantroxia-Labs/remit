@@ -21,6 +21,7 @@ public interface IApplicationDbContext
     DbSet<Branch> Branches { get; }
     DbSet<FlowRule> FlowRules { get; }
     DbSet<FIRSApiConfiguration> FIRSApiConfigurations { get; }
+    DbSet<AppProviderConfiguration> AppProviderConfigurations { get; }
     DbSet<BusinessFIRSApiConfiguration> BusinessFIRSApiConfigurations { get; }
     DbSet<BusinessOnboarding> BusinessOnboardings { get; }
     DbSet<SystemConfiguration> SystemConfigurations { get; }

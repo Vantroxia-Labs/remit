@@ -250,6 +250,116 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.ToTable("ApiUsageTrackings", (string)null);
                 });
 
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.AppProviderConfiguration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApiKeyHeaderName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("AuthScheme")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("EncryptedProductionApiKey")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EncryptedProductionApiSecret")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EncryptedSandboxApiKey")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EncryptedSandboxApiSecret")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ProductionBaseUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ProductionTokenEndpoint")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ProviderCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SandboxBaseUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("SandboxTokenEndpoint")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("SignatureHeaderName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_AppProviderConfigurations_IsActive");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_AppProviderConfigurations_IsDeleted");
+
+                    b.HasIndex("ProviderCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AppProviderConfigurations_ProviderCode");
+
+                    b.HasIndex("IsDeleted", "IsActive")
+                        .HasDatabaseName("IX_AppProviderConfigurations_IsDeleted_IsActive");
+
+                    b.ToTable("AppProviderConfigurations", (string)null);
+                });
+
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.Branch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -339,6 +449,10 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ActiveAppProviderCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<Guid?>("AdminUserId")
                         .HasColumnType("uuid");
 
@@ -351,6 +465,13 @@ namespace AegisEInvoicing.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("ApiKeyLastUsedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AppEnvironmentMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Production");
 
                     b.Property<Guid?>("BusinessFIRSApiConfigurationId")
                         .HasColumnType("uuid");
@@ -593,6 +714,11 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ItemType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -3588,38 +3714,11 @@ namespace AegisEInvoicing.Persistence.Migrations
                                 .HasForeignKey("BusinessItemId");
                         });
 
-                    b.OwnsOne("AegisEInvoicing.Domain.ValueObjects.TaxCategory", "TaxCategory", b1 =>
-                        {
-                            b1.Property<Guid>("BusinessItemId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("Name")
-                                .IsRequired()
-                                .HasMaxLength(500)
-                                .HasColumnType("character varying(500)")
-                                .HasColumnName("TaxCategoryName");
-
-                            b1.Property<decimal>("Percent")
-                                .HasPrecision(5, 2)
-                                .HasColumnType("numeric(5,2)")
-                                .HasColumnName("TaxCategoryPercent");
-
-                            b1.HasKey("BusinessItemId");
-
-                            b1.ToTable("BusinessItems");
-
-                            b1.WithOwner()
-                                .HasForeignKey("BusinessItemId");
-                        });
-
                     b.Navigation("Business");
 
                     b.Navigation("ItemCategory");
 
                     b.Navigation("ServiceCode")
-                        .IsRequired();
-
-                    b.Navigation("TaxCategory")
                         .IsRequired();
                 });
 

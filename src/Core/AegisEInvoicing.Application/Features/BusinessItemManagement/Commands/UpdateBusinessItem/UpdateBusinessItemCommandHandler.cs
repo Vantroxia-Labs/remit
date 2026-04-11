@@ -64,13 +64,12 @@ public class UpdateBusinessItemCommandHandler : IRequestHandler<UpdateBusinessIt
         }
 
         var serviceCode = ServiceCode.Create(request.ServiceCode.Code, request.ServiceCode.Name);
-        var taxCategory = TaxCategory.Create(request.TaxCategory.Name, request.TaxCategory.Percent);
 
         // Update non-price properties
         businessItem.Update(
             request.Name,
+            request.ItemType,
             serviceCode,
-            taxCategory,
             request.ItemCategoryId,
             request.ItemDescription);
 
@@ -87,7 +86,7 @@ public class UpdateBusinessItemCommandHandler : IRequestHandler<UpdateBusinessIt
             businessItem.ApplyApprovedPrice(request.UnitPrice);
         }
 
-            _context.BusinessItems.Update(businessItem);
+        _context.BusinessItems.Update(businessItem);
         await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Successfully updated business item {BusinessItemId}", request.Id);

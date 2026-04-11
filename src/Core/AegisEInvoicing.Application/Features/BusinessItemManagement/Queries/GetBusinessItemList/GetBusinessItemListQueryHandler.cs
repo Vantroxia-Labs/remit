@@ -98,18 +98,18 @@ public class GetBusinessItemListQueryHandler : IRequestHandler<GetBusinessItemLi
                     bi.Id,
                     bi.ItemId,
                     bi.Name,
+                    bi.ItemType,
                     bi.ServiceCode != null ? bi.ServiceCode.Code : "",
                     bi.ServiceCode != null ? bi.ServiceCode.Name : "",
-                    bi.TaxCategory != null ? bi.TaxCategory.Name : "",
                     bi.ItemCategory != null ? bi.ItemCategory.Name : "",
                     bi.UnitPrice,
                     bi.Business != null ? bi.Business.Name : "",
                     bi.CreatedAt))
                 .ToListAsync(cancellationToken);
 
-            _logger.LogDebug("Successfully retrieved {Count} business items (page {PageNumber} of {PageSize})", 
+            _logger.LogDebug("Successfully retrieved {Count} business items (page {PageNumber} of {PageSize})",
                 businessItems.Count, request.PageNumber, request.PageSize);
-            
+
             return new PaginatedList<BusinessItemSummaryDto>(businessItems, totalCount, request.PageNumber, request.PageSize);
         }
         catch (Exception ex)

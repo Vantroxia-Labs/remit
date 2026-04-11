@@ -74,14 +74,13 @@ public class CreateBusinessItemCommandHandler : IRequestHandler<CreateBusinessIt
 
         // Create value objects
         var serviceCode = ServiceCode.Create(request.ServiceCode.Code, request.ServiceCode.Name);
-        var taxCategory = TaxCategory.Create(request.TaxCategory.Name, request.TaxCategory.Percent);
 
         // Create BusinessItem entity
         var businessItem = BusinessItem.Create(
             _currentUser.BusinessId.Value,
             request.Name,
+            request.ItemType,
             serviceCode,
-            taxCategory,
             request.ItemCategoryId,
             request.ItemDescription,
             request.UnitPrice);

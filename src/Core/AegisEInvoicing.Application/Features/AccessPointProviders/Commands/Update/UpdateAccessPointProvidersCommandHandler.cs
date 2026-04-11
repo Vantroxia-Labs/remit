@@ -5,39 +5,54 @@ using Microsoft.Extensions.Logging;
 
 namespace AegisEInvoicing.Application.Features.AccessPointProviders.Commands.Update;
 
-public class UpdateAccessPointProvidersCommandHandler(IApplicationDbContext context,
-    ICurrentUserService currentUser, IEncryptionService encryptionService, ILogger<UpdateAccessPointProvidersCommandHandler> logger) : IRequestHandler<UpdateAccessPointProvidersCommand, UpdateAccessPointProvidersResult>
+public class UpdateAccessPointProvidersCommandHandler(
+    IApplicationDbContext context,
+    ICurrentUserService currentUser,
+    IEncryptionService encryptionService,
+    ILogger<UpdateAccessPointProvidersCommandHandler> logger)
+    : IRequestHandler<UpdateAccessPointProvidersCommand, UpdateAccessPointProvidersResult>
 {
-    private readonly IApplicationDbContext _context = context;
-    private readonly ICurrentUserService _currentUser = currentUser;
-    private readonly IEncryptionService _encryptionService = encryptionService;
-    private readonly ILogger<UpdateAccessPointProvidersCommandHandler> _logger = logger;
-    public async Task<UpdateAccessPointProvidersResult> Handle(UpdateAccessPointProvidersCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateAccessPointProvidersResult> Handle(
+        UpdateAccessPointProvidersCommand request,
+        CancellationToken cancellationToken)
     {
-        try
-        {
-            if (!_currentUser.UserId.HasValue && !_currentUser.IsPlatformAdmin)
-                return new UpdateAccessPointProvidersResult(false, "Invalid user authentication/permission");
+        if (!currentUser.IsPlatformAdmin)
+            return new UpdateAccessPointProvidersResult(false, "Only AegisAdmin users may manage APP provider configurations.");
 
-            string encryptedApiKey = await _encryptionService.EncryptAsync(request.apiKey);
-            string encryptedApiSecret = await _encryptionService.EncryptAsync(request.apiSecret);
+        var config = await context.AppProviderConfigurations
+            .FirstOrDefaultAsync(p => p.Id == request.ConfigurationId && !p.IsDeleted, cancellationToken);
 
-            var getConfiguration = await _context.FIRSApiConfigurations.FirstOrDefaultAsync(f => f.Id == request.configurationId, cancellationToken);
+        if (config is null)
+            return new UpdateAccessPointProvidersResult(false, "Access point provider configuration not found.");
 
-            if (getConfiguration is null)
-                return new UpdateAccessPointProvidersResult(false, $"FIRS configuration does not exists.");
+        var encSandboxKey    = await EncryptOptional(request.SandboxApiKey, encryptionService);
+        var encSandboxSecret = await EncryptOptional(request.SandboxApiSecret, encryptionService);
+        var encProdKey       = await EncryptOptional(request.ProductionApiKey, encryptionService);
+        var encProdSecret    = await EncryptOptional(request.ProductionApiSecret, encryptionService);
 
-            getConfiguration.UpdateCredentials(request.name, request.description, encryptedApiKey, encryptedApiSecret, request.env, request.baseUrl);
+        config.UpdateCredentials(
+            request.DisplayName,
+            request.Description,
+            request.SandboxBaseUrl,
+            encSandboxKey,
+            encSandboxSecret,
+            request.SandboxTokenEndpoint,
+            request.ProductionBaseUrl,
+            encProdKey,
+            encProdSecret,
+            request.ProductionTokenEndpoint,
+            request.ApiKeyHeaderName,
+            request.SignatureHeaderName);
 
-            _context.FIRSApiConfigurations.Update(getConfiguration);
-            await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
-            return new UpdateAccessPointProvidersResult(true, "FIRS configuration updated successful");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, ex.Message);
-            return new UpdateAccessPointProvidersResult(false, "Something went wrong.");
-        }
+        logger.LogInformation(
+            "AppProviderConfiguration updated: Id={Id}, ProviderCode={Code}",
+            config.Id, config.ProviderCode);
+
+        return new UpdateAccessPointProvidersResult(true, "Access point provider updated successfully.");
     }
+
+    private static async Task<string?> EncryptOptional(string? value, IEncryptionService svc)
+        => string.IsNullOrWhiteSpace(value) ? null : await svc.EncryptAsync(value);
 }

@@ -66,13 +66,13 @@ public class CreateBulkBusinessItemCommandHandler : IRequestHandler<CreateBulkBu
 
             var itemCategories = await _context.ItemCategories.ToListAsync(cancellationToken);
 
-            if(!itemCategories.Any())
+            if (!itemCategories.Any())
             {
                 _logger.LogWarning("No item categories found in the system");
                 throw new NotFoundException("No item category found. Please ensure item categories are configured before uploading business items.");
             }
 
-            if(!readFile.Items.Any(i => itemCategories.Any(c => c.Name.ToLower() == i.ItemName.ToLower())))
+            if (!readFile.Items.Any(i => itemCategories.Any(c => c.Name.ToLower() == i.ItemName.ToLower())))
             {
                 _logger.LogWarning("No matching item categories found for uploaded items");
                 throw new ConflictException("None of the item categories in the uploaded file match existing categories. Please verify the category names.");
@@ -126,13 +126,12 @@ public class CreateBulkBusinessItemCommandHandler : IRequestHandler<CreateBulkBu
 
                 // Create value objects
                 var serviceCode = ServiceCode.Create(item.Service.Code, item.Service.Name);
-                var taxCategory = TaxCategory.Create(item.Category.Name, item.Category.Percent);
 
                 var businessItem = BusinessItem.Create(
                     _currentUser.BusinessId.Value,
                     item.Name,
+                    item.ItemType,
                     serviceCode,
-                    taxCategory,
                     itemCategory.Id,
                     item.ItemDescription,
                     item.UnitPrice);
@@ -241,8 +240,8 @@ public class CreateBulkBusinessItemCommandHandler : IRequestHandler<CreateBulkBu
 
             expectedUpload = sheet.PhysicalNumberOfRows - 1;
 
-            if (cellCount != 8)
-                return new BulkItemDtos() { IsSuccessful = false, ErrorMessage = $"{uploadType} Only (1)  column are allowed in the document", totalErrorsUploadedCount = 0, totalSuccessfulUploadedCount = 0 };
+            if (cellCount != 7)
+                return new BulkItemDtos() { IsSuccessful = false, ErrorMessage = $"{uploadType} Only (7) columns are allowed in the document", totalErrorsUploadedCount = 0, totalSuccessfulUploadedCount = 0 };
 
             if (expectedUpload is 0)
                 return new BulkItemDtos() { IsSuccessful = false, ErrorMessage = $"{uploadType} No Record Found", totalErrorsUploadedCount = 0, totalSuccessfulUploadedCount = 0 };
@@ -250,26 +249,23 @@ public class CreateBulkBusinessItemCommandHandler : IRequestHandler<CreateBulkBu
             if (!string.Equals(headerRow.Cells[0].StringCellValue.ToLower().Trim(), "Name", StringComparison.OrdinalIgnoreCase))
                 return new BulkItemDtos() { IsSuccessful = false, ErrorMessage = $"{uploadType} Uploaded file does not contain the required columns", totalErrorsUploadedCount = 0, totalSuccessfulUploadedCount = 0 };
 
-            if (!string.Equals(headerRow.Cells[1].StringCellValue.ToLower().Trim(), "ServiceCode", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(headerRow.Cells[1].StringCellValue.ToLower().Trim(), "ItemType", StringComparison.OrdinalIgnoreCase))
                 return new BulkItemDtos() { IsSuccessful = false, ErrorMessage = $"{uploadType} Uploaded file does not contain the required columns", totalErrorsUploadedCount = 0, totalSuccessfulUploadedCount = 0 };
 
-            if (!string.Equals(headerRow.Cells[2].StringCellValue.ToLower().Trim(), "ServiceName", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(headerRow.Cells[2].StringCellValue.ToLower().Trim(), "Code", StringComparison.OrdinalIgnoreCase))
                 return new BulkItemDtos() { IsSuccessful = false, ErrorMessage = $"{uploadType} Uploaded file does not contain the required columns", totalErrorsUploadedCount = 0, totalSuccessfulUploadedCount = 0 };
 
-            if (!string.Equals(headerRow.Cells[3].StringCellValue.ToLower().Trim(), "CategoryName", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(headerRow.Cells[3].StringCellValue.ToLower().Trim(), "CodeDescription", StringComparison.OrdinalIgnoreCase))
                 return new BulkItemDtos() { IsSuccessful = false, ErrorMessage = $"{uploadType} Uploaded file does not contain the required columns", totalErrorsUploadedCount = 0, totalSuccessfulUploadedCount = 0 };
 
-            if (!string.Equals(headerRow.Cells[4].StringCellValue.ToLower().Trim(), "CategoryPercent", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(headerRow.Cells[4].StringCellValue.ToLower().Trim(), "ItemName", StringComparison.OrdinalIgnoreCase))
                 return new BulkItemDtos() { IsSuccessful = false, ErrorMessage = $"{uploadType} Uploaded file does not contain the required columns", totalErrorsUploadedCount = 0, totalSuccessfulUploadedCount = 0 };
 
-            if (!string.Equals(headerRow.Cells[5].StringCellValue.ToLower().Trim(), "ItemName", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(headerRow.Cells[5].StringCellValue.ToLower().Trim(), "ItemDescription", StringComparison.OrdinalIgnoreCase))
                 return new BulkItemDtos() { IsSuccessful = false, ErrorMessage = $"{uploadType} Uploaded file does not contain the required columns", totalErrorsUploadedCount = 0, totalSuccessfulUploadedCount = 0 };
 
-            if (!string.Equals(headerRow.Cells[6].StringCellValue.ToLower().Trim(), "ItemDescription", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(headerRow.Cells[6].StringCellValue.ToLower().Trim(), "UnitPrice", StringComparison.OrdinalIgnoreCase))
                 return new BulkItemDtos() { IsSuccessful = false, ErrorMessage = $"{uploadType} Uploaded file does not contain the required columns", totalErrorsUploadedCount = 0, totalSuccessfulUploadedCount = 0 };
-
-            if (!string.Equals(headerRow.Cells[7].StringCellValue.ToLower().Trim(), "UnitPrice", StringComparison.OrdinalIgnoreCase))
-                return new BulkItemDtos() { IsSuccessful = false, ErrorMessage = $"{uploadType} Uploaded file does not contain the required columns", totalErrorsUploadedCount = 0, totalSuccessfulUploadedCount = 0 };                   
 
 
             try
@@ -294,18 +290,19 @@ public class CreateBulkBusinessItemCommandHandler : IRequestHandler<CreateBulkBu
                     currentLocation = $"at row {i}.";
 
                     string? name = cells[0] is null ? "" : cells[0].ToString();
-                    string? serviceCode = cells[1] is null ? "" : cells[1].ToString();
-                    string? serviceName = cells[2] is null ? "" : cells[2].ToString();
-                    string? categoryName = cells[3] is null ? "" : cells[3].ToString();
-                    string? categoryPercent = cells[4] is null ? "" : cells[4].ToString();
-                    string? itemName = cells[5] is null ? "" : cells[5].ToString();
-                    string? itemDesc = cells[6] is null ? "" : cells[6].ToString();
-                    string? unitPrice = cells[7] is null ? "" : cells[7].ToString();
+                    string? itemTypeStr = cells[1] is null ? "" : cells[1].ToString();
+                    string? code = cells[2] is null ? "" : cells[2].ToString();
+                    string? codeDescription = cells[3] is null ? "" : cells[3].ToString();
+                    string? itemName = cells[4] is null ? "" : cells[4].ToString();
+                    string? itemDesc = cells[5] is null ? "" : cells[5].ToString();
+                    string? unitPrice = cells[6] is null ? "" : cells[6].ToString();
 
                     currentLocation = "at saving records into database";
 
+                    if (!Enum.TryParse<AegisEInvoicing.Domain.Enums.ItemType>(itemTypeStr, ignoreCase: true, out var parsedItemType))
+                        parsedItemType = AegisEInvoicing.Domain.Enums.ItemType.Service;
 
-                    if (!string.IsNullOrWhiteSpace(name) || !string.IsNullOrWhiteSpace(serviceCode) || !string.IsNullOrWhiteSpace(serviceName) || !string.IsNullOrWhiteSpace(categoryName) || !string.IsNullOrWhiteSpace(categoryPercent) || !string.IsNullOrWhiteSpace(itemName) || !string.IsNullOrWhiteSpace(itemDesc) || !string.IsNullOrWhiteSpace(unitPrice))
+                    if (!string.IsNullOrWhiteSpace(name) || !string.IsNullOrWhiteSpace(code) || !string.IsNullOrWhiteSpace(codeDescription) || !string.IsNullOrWhiteSpace(itemName) || !string.IsNullOrWhiteSpace(itemDesc) || !string.IsNullOrWhiteSpace(unitPrice))
                     {
                         list.Add(new CreateBulkItemRequest()
                         {
@@ -313,8 +310,8 @@ public class CreateBulkBusinessItemCommandHandler : IRequestHandler<CreateBulkBu
                             Name = name!,
                             ItemName = itemName!,
                             UnitPrice = Convert.ToDecimal(unitPrice),
-                            Category = new CreateBulkItemCategoryRequest() { Name = categoryName!, Percent = Convert.ToDecimal(categoryPercent)},
-                            Service = new CreateBulkItemServiceCodeRequest() { Name = serviceName!, Code = serviceCode!}
+                            ItemType = parsedItemType,
+                            Service = new CreateBulkItemServiceCodeRequest() { Name = codeDescription!, Code = code! }
                         });
                         successfulUpload++;
                     }

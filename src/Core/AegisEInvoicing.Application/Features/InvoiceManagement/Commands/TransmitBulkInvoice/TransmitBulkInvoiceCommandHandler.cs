@@ -4,11 +4,6 @@ using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.Extensions;
-using AegisEInvoicing.Domain.ValueObjects;
-using AegisEInvoicing.Interswitch.Interfaces;
-using AegisEInvoicing.Interswitch.Models;
-using AegisEInvoicing.Interswitch.Models.Requests.LookupWithTIN;
-using AegisEInvoicing.Interswitch.Models.Requests.TransmitInvoice;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -40,16 +35,14 @@ internal class TransmissionStatistics
 public class TransmitBulkInvoiceCommandHandler(
     IApplicationDbContext context,
     ICurrentUserService currentUser,
-    IEncryptionService encryptionService,
-    IInterswitchHttpClient interswitchHttpClient,
+    IAppProviderRouter appProviderRouter,
     ILogger<TransmitBulkInvoiceCommandHandler> logger)
     : IRequestHandler<TransmitBulkInvoiceCommand, TransmitBulkInvoiceResult>
 {
     private readonly IApplicationDbContext _context = context;
     private readonly ICurrentUserService _currentUser = currentUser;
     private readonly ILogger<TransmitBulkInvoiceCommandHandler> _logger = logger;
-    private readonly IEncryptionService _encryptionService = encryptionService;
-    private readonly IInterswitchHttpClient _interswitchHttpClient = interswitchHttpClient;
+    private readonly IAppProviderRouter _appProviderRouter = appProviderRouter;
 
     public async Task<TransmitBulkInvoiceResult> Handle(TransmitBulkInvoiceCommand request, CancellationToken cancellationToken)
     {
@@ -104,13 +97,15 @@ public class TransmitBulkInvoiceCommandHandler(
     {
         try
         {
-            // Process invoices in batches for this business
+            // Resolve the APP provider once per business
+            var appProvider = await _appProviderRouter.GetProviderAsync(business.Id, cancellationToken);
+
             var batchSize = 10;
             var batches = invoices.Chunk(batchSize);
 
             foreach (var batch in batches)
             {
-                await ProcessInvoiceBatch(batch, business, stats, cancellationToken);
+                await ProcessInvoiceBatch(batch, business, appProvider, stats, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -120,12 +115,17 @@ public class TransmitBulkInvoiceCommandHandler(
         }
     }
 
-    private async Task ProcessInvoiceBatch(IEnumerable<Invoice> invoices, Business business, TransmissionStatistics stats, CancellationToken cancellationToken)
+    private async Task ProcessInvoiceBatch(
+        IEnumerable<Invoice> invoices,
+        Business business,
+        IAccessPointProviderClient appProvider,
+        TransmissionStatistics stats,
+        CancellationToken cancellationToken)
     {
         try
         {
             var transmissionTasks = invoices.Select(invoice =>
-                TransmitSingleInvoice(invoice, stats, cancellationToken));
+                TransmitSingleInvoice(invoice, appProvider, stats, cancellationToken));
 
             await Task.WhenAll(transmissionTasks);
             await _context.SaveChangesAsync(cancellationToken);
@@ -135,12 +135,10 @@ public class TransmitBulkInvoiceCommandHandler(
             var invoiceIds = string.Join(",", invoices.Select(i => i.Id));
             _logger.LogError(ex, "Failed to transmit invoice batch for business {BusinessId}: {InvoiceIds}", business.Id, invoiceIds);
 
-            // Mark failed invoices and record statistics
             foreach (var invoice in invoices)
             {
                 var identifier = invoice.Irn?.Value ?? invoice.Id.ToString();
                 stats.RecordFailure(identifier, ResponseMessages.INVOICE_TRANSMISSION_FAILED);
-
                 invoice.SetFIRSSubmissionResponseMessage(ResponseMessages.INVOICE_TRANSMISSION_FAILED);
                 invoice.UpdateStatus(InvoiceStatus.TRANSMISSIONFAILED);
                 _context.InvoiceApprovalHistories.Add(InvoiceApprovalHistory.Create(invoice.Id, InvoiceStatus.TRANSMISSIONFAILED, ResponseMessages.INVOICE_TRANSMISSION_FAILED));
@@ -149,70 +147,63 @@ public class TransmitBulkInvoiceCommandHandler(
         }
     }
 
-    private async Task TransmitSingleInvoice(Invoice invoice, TransmissionStatistics stats, CancellationToken cancellationToken)
+    private async Task TransmitSingleInvoice(
+        Invoice invoice,
+        IAccessPointProviderClient appProvider,
+        TransmissionStatistics stats,
+        CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Transmitting invoice {InvoiceId} with IRN {IRN} for business {BusinessId}",
-            invoice.Id, invoice.Irn?.Value, invoice.BusinessId);
-
-        var lookupRequest = BuildLookUpWithTinRequest(invoice.Party.TaxIdentificationNumber);
-        var isTinValid = await _interswitchHttpClient.LookupWithTINAsync(lookupRequest, cancellationToken);
+        _logger.LogInformation("Transmitting invoice {InvoiceId} with IRN {IRN} via {Provider}",
+            invoice.Id, invoice.Irn?.Value, appProvider.ProviderCode);
 
         var identifier = invoice.Irn?.Value ?? invoice.Id.ToString();
 
-        if (!isTinValid.Data!.Data!.IsUp)
+        if (invoice.InvoiceKind == InvoiceKind.B2C)
         {
-            var errorMessage = ResponseMessages.PARTY_NOT_FOUND;
-            _logger.LogWarning("Invoice {InvoiceId} transmission failed with code: {Code}, message: {Message}",
-                invoice.Id, 400, errorMessage);
-            invoice.SetFIRSSubmissionResponseMessage(errorMessage);
+            _logger.LogWarning("Invoice {InvoiceId} is a B2C invoice and cannot be transmitted", invoice.Id);
+            invoice.SetFIRSSubmissionResponseMessage(ResponseMessages.B2C_INVOICE_CANNOT_BE_TRANSMITTED);
             invoice.UpdateStatus(InvoiceStatus.TRANSMISSIONFAILED);
-            _context.InvoiceApprovalHistories.Add(InvoiceApprovalHistory.Create(invoice.Id, InvoiceStatus.TRANSMISSIONFAILED, errorMessage));
-
-            // Record failure with details
-            stats.RecordFailure(identifier, errorMessage);
+            _context.InvoiceApprovalHistories.Add(InvoiceApprovalHistory.Create(invoice.Id, InvoiceStatus.TRANSMISSIONFAILED, ResponseMessages.B2C_INVOICE_CANNOT_BE_TRANSMITTED));
+            stats.RecordFailure(identifier, ResponseMessages.B2C_INVOICE_CANNOT_BE_TRANSMITTED);
+            return;
         }
-        else
+
+        if (appProvider.SupportsLookupTin)
         {
-            var transmissionRequest = BuildTransmissionRequest(invoice.Irn!);
-            var response = await _interswitchHttpClient.TransmitInvoiceAsync(transmissionRequest, cancellationToken);
+            var tinLookup = await appProvider.LookupTinAsync(invoice.Party.TaxIdentificationNumber.Value, cancellationToken);
 
-            if (response.Data!.Data!.Ok)
+            if (!tinLookup.IsSuccess || !tinLookup.IsUp)
             {
-                invoice.SetFIRSSubmissionResponseMessage(ResponseMessages.INVOICE_TRANSMISSION_SUCCESSFUL);
-                invoice.UpdateStatus(InvoiceStatus.TRANSMITTED);
-                _logger.LogInformation("Invoice {InvoiceId} successfully transmitted to Party", invoice.Id);
-                _context.InvoiceApprovalHistories.Add(InvoiceApprovalHistory.Create(invoice.Id, invoice.InvoiceStatus,
-                    ResponseMessages.INVOICE_TRANSMISSION_SUCCESSFUL));
-
-                // Record success
-                stats.RecordSuccess();
-            }
-            else
-            {
-                var errorMessage = response?.Data?.Error?.PublicMessage ?? response?.Data?.Error?.Details ?? ResponseMessages.INVOICE_TRANSMISSION_FAILED;
-                _logger.LogWarning("Invoice {InvoiceId} transmission failed with code: {Code}, message: {Message}",
-                    invoice.Id, response?.Data?.Code, errorMessage);
+                var errorMessage = ResponseMessages.PARTY_NOT_FOUND;
+                _logger.LogWarning("Invoice {InvoiceId} TIN lookup failed: {Message}", invoice.Id, tinLookup.ErrorMessage);
                 invoice.SetFIRSSubmissionResponseMessage(errorMessage);
                 invoice.UpdateStatus(InvoiceStatus.TRANSMISSIONFAILED);
                 _context.InvoiceApprovalHistories.Add(InvoiceApprovalHistory.Create(invoice.Id, InvoiceStatus.TRANSMISSIONFAILED, errorMessage));
-
-                // Record failure with details
                 stats.RecordFailure(identifier, errorMessage);
+                return;
             }
         }
+
+        var transmitResult = await appProvider.TransmitAsync(invoice.Irn!.Value, cancellationToken);
+
+        if (transmitResult.IsSuccess)
+        {
+            invoice.SetFIRSSubmissionResponseMessage(ResponseMessages.INVOICE_TRANSMISSION_SUCCESSFUL);
+            invoice.UpdateStatus(InvoiceStatus.TRANSMITTED);
+            _logger.LogInformation("Invoice {InvoiceId} successfully transmitted via {Provider}", invoice.Id, appProvider.ProviderCode);
+            _context.InvoiceApprovalHistories.Add(InvoiceApprovalHistory.Create(invoice.Id, invoice.InvoiceStatus, ResponseMessages.INVOICE_TRANSMISSION_SUCCESSFUL));
+            stats.RecordSuccess();
+        }
+        else
+        {
+            var errorMessage = transmitResult.ErrorMessage ?? ResponseMessages.INVOICE_TRANSMISSION_FAILED;
+            _logger.LogWarning("Invoice {InvoiceId} transmission failed via {Provider}: {Message}", invoice.Id, appProvider.ProviderCode, errorMessage);
+            invoice.SetFIRSSubmissionResponseMessage(errorMessage);
+            invoice.UpdateStatus(InvoiceStatus.TRANSMISSIONFAILED);
+            _context.InvoiceApprovalHistories.Add(InvoiceApprovalHistory.Create(invoice.Id, InvoiceStatus.TRANSMISSIONFAILED, errorMessage));
+            stats.RecordFailure(identifier, errorMessage);
+        }
     }
-
-    private static TransmitInvoiceRequest BuildTransmissionRequest(IRN irn) =>
-        new()
-        {
-           IRN = irn.Value
-        };
-
-    private static LookupWithTINRequest BuildLookUpWithTinRequest(TIN tin) =>
-        new()
-        {
-            TIN = tin.Value
-        };
 
     private async Task MarkInvoicesAsFailed(IEnumerable<Invoice> invoices, string message, TransmissionStatistics stats, CancellationToken cancellationToken)
     {

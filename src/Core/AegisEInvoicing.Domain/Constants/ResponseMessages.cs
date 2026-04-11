@@ -41,6 +41,7 @@ public static class ResponseMessages
     public const string BUSINESS_QR_CODE_KEYS_CONFIGURED = "QR Code Keys for business configured";
     public const string PARTY_NOT_FOUND = "Party not found";
     public const string INVALID_TIN_OR_NOT_ENROLLED = "Invalid Buyer TIN or Buyer has not been enrolled on the MBS portal";
+    public const string B2C_INVOICE_CANNOT_BE_TRANSMITTED = "B2C invoices cannot be transmitted to the NRS portal";
     public const string TIN_VALID_AND_ENROLLED = "TIN is valid and buyer is enrolled on the MBS portal";
     public const string BUSINESS_ITEM_NOT_FOUND = "Business Item not found";
     public const string INVALID_INVOICE_DATA = "Empty/Invalid invoice data provided";

@@ -5,6 +5,7 @@ using AegisEInvoicing.FIRSAccessPoint.Models.Responses.GetAllCountries;
 using AegisEInvoicing.FIRSAccessPoint.Models.Responses.GetCurrencies;
 using AegisEInvoicing.FIRSAccessPoint.Models.Responses.GetInvoiceType;
 using AegisEInvoicing.FIRSAccessPoint.Models.Responses.GetPaymentMeans;
+using AegisEInvoicing.FIRSAccessPoint.Models.Responses.GetProductsCodes;
 using AegisEInvoicing.FIRSAccessPoint.Models.Responses.GetServiceCodes;
 using AegisEInvoicing.FIRSAccessPoint.Models.Responses.GetTaxCategories;
 using AegisEInvoicing.FIRSAccessPoint.Models.Responses.GetVatExemptions;
@@ -35,7 +36,7 @@ public partial class FIRSController
 
         var taxCategories = await _firsClient.GetTaxCategories(cancellationToken);
 
-        return Success(taxCategories.Data, "Tax Categories" );
+        return Success(taxCategories.Data, "Tax Categories");
     }
 
     /// <summary>
@@ -136,6 +137,26 @@ public partial class FIRSController
         _logger.LogInformation("Service codes requested");
         var serviceCodes = await _firsClient.GetServiceCodes(cancellationToken);
         return Success(serviceCodes.Data, "Service Codes");
+    }
+
+    /// <summary>
+    /// Get Product Codes (HS Codes for goods)
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product Codes</returns>
+    [HttpGet("getproductcodes")]
+    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientUser, RoleConstants.ClientAdmin)]
+    [SwaggerOperation(
+        Summary = "Get Product Codes",
+        Description = "Returns all product (HS) codes for goods available in the FIRS system"
+    )]
+    [SwaggerResponse(200, "Product Codes retrieved successfully", typeof(ApiResponse<List<ProductCode>>))]
+    [SwaggerResponse(503, "Returns Errors", typeof(ApiResponse<object>))]
+    public async Task<IActionResult> GetProductCodes(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Product codes requested");
+        var productCodes = await _firsClient.GetProductsCodes(cancellationToken);
+        return Success(productCodes.Data, "Product Codes");
     }
 
     /// <summary>

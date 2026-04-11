@@ -46,6 +46,7 @@ public sealed class ApplicationDbContext(
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<FlowRule> FlowRules => Set<FlowRule>();
     public DbSet<FIRSApiConfiguration> FIRSApiConfigurations => Set<FIRSApiConfiguration>();
+    public DbSet<AppProviderConfiguration> AppProviderConfigurations => Set<AppProviderConfiguration>();
     public DbSet<BusinessFIRSApiConfiguration> BusinessFIRSApiConfigurations => Set<BusinessFIRSApiConfiguration>();
     public DbSet<BusinessOnboarding> BusinessOnboardings => Set<BusinessOnboarding>();
     public DbSet<SystemConfiguration> SystemConfigurations => Set<SystemConfiguration>();

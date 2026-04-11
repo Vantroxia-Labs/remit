@@ -37,7 +37,7 @@ public class ExportInvoicesQueryHandler(
                 .Where(i => i.BusinessId == _currentUser.BusinessId);
 
             // Apply filters
-              query = query.Where(i => i.BusinessId == _currentUser.BusinessId!.Value);
+            query = query.Where(i => i.BusinessId == _currentUser.BusinessId!.Value);
 
             if (request.InvoiceStatus.HasValue)
                 query = query.Where(i => i.InvoiceStatus == request.InvoiceStatus.Value);
@@ -114,7 +114,7 @@ public class ExportInvoicesQueryHandler(
         CreateHeaders(worksheet);
 
         // Populate data - each invoice item gets its own row, grouped by PaymentReference
-            int row = 4; // Data starts at row 4
+        int row = 4; // Data starts at row 4
 
         foreach (var invoice in invoices)
         {
@@ -338,8 +338,8 @@ public class ExportInvoicesQueryHandler(
             worksheet.Cells[row, 28].Value = businessItem.ItemCategory?.Name ?? "";
             worksheet.Cells[row, 29].Value = businessItem.ServiceCode.Code;
             worksheet.Cells[row, 30].Value = businessItem.ServiceCode.Name;
-            worksheet.Cells[row, 31].Value = businessItem.TaxCategory.Name;
-            worksheet.Cells[row, 32].Value = businessItem.TaxCategory.Percent;
+            worksheet.Cells[row, 31].Value = businessItem.ItemType.ToString();
+            worksheet.Cells[row, 32].Value = "";
             worksheet.Cells[row, 33].Value = businessItem.UnitPrice;
             worksheet.Cells[row, 34].Value = item.Quantity;
             worksheet.Cells[row, 35].Value = item.DiscountFee?.Amount ?? 0;

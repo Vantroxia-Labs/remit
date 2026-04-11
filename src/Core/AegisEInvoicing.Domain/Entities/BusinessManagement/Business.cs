@@ -62,6 +62,20 @@ public class Business : AuditableAggregateRoot
     public string? PublicKey { get; private set; }
     public string? Certificate {  get; private set; }
 
+    // APP (Access Point Provider) switching
+    /// <summary>
+    /// The ProviderCode of the AppProviderConfiguration this business uses.
+    /// Null means use the platform default (Interswitch).
+    /// </summary>
+    public string? ActiveAppProviderCode { get; private set; }
+
+    /// <summary>
+    /// Whether this business operates in Sandbox or Production mode.
+    /// Determines which credential set (sandbox/production) is loaded from AppProviderConfiguration.
+    /// Defaults to Production.
+    /// </summary>
+    public AppEnvironmentMode AppEnvironmentMode { get; private set; } = AppEnvironmentMode.Production;
+
     // Licensing (On-Premise Deployments)
     public DeploymentMode DeploymentMode { get; private set; } = DeploymentMode.Cloud; // Default to Cloud (Aegis-hosted)
     public string? LicenseKey { get; private set; }
@@ -344,6 +358,27 @@ public class Business : AuditableAggregateRoot
     {
         BusinessFIRSApiConfigurationId = firsApiConfigurationId;
         UpdatedBy = assignedBy;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    /// Sets the active Access Point Provider for this business.
+    /// Pass null to revert to the platform default (Interswitch).
+    /// </summary>
+    public void SetAppProvider(string? providerCode, Guid updatedBy)
+    {
+        ActiveAppProviderCode = providerCode?.ToLowerInvariant().Trim();
+        UpdatedBy = updatedBy;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    /// Switches the business between Sandbox and Production APP credential sets.
+    /// </summary>
+    public void SetEnvironmentMode(AppEnvironmentMode mode, Guid updatedBy)
+    {
+        AppEnvironmentMode = mode;
+        UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

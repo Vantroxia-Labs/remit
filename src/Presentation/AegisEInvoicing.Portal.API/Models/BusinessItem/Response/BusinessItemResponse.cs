@@ -1,3 +1,5 @@
+using AegisEInvoicing.Domain.Enums;
+
 namespace AegisEInvoicing.Portal.API.Models.BusinessItem.Response;
 
 /// <summary>
@@ -21,14 +23,14 @@ public class BusinessItemResponse
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Service code information
+    /// Item type: Goods or Service
     /// </summary>
-    public ServiceCodeResponse ServiceCode { get; set; } = null!;
+    public ItemType ItemType { get; set; }
 
     /// <summary>
-    /// Tax category information
+    /// Product code (Goods) or Service code (Services)
     /// </summary>
-    public TaxCategoryResponse TaxCategory { get; set; } = null!;
+    public ServiceCodeResponse ServiceCode { get; set; } = null!;
 
     /// <summary>
     /// Item category ID
@@ -82,35 +84,19 @@ public class BusinessItemResponse
 }
 
 /// <summary>
-/// Service code response model
+/// Service/Product code response model
 /// </summary>
 public class ServiceCodeResponse
 {
     /// <summary>
-    /// Service code
+    /// Code value
     /// </summary>
     public string Code { get; set; } = null!;
 
     /// <summary>
-    /// Service code name
+    /// Code description
     /// </summary>
     public string Name { get; set; } = null!;
-}
-
-/// <summary>
-/// Tax category response model
-/// </summary>
-public class TaxCategoryResponse
-{
-    /// <summary>
-    /// Tax category name
-    /// </summary>
-    public string Name { get; set; } = null!;
-
-    /// <summary>
-    /// Tax percentage
-    /// </summary>
-    public decimal Percent { get; set; }
 }
 
 /// <summary>
@@ -134,14 +120,14 @@ public class BusinessItemSummaryResponse
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Service code name
+    /// Item type: Goods or Service
     /// </summary>
-    public string ServiceCodeName { get; set; } = null!;
+    public ItemType ItemType { get; set; }
 
     /// <summary>
-    /// Tax category name
+    /// Code value
     /// </summary>
-    public string TaxCategoryName { get; set; } = null!;
+    public string ServiceCodeName { get; set; } = null!;
 
     /// <summary>
     /// Item category name

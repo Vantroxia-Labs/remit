@@ -15,7 +15,7 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
     private readonly ILogger<GetInvoiceByIdQueryHandler> _logger;
 
     public GetInvoiceByIdQueryHandler(
-        IApplicationDbContext context, 
+        IApplicationDbContext context,
         ICurrentUserService currentUserService,
         ILogger<GetInvoiceByIdQueryHandler> logger)
     {
@@ -66,10 +66,10 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
             // Log any missing related entities for debugging
             if (invoice.Party is null)
                 _logger.LogWarning("Invoice {InvoiceId} has null Party reference", invoice.Id);
-            
+
             var itemsWithNullBusinessItem = invoice.InvoiceLine.Where(il => il.BusinessItem is null).Count();
             if (itemsWithNullBusinessItem > 0)
-                _logger.LogWarning("Invoice {InvoiceId} has {Count} invoice items with null BusinessItem reference", 
+                _logger.LogWarning("Invoice {InvoiceId} has {Count} invoice items with null BusinessItem reference",
                     invoice.Id, itemsWithNullBusinessItem);
 
             var invoiceDto = new InvoiceDetailsDto
@@ -103,7 +103,6 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                     InvoiceId = item.InvoiceId,
                     ItemCode = item.BusinessItem?.ItemId ?? string.Empty,
                     ServiceCode = item.BusinessItem?.ServiceCode ?? ServiceCode.Create("UNKNOWN", "Unknown Service"),
-                    TaxCategory = item.BusinessItem?.TaxCategory ?? TaxCategory.Create("Unknown", 0),
                     Category = item.BusinessItem?.ItemCategory?.Name ?? "Unknown",
                     ItemDescription = item.BusinessItem?.ItemDescription ?? string.Empty,
                     DiscountFee = item.DiscountFee,
@@ -117,7 +116,7 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                     Name = invoice.Party.Name ?? string.Empty,
                     Tin = invoice.Party.TaxIdentificationNumber,
                     Email = invoice.Party.Email ?? string.Empty,
-                    Phone = invoice.Party.Phone ?? string.Empty,                    
+                    Phone = invoice.Party.Phone ?? string.Empty,
                     Address = invoice.Party.Address != null ? Address.Create(
                                 invoice.Party.Address.Street ?? string.Empty,
                                 invoice.Party.Address.City ?? string.Empty,

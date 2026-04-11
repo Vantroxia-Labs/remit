@@ -1,5 +1,6 @@
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.DTOs;
+using AegisEInvoicing.Domain.Enums;
 using MediatR;
 
 namespace AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.UpdateBusinessItem;
@@ -7,8 +8,8 @@ namespace AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.U
 public record UpdateBusinessItemCommand(
     Guid Id,
     string Name,
+    ItemType ItemType,
     UpdateServiceCodeDto ServiceCode,
-    UpdateTaxCategoryDto TaxCategory,
     Guid ItemCategoryId,
     string ItemDescription,
     decimal UnitPrice) : IRequest<BusinessItemResult>, ITransactionalCommand;

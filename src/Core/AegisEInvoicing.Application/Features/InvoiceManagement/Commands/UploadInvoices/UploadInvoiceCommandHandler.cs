@@ -27,7 +27,7 @@ public class UploadInvoiceCommandHandler(
     private readonly IFlowRuleMatchingService _flowRuleMatchingService = flowRuleMatchingService;
     private readonly ILogger<UploadInvoiceCommandHandler> _logger = logger;
 
-public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, CancellationToken cancellationToken)
+    public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, CancellationToken cancellationToken)
     {
         if (request?.UploadInvoiceRequest == null || !request.UploadInvoiceRequest.Any())
             return (UploadInvoiceResult)UploadInvoiceResult.BadRequest(ResponseMessages.INVALID_INVOICE_DATA);
@@ -103,13 +103,13 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
 
         return new UploadInvoiceResult
         {
-             IsSuccess = result.IsSuccess,
-             TotalObjects = result.TotalInvoices,
-             SuccessfulUploads = result.SuccessCount,
-             FailedUploads = result.FailureCount,
-             FailedUploadDetails = result.FailedInvoices.ToDictionary(f => f.Reference,f => f.Error),
-             StatusCodes = HttpStatusCodes.OK.ToInt(),
-             Message = "Bulk Data Processed"
+            IsSuccess = result.IsSuccess,
+            TotalObjects = result.TotalInvoices,
+            SuccessfulUploads = result.SuccessCount,
+            FailedUploads = result.FailureCount,
+            FailedUploadDetails = result.FailedInvoices.ToDictionary(f => f.Reference, f => f.Error),
+            StatusCodes = HttpStatusCodes.OK.ToInt(),
+            Message = "Bulk Data Processed"
         };
     }
 
@@ -535,7 +535,7 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
     {
         // Parse InvoiceKind if provided
         Domain.Enums.InvoiceKind? invoiceKind = null;
-        if (!string.IsNullOrWhiteSpace(request.InvoiceKind) && 
+        if (!string.IsNullOrWhiteSpace(request.InvoiceKind) &&
             Enum.TryParse<Domain.Enums.InvoiceKind>(request.InvoiceKind, true, out var parsedKind))
         {
             invoiceKind = parsedKind;
@@ -726,14 +726,11 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
                 if (item.ServiceCode == null)
                     throw new ArgumentException($"Service code is required for item: {item.Name}");
 
-                if (item.TaxCategory == null)
-                    throw new ArgumentException($"Tax category is required for item: {item.Name}");
-
                 var newBusinessItem = BusinessItem.Create(
                     _currentUser.BusinessId!.Value,
                     item.Name,
+                    ItemType.Service,
                     ServiceCode.Create(item.ServiceCode.Code, item.Name),
-                    TaxCategory.Create(item.TaxCategory.Name, item.TaxCategory.Percent),
                     categoryId,
                     item.ItemDescription,
                     item.UnitPrice);
@@ -750,8 +747,8 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
                 businessItemId,
                 item.Quantity,
                 item.UnitPrice, // Snapshot the price at invoice creation time
-                item.DiscountFee != null ? DiscountFee.Create(item.DiscountFee.Amount, (FeeStandardUnit)Enum.Parse(typeof(FeeStandardUnit),item.DiscountFee.FeeStandardUnit)) : null,
-                item.AdditionalFee != null ? AdditionalFee.Create(item.AdditionalFee.Amount, (FeeStandardUnit)Enum.Parse(typeof(FeeStandardUnit), item.AdditionalFee.FeeStandardUnit)) : null) );
+                item.DiscountFee != null ? DiscountFee.Create(item.DiscountFee.Amount, (FeeStandardUnit)Enum.Parse(typeof(FeeStandardUnit), item.DiscountFee.FeeStandardUnit)) : null,
+                item.AdditionalFee != null ? AdditionalFee.Create(item.AdditionalFee.Amount, (FeeStandardUnit)Enum.Parse(typeof(FeeStandardUnit), item.AdditionalFee.FeeStandardUnit)) : null));
         }
 
         if (newBusinessItems.Count > 0)

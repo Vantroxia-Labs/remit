@@ -5,35 +5,33 @@ using Microsoft.Extensions.Logging;
 
 namespace AegisEInvoicing.Application.Features.AccessPointProviders.Commands.Delete;
 
-public class DeleteAccessPointProvidersCommandHandler(IApplicationDbContext context,
-    ICurrentUserService currentUser, IEncryptionService encryptionService, ILogger<DeleteAccessPointProvidersCommandHandler> logger) : IRequestHandler<DeleteAccessPointProvidersCommand, DeleteAccessPointProvidersResult>
+public class DeleteAccessPointProvidersCommandHandler(
+    IApplicationDbContext context,
+    ICurrentUserService currentUser,
+    ILogger<DeleteAccessPointProvidersCommandHandler> logger)
+    : IRequestHandler<DeleteAccessPointProvidersCommand, DeleteAccessPointProvidersResult>
 {
-    private readonly IApplicationDbContext _context = context;
-    private readonly ICurrentUserService _currentUser = currentUser;
-    private readonly IEncryptionService _encryptionService = encryptionService;
-    private readonly ILogger<DeleteAccessPointProvidersCommandHandler> _logger = logger;
-    public async Task<DeleteAccessPointProvidersResult> Handle(DeleteAccessPointProvidersCommand request, CancellationToken cancellationToken)
+    public async Task<DeleteAccessPointProvidersResult> Handle(
+        DeleteAccessPointProvidersCommand request,
+        CancellationToken cancellationToken)
     {
-        try
-        {
-            if (!_currentUser.UserId.HasValue && !_currentUser.IsPlatformAdmin)
-                return new DeleteAccessPointProvidersResult(false, "Invalid user authentication/permission");
+        if (!currentUser.IsPlatformAdmin)
+            return new DeleteAccessPointProvidersResult(false, "Only AegisAdmin users may manage APP provider configurations.");
 
-            var getConfiguration = await _context.FIRSApiConfigurations.FirstOrDefaultAsync(f => f.Id == request.configurationId, cancellationToken);
+        var config = await context.AppProviderConfigurations
+            .FirstOrDefaultAsync(p => p.Id == request.configurationId && !p.IsDeleted, cancellationToken);
 
-            if (getConfiguration is null)
-                return new DeleteAccessPointProvidersResult(false, $"FIRS configuration does not exists.");
+        if (config is null)
+            return new DeleteAccessPointProvidersResult(false, "Access point provider configuration not found.");
 
-            getConfiguration.MarkAsDeleted(_currentUser.UserId);
+        // Soft delete via EF change tracker (ApplicationDbContext handles IsDeleted/DeletedAt/DeletedBy)
+        context.AppProviderConfigurations.Remove(config);
+        await context.SaveChangesAsync(cancellationToken);
 
-            await _context.SaveChangesAsync(cancellationToken);
+        logger.LogInformation(
+            "AppProviderConfiguration soft-deleted: Id={Id}, ProviderCode={Code}",
+            config.Id, config.ProviderCode);
 
-            return new DeleteAccessPointProvidersResult(true, "FIRS configuration deleted successful");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, ex.Message);
-            return new DeleteAccessPointProvidersResult(false, "Something went wrong.");
-        }
+        return new DeleteAccessPointProvidersResult(true, "Access point provider deleted successfully.");
     }
 }

@@ -1,5 +1,6 @@
 ﻿using AegisEInvoicing.Domain.Common.Implementation;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
+using AegisEInvoicing.Domain.Enums;
 
 namespace AegisEInvoicing.Domain.Entities.BusinessManagement;
 
@@ -7,19 +8,19 @@ public class BusinessItem : AuditableAggregateRoot
 {
     public string ItemId { get; private set; } = null!;
     public string Name { get; private set; } = null!;
+    public ItemType ItemType { get; private set; }
     public ServiceCode ServiceCode { get; private set; } = null!;
-    public TaxCategory TaxCategory { get; private set; } = null!;
-    
+
     // Primary category (kept for backward compatibility - this is the "main" category)
     public Guid ItemCategoryId { get; private set; }
-    
+
     public string ItemDescription { get; private set; } = null!;
     public decimal UnitPrice { get; private set; }
     public Guid BusinessID { get; private set; }
 
     // Navigation property
     public Business Business { get; private set; } = null!;
-    
+
     // Primary category navigation (for backward compatibility)
     public ItemCategory ItemCategory { get; private set; } = null!;
 
@@ -45,8 +46,8 @@ public class BusinessItem : AuditableAggregateRoot
     public static BusinessItem Create(
         Guid businessId,
         string name,
+        ItemType itemType,
         ServiceCode serviceCode,
-        TaxCategory taxCategory,
         Guid itemCategoryId,
         string itemDescription,
         decimal unitPrice)
@@ -65,17 +66,17 @@ public class BusinessItem : AuditableAggregateRoot
             ItemId = new ItemId().FullId,
             BusinessID = businessId,
             Name = name,
+            ItemType = itemType,
             ServiceCode = serviceCode,
-            TaxCategory = taxCategory,
             ItemCategoryId = itemCategoryId,
             ItemDescription = itemDescription,
             UnitPrice = unitPrice
         };
-        
+
         // Also add to the many-to-many collection
         var itemCategory = BusinessItemItemCategory.Create(item.Id, itemCategoryId);
         item._itemCategories.Add(itemCategory);
-        
+
         return item;
     }
 
@@ -84,8 +85,8 @@ public class BusinessItem : AuditableAggregateRoot
     /// </summary>
     public void Update(
         string name,
+        ItemType itemType,
         ServiceCode serviceCode,
-        TaxCategory taxCategory,
         Guid itemCategoryId,
         string itemDescription)
     {
@@ -96,8 +97,8 @@ public class BusinessItem : AuditableAggregateRoot
             throw new ArgumentException("ServiceCode cannot be empty.", nameof(serviceCode));
 
         Name = name;
+        ItemType = itemType;
         ServiceCode = serviceCode;
-        TaxCategory = taxCategory;
         ItemCategoryId = itemCategoryId;
         ItemDescription = itemDescription;
     }
@@ -168,7 +169,7 @@ public class BusinessItem : AuditableAggregateRoot
             throw new ArgumentException("Category cannot be empty.", nameof(categoryId));
 
         ItemCategoryId = categoryId;
-        
+
         // Ensure the category is also in the many-to-many collection
         if (!_itemCategories.Any(ic => ic.ItemCategoryId == categoryId))
         {
