@@ -172,17 +172,17 @@ public class ActivateRegistrationCommandHandler(
 
             if (plan.Tier == SubscriptionTier.SaaS)
             {
-                subject = "Welcome to Aegis NRS Portal — Your Account Details";
+                subject = "Welcome to Aegis EInvoicing Portal — Your Account Details";
                 htmlBody = BuildPortalWelcomeEmail(pending, tempPassword, portalUrl, supportEmail);
             }
             else if (plan.Tier == SubscriptionTier.SFTP)
             {
-                subject = "Welcome to Aegis NRS Portal — Your Account & SFTP Details";
+                subject = "Welcome to Aegis EInvoicing Portal — Your Account & SFTP Details";
                 htmlBody = BuildSftpWelcomeEmail(pending, business, tempPassword, sftpPassword, portalUrl, sftpHost, supportEmail);
             }
             else
             {
-                subject = "Welcome to Aegis NRS Portal — Your Account & API Key";
+                subject = "Welcome to Aegis EInvoicing Portal — Your Account & API Key";
                 htmlBody = BuildApiWelcomeEmail(pending, tempPassword, apiKey, portalUrl, supportEmail);
             }
 
