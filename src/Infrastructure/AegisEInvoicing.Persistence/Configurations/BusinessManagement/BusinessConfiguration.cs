@@ -197,9 +197,9 @@ public class BusinessConfiguration : IEntityTypeConfiguration<Business>
             .HasForeignKey<BusinessFIRSApiConfiguration>(bf => bf.BusinessId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // APP Provider switching
-        builder.Property(e => e.ActiveVendor)
-            .HasConversion<int>();
+        // APP Provider switching — nullable string, matches IAccessPointProviderClient.ProviderCode
+        builder.Property(e => e.ActiveAdapterKey)
+            .HasMaxLength(100);
 
         builder.Property(e => e.AppEnvironmentMode)
             .HasConversion<string>()

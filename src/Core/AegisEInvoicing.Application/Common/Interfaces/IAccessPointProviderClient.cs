@@ -28,11 +28,27 @@ public sealed record AppLookupTinResult(
 /// <summary>
 /// Vendor-agnostic interface for Access Point Provider (APP) operations.
 /// Implemented by each provider adapter (Interswitch, BlueBridge, eTranzact, …).
+/// Adapters self-register via DI; the router discovers them by ProviderCode — no enum needed.
 /// </summary>
 public interface IAccessPointProviderClient
 {
-    /// <summary>\n    /// Lowercase provider code matching the AppProviderConfiguration.ProviderCode property.\n    /// </summary>
+    /// <summary>
+    /// Unique, lowercase, stable key that identifies this adapter (e.g. "interswitch").
+    /// Must match the AdapterKey stored in AppProviderConfiguration and Business.
+    /// </summary>
     string ProviderCode { get; }
+
+    /// <summary>
+    /// Human-readable display name shown in the admin UI (e.g. "Interswitch").
+    /// </summary>
+    string DisplayName { get; }
+
+    /// <summary>
+    /// Configure this adapter with decrypted runtime credentials from AppProviderConfiguration.
+    /// Called by AppProviderRouter before the adapter is returned to callers.
+    /// Each adapter owns its own credential JSON schema — the router treats the blob as opaque.
+    /// </summary>
+    void Configure(string baseUrl, string? credentialsJson);
 
     /// <summary>
     /// Whether this provider supports TIN lookup before transmission.

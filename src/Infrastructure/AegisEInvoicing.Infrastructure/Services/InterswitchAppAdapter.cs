@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Interswitch.Interfaces;
 using AegisEInvoicing.Interswitch.Models.Requests.LookupWithTIN;
@@ -12,6 +13,9 @@ namespace AegisEInvoicing.Infrastructure.Services;
 ///
 /// The Infrastructure layer owns this adapter because it bridges the Application abstraction
 /// and the Interswitch integration — neither of those layers can depend on each other.
+///
+/// Credential JSON schema:
+/// { "clientId": "...", "clientSecret": "...", "tokenEndpoint": "/Api/SwitchTax/Token" }
 /// </summary>
 public sealed class InterswitchAppAdapter(
     IInterswitchHttpClient client,
@@ -19,6 +23,27 @@ public sealed class InterswitchAppAdapter(
 {
     /// <inheritdoc />
     public string ProviderCode => "interswitch";
+
+    /// <inheritdoc />
+    public string DisplayName => "Interswitch";
+
+    /// <inheritdoc />
+    public void Configure(string baseUrl, string? credentialsJson)
+    {
+        string clientId = string.Empty, clientSecret = string.Empty;
+        string tokenEndpoint = "/Api/SwitchTax/Token";
+
+        if (credentialsJson is not null)
+        {
+            using var doc = JsonDocument.Parse(credentialsJson);
+            var root = doc.RootElement;
+            clientId      = root.TryGetProperty("clientId",      out var cid) ? cid.GetString() ?? string.Empty : string.Empty;
+            clientSecret  = root.TryGetProperty("clientSecret",  out var cs)  ? cs.GetString()  ?? string.Empty : string.Empty;
+            tokenEndpoint = root.TryGetProperty("tokenEndpoint", out var te)  ? te.GetString()  ?? tokenEndpoint : tokenEndpoint;
+        }
+
+        client.Configure(baseUrl, clientId, clientSecret, tokenEndpoint);
+    }
 
     /// <inheritdoc />
     public bool SupportsLookupTin => true;
@@ -36,7 +61,7 @@ public sealed class InterswitchAppAdapter(
 
             if (response?.Data?.Code == 200)
             {
-                return AppProviderResult.Success(rawResponse: System.Text.Json.JsonSerializer.Serialize(response));
+                return AppProviderResult.Success(rawResponse: JsonSerializer.Serialize(response));
             }
 
             var errorMessage = response?.Data?.Error?.PublicMessage
@@ -46,7 +71,7 @@ public sealed class InterswitchAppAdapter(
             return AppProviderResult.Failure(
                 errorCode: $"INTERSWITCH_{response?.Data?.Code ?? 0}",
                 errorMessage: errorMessage,
-                rawResponse: System.Text.Json.JsonSerializer.Serialize(response));
+                rawResponse: JsonSerializer.Serialize(response));
         }
         catch (Exception ex)
         {

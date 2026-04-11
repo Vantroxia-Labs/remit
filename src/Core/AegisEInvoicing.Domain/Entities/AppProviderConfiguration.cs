@@ -1,17 +1,18 @@
 using AegisEInvoicing.Domain.Common.Implementation;
-using AegisEInvoicing.Domain.Enums;
 
 namespace AegisEInvoicing.Domain.Entities;
 
 /// <summary>
 /// Stores the configuration and encrypted credentials for an Access Point Provider (APP).
-/// One record per vendor — only Andersen/AegisAdmin creates and manages these.
+/// One record per adapter — only Andersen/AegisAdmin creates and manages these.
 ///
 /// Credentials are stored as an AES-256-GCM encrypted JSON blob.
-/// The shape of the JSON differs per vendor and is known only to the infrastructure layer
-/// (AppProviderRouter), which decrypts and deserialises it when configuring the adapter.
+/// The shape of the JSON differs per adapter and is known only to the adapter itself.
+/// The router treats the blob as opaque and passes it directly to IAccessPointProviderClient.Configure().
 ///
-/// Businesses select a vendor; the router resolves the matching configuration.
+/// Businesses select an adapter; the router resolves the matching configuration by AdapterKey.
+/// Adding a new provider requires no code change here — implement IAccessPointProviderClient,
+/// register it in DI, and create a configuration row with the matching AdapterKey.
 /// </summary>
 public class AppProviderConfiguration : AuditableEntity
 {
@@ -22,10 +23,11 @@ public class AppProviderConfiguration : AuditableEntity
     public string? Description { get; private set; }
 
     /// <summary>
-    /// Identifies which integration library handles this provider.
-    /// Also used as the routing key when a business selects a vendor.
+    /// Lowercase stable key that identifies which adapter handles this configuration.
+    /// Must match IAccessPointProviderClient.ProviderCode on the registered adapter.
+    /// e.g. "interswitch", "digitax", "etranzact", "bluebridge".
     /// </summary>
-    public AppVendor Vendor { get; private set; }
+    public string AdapterKey { get; private set; } = default!;
 
     /// <summary>Production base URL. e.g., "https://api.interswitchgroup.com".</summary>
     public string BaseUrl { get; private set; } = default!;
@@ -54,7 +56,7 @@ public class AppProviderConfiguration : AuditableEntity
     public static AppProviderConfiguration Create(
         string name,
         string? description,
-        AppVendor vendor,
+        string adapterKey,
         string baseUrl,
         string? encryptedCredentials,
         string? sandboxBaseUrl,
@@ -64,7 +66,7 @@ public class AppProviderConfiguration : AuditableEntity
         {
             Name = name.Trim(),
             Description = description?.Trim(),
-            Vendor = vendor,
+            AdapterKey = adapterKey.Trim().ToLowerInvariant(),
             BaseUrl = baseUrl.Trim(),
             EncryptedCredentials = encryptedCredentials,
             SandboxBaseUrl = sandboxBaseUrl?.Trim(),

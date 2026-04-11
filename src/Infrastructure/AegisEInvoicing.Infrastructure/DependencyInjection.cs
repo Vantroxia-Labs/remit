@@ -94,8 +94,10 @@ public static class DependencyInjection
         // SFTP Directory Management Service
         services.AddScoped<ISftpDirectoryService, SftpDirectoryService>();
 
-        // APP Provider routing — resolves the correct adapter per business
+        // APP Provider routing — adapters self-register; AppProviderRouter discovers them by ProviderCode.
+        // To add a new provider: implement IAccessPointProviderClient and add a line here.
         services.AddScoped<InterswitchAppAdapter>();
+        services.AddScoped<IAccessPointProviderClient>(sp => sp.GetRequiredService<InterswitchAppAdapter>());
         services.AddScoped<IAppProviderRouter, AppProviderRouter>();
 
         // Background Services

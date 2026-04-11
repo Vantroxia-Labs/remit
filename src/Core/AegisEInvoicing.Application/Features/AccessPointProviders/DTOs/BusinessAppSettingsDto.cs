@@ -7,5 +7,5 @@ namespace AegisEInvoicing.Application.Features.AccessPointProviders.DTOs;
 /// Returned to the Settings page so the UI can reflect the current state.
 /// </summary>
 public record BusinessAppSettingsDto(
-    AppVendor? ActiveVendor,
+    string? ActiveAdapterKey,
     AppEnvironmentMode EnvironmentMode);

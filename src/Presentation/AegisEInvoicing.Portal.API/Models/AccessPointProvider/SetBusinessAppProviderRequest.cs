@@ -1,12 +1,10 @@
-using AegisEInvoicing.Domain.Enums;
-
 namespace AegisEInvoicing.Portal.API.Models.AccessPointProvider;
 
 public class SetBusinessAppProviderRequest
 {
     /// <summary>
-    /// The vendor to activate for this business.
-    /// Null resets to the platform default (Interswitch).
+    /// The adapter key to activate for this business (e.g. "interswitch", "digitax").
+    /// Null or empty resets to the platform default.
     /// </summary>
-    public AppVendor? Vendor { get; set; }
+    public string? AdapterKey { get; set; }
 }

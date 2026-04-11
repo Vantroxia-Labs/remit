@@ -1,5 +1,3 @@
-using AegisEInvoicing.Domain.Enums;
-
 namespace AegisEInvoicing.Application.Features.AccessPointProviders.DTOs;
 
 /// <summary>
@@ -12,7 +10,8 @@ public record AccessPointProvidersDto(
     Guid Id,
     string Name,
     string? Description,
-    AppVendor Vendor,
+    string AdapterKey,
+    string DisplayName,
     string BaseUrl,
     bool HasProductionCredentials,
     string? SandboxBaseUrl,

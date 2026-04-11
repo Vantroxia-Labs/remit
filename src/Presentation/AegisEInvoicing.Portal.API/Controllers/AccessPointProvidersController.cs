@@ -2,6 +2,7 @@ using Asp.Versioning;
 using AegisEInvoicing.Portal.API.Attributes;
 using AegisEInvoicing.Portal.API.Models;
 using AegisEInvoicing.Portal.API.Models.AccessPointProvider;
+using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Common.Models;
 using AegisEInvoicing.Application.Features.AccessPointProviders.Commands.Create;
 using AegisEInvoicing.Application.Features.AccessPointProviders.Commands.Delete;
@@ -11,7 +12,6 @@ using AegisEInvoicing.Application.Features.AccessPointProviders.Commands.SetBusi
 using AegisEInvoicing.Application.Features.AccessPointProviders.DTOs;
 using AegisEInvoicing.Application.Features.AccessPointProviders.Queries;
 using AegisEInvoicing.Domain.Constants;
-using AegisEInvoicing.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,9 +28,26 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 [SwaggerTag("APP provider management — CRUD for provider configs and per-business provider/environment switching")]
 [Authorize]
 public class AccessPointProvidersController(
-    ILogger<AccessPointProvidersController> logger) : BaseApiController
+    ILogger<AccessPointProvidersController> logger,
+    IEnumerable<IAccessPointProviderClient> adapters) : BaseApiController
 {
     // ─── Provider CRUD (AegisAdmin only) ─────────────────────────────────────
+
+    [HttpGet("adapter-options")]
+    [SwaggerOperation(
+        Summary = "List all registered APP adapter options",
+        Description = "Returns the set of adapter keys and display names discovered from DI-registered " +
+                      "IAccessPointProviderClient implementations. No enum or hardcoded list — new adapters " +
+                      "appear automatically once registered.",
+        OperationId = "GetAdapterOptions",
+        Tags = new[] { "Access Point Providers" })]
+    [SwaggerResponse(200, "Adapter options", typeof(ApiResponse<IEnumerable<object>>))]
+    [RequireAegisAdmin]
+    public IActionResult GetAdapterOptions()
+    {
+        var options = adapters.Select(a => new { adapterKey = a.ProviderCode, displayName = a.DisplayName });
+        return Success(options, "Adapter options");
+    }
 
     [HttpGet]
     [SwaggerOperation(
@@ -52,14 +69,14 @@ public class AccessPointProvidersController(
         OperationId = "CreateAccessPointProvider",
         Tags = new[] { "Access Point Providers" })]
     [SwaggerResponse(200, "Provider created", typeof(ApiResponse<CreateAccessPointProvidersResult>))]
-    [SwaggerResponse(400, "Validation error or duplicate provider code")]
+    [SwaggerResponse(400, "Validation error or duplicate adapter key")]
     [RequireAegisAdmin]
     public async Task<IActionResult> CreateAccessPointProvider([FromBody] AccessPointProviderRequest request)
     {
         var command = new CreateAccessPointProvidersCommand(
             request.Name,
             request.Description,
-            request.Vendor,
+            request.AdapterKey,
             request.BaseUrl,
             request.CredentialsJson,
             request.SandboxBaseUrl,
@@ -136,7 +153,7 @@ public class AccessPointProvidersController(
     [HttpGet("businesses/{businessId:guid}/settings")]
     [SwaggerOperation(
         Summary = "Get current APP provider and environment mode for a business",
-        Description = "Returns the active vendor and environment mode. ClientAdmin can only read their own business.",
+        Description = "Returns the active adapter key and environment mode. ClientAdmin can only read their own business.",
         OperationId = "GetBusinessAppSettings",
         Tags = new[] { "Access Point Providers" })]
     [SwaggerResponse(200, "Settings retrieved", typeof(ApiResponse<BusinessAppSettingsDto>))]
@@ -156,17 +173,17 @@ public class AccessPointProvidersController(
     [SwaggerOperation(
         Summary = "Set active APP provider for a business",
         Description = "AegisAdmin can set for any business. ClientAdmin can set for their own business only. " +
-                      "Pass null providerCode to reset to the platform default (Interswitch).",
+                      "Pass null adapterKey to reset to the platform default.",
         OperationId = "SetBusinessAppProvider",
         Tags = new[] { "Access Point Providers" })]
     [SwaggerResponse(200, "Provider updated", typeof(ApiResponse<SetBusinessAppProviderResult>))]
-    [SwaggerResponse(400, "Unknown provider code or insufficient permissions")]
+    [SwaggerResponse(400, "Unknown adapter key or insufficient permissions")]
     [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin)]
     public async Task<IActionResult> SetBusinessAppProvider(
         Guid businessId,
         [FromBody] SetBusinessAppProviderRequest request)
     {
-        var command = new SetBusinessAppProviderCommand(businessId, request.Vendor);
+        var command = new SetBusinessAppProviderCommand(businessId, request.AdapterKey);
         var result = await Mediator.Send(command);
 
         if (!result.IsSuccess)

@@ -19,10 +19,10 @@ public class AppProviderConfigurationConfiguration : IEntityTypeConfiguration<Ap
         builder.Property(a => a.Description)
             .HasMaxLength(1000);
 
-        // Stored as integer — enum value determines the adapter wired up by the router
-        builder.Property(a => a.Vendor)
+        // Lowercase stable key matching IAccessPointProviderClient.ProviderCode
+        builder.Property(a => a.AdapterKey)
             .IsRequired()
-            .HasConversion<int>();
+            .HasMaxLength(100);
 
         builder.Property(a => a.BaseUrl)
             .IsRequired()
@@ -64,10 +64,10 @@ public class AppProviderConfigurationConfiguration : IEntityTypeConfiguration<Ap
             .IsRequired()
             .HasDefaultValue(false);
 
-        // One configuration per vendor — Vendor is the routing key
-        builder.HasIndex(a => a.Vendor)
+        // One configuration per adapter — AdapterKey is the routing key
+        builder.HasIndex(a => a.AdapterKey)
             .IsUnique()
-            .HasDatabaseName("IX_AppProviderConfigurations_Vendor");
+            .HasDatabaseName("IX_AppProviderConfigurations_AdapterKey");
 
         builder.HasIndex(a => a.IsActive)
             .HasDatabaseName("IX_AppProviderConfigurations_IsActive");

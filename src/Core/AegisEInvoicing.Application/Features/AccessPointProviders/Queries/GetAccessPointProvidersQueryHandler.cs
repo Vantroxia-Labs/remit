@@ -8,9 +8,15 @@ using Microsoft.EntityFrameworkCore;
 namespace AegisEInvoicing.Application.Features.AccessPointProviders.Queries;
 
 public class GetAccessPointProvidersQueryHandler(
-    IApplicationDbContext context)
+    IApplicationDbContext context,
+    IEnumerable<IAccessPointProviderClient> adapters)
     : IRequestHandler<GetAccessPointProvidersQuery, PaginatedList<AccessPointProvidersDto>>
 {
+    // Build a display-name lookup from registered adapters so the list endpoint
+    // can return human-readable names without any enum or hardcoded table.
+    private readonly Dictionary<string, string> _displayNames =
+        adapters.ToDictionary(a => a.ProviderCode, a => a.DisplayName, StringComparer.OrdinalIgnoreCase);
+
     public async Task<PaginatedList<AccessPointProvidersDto>> Handle(
         GetAccessPointProvidersQuery request,
         CancellationToken cancellationToken)
@@ -29,7 +35,7 @@ public class GetAccessPointProvidersQueryHandler(
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
-            .OrderBy(p => p.Vendor)
+            .OrderBy(p => p.AdapterKey)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
@@ -38,7 +44,8 @@ public class GetAccessPointProvidersQueryHandler(
             p.Id,
             p.Name,
             p.Description,
-            p.Vendor,
+            p.AdapterKey,
+            DisplayName: _displayNames.TryGetValue(p.AdapterKey, out var name) ? name : p.AdapterKey,
             p.BaseUrl,
             HasProductionCredentials: p.EncryptedCredentials is not null,
             p.SandboxBaseUrl,

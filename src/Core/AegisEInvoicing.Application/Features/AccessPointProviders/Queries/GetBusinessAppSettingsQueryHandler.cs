@@ -1,6 +1,5 @@
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Features.AccessPointProviders.DTOs;
-using AegisEInvoicing.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,12 +25,12 @@ public class GetBusinessAppSettingsQueryHandler(
         var settings = await context.Businesses
             .AsNoTracking()
             .Where(b => b.Id == businessId && !b.IsDeleted)
-            .Select(b => new { b.ActiveVendor, b.AppEnvironmentMode })
+            .Select(b => new { b.ActiveAdapterKey, b.AppEnvironmentMode })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (settings is null)
             return null;
 
-        return new BusinessAppSettingsDto(settings.ActiveVendor, settings.AppEnvironmentMode);
+        return new BusinessAppSettingsDto(settings.ActiveAdapterKey, settings.AppEnvironmentMode);
     }
 }

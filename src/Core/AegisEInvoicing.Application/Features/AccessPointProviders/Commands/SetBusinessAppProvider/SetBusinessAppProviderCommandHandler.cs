@@ -1,5 +1,4 @@
 using AegisEInvoicing.Application.Common.Interfaces;
-using AegisEInvoicing.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -30,25 +29,36 @@ public class SetBusinessAppProviderCommandHandler(
         if (business is null)
             return new SetBusinessAppProviderResult(false, "Business not found.");
 
-        // If a specific vendor is requested, verify an active configuration exists
-        if (request.Vendor.HasValue)
+        // If a specific adapter is requested, verify an active configuration exists for it
+        if (!string.IsNullOrWhiteSpace(request.AdapterKey))
         {
+            var normalizedKey = request.AdapterKey.Trim().ToLowerInvariant();
+
             var configExists = await context.AppProviderConfigurations
-                .AnyAsync(p => p.Vendor == request.Vendor.Value && p.IsActive && !p.IsDeleted, cancellationToken);
+                .AnyAsync(p => p.AdapterKey == normalizedKey && p.IsActive && !p.IsDeleted, cancellationToken);
 
             if (!configExists)
                 return new SetBusinessAppProviderResult(false,
-                    $"No active APP provider configuration found for vendor '{request.Vendor.Value}'.");
+                    $"No active APP provider configuration found for adapter '{normalizedKey}'.");
+
+            business.SetAdapterKey(normalizedKey, currentUser.UserId!.Value);
+            await context.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation(
+                "Business {BusinessId} APP adapter set to '{AdapterKey}' by user {UserId}",
+                businessId, normalizedKey, currentUser.UserId);
+
+            return new SetBusinessAppProviderResult(true, $"APP provider updated to '{normalizedKey}'.");
         }
 
-        business.SetVendor(request.Vendor, currentUser.UserId!.Value);
+        // Null/empty resets to platform default
+        business.SetAdapterKey(null, currentUser.UserId!.Value);
         await context.SaveChangesAsync(cancellationToken);
 
-        var label = request.Vendor.HasValue ? request.Vendor.Value.ToString() : "Interswitch (default)";
         logger.LogInformation(
-            "Business {BusinessId} APP vendor set to '{Vendor}' by user {UserId}",
-            businessId, label, currentUser.UserId);
+            "Business {BusinessId} APP adapter reset to platform default by user {UserId}",
+            businessId, currentUser.UserId);
 
-        return new SetBusinessAppProviderResult(true, $"APP provider updated to '{label}'.");
+        return new SetBusinessAppProviderResult(true, "APP provider reset to platform default.");
     }
 }

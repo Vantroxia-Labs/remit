@@ -45,8 +45,8 @@ public class UpdateAccessPointProvidersCommandHandler(
         await context.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "AppProviderConfiguration updated: Id={Id}, Vendor={Vendor}",
-            config.Id, config.Vendor);
+            "AppProviderConfiguration updated: Id={Id}, AdapterKey={AdapterKey}",
+            config.Id, config.AdapterKey);
 
         return new UpdateAccessPointProvidersResult(true, "Access point provider updated successfully.");
     }

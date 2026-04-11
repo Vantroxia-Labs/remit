@@ -29,8 +29,8 @@ public class DeleteAccessPointProvidersCommandHandler(
         await context.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "AppProviderConfiguration soft-deleted: Id={Id}, Vendor={Vendor}",
-            config.Id, config.Vendor);
+            "AppProviderConfiguration soft-deleted: Id={Id}, AdapterKey={AdapterKey}",
+            config.Id, config.AdapterKey);
 
         return new DeleteAccessPointProvidersResult(true, "Access point provider deleted successfully.");
     }

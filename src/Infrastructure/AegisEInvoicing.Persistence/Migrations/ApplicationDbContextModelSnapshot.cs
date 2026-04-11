@@ -308,8 +308,10 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Vendor")
-                        .HasColumnType("integer");
+                    b.Property<string>("AdapterKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 
@@ -319,9 +321,9 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_AppProviderConfigurations_IsDeleted");
 
-                    b.HasIndex("Vendor")
+                    b.HasIndex("AdapterKey")
                         .IsUnique()
-                        .HasDatabaseName("IX_AppProviderConfigurations_Vendor");
+                        .HasDatabaseName("IX_AppProviderConfigurations_AdapterKey");
 
                     b.HasIndex("IsDeleted", "IsActive")
                         .HasDatabaseName("IX_AppProviderConfigurations_IsDeleted_IsActive");
@@ -418,8 +420,9 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int?>("ActiveVendor")
-                        .HasColumnType("integer");
+                    b.Property<string>("ActiveAdapterKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<Guid?>("AdminUserId")
                         .HasColumnType("uuid");

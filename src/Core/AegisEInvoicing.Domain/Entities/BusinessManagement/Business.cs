@@ -3,6 +3,8 @@ using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Entities.UserManagement;
 using AegisEInvoicing.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
+// Note: AppEnvironmentMode (Sandbox/Production) is still an enum — it is a two-state toggle,
+// not a registry, so enum is the correct type.
 
 namespace AegisEInvoicing.Domain.Entities.BusinessManagement;
 
@@ -64,10 +66,11 @@ public class Business : AuditableAggregateRoot
 
     // APP (Access Point Provider) switching
     /// <summary>
-    /// The vendor this business has selected as its Access Point Provider.
-    /// Null means use the platform default (Interswitch).
+    /// The adapter key this business has selected as its Access Point Provider.
+    /// Must match IAccessPointProviderClient.ProviderCode on a registered adapter.
+    /// Null means use the platform default (first registered adapter / "interswitch").
     /// </summary>
-    public AppVendor? ActiveVendor { get; private set; }
+    public string? ActiveAdapterKey { get; private set; }
 
     /// <summary>
     /// Whether this business operates in Sandbox or Production mode.
@@ -362,12 +365,12 @@ public class Business : AuditableAggregateRoot
     }
 
     /// <summary>
-    /// Sets the active Access Point Provider vendor for this business.
-    /// Pass null to revert to the platform default (Interswitch).
+    /// Sets the active Access Point Provider for this business by adapter key.
+    /// Pass null to revert to the platform default.
     /// </summary>
-    public void SetVendor(AppVendor? vendor, Guid updatedBy)
+    public void SetAdapterKey(string? adapterKey, Guid updatedBy)
     {
-        ActiveVendor = vendor;
+        ActiveAdapterKey = adapterKey?.Trim().ToLowerInvariant();
         UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
