@@ -43,6 +43,9 @@ public class Invoice : AuditableAggregateRoot
     private readonly List<InvoiceAdditionalDocumentReference> _additionalDocumentReferences = [];
     public IReadOnlyCollection<InvoiceAdditionalDocumentReference> AdditionalDocumentReferences => _additionalDocumentReferences.AsReadOnly();
 
+    // Environment Mode — tracks whether this invoice was created in Sandbox or Production mode.
+    public AppEnvironmentMode EnvironmentMode { get; private set; } = AppEnvironmentMode.Production;
+
     // FIRS Integration Fields
     public InvoiceStatus InvoiceStatus { get; private set; }
     public QRCode? QRCode { get; private set; }
@@ -85,7 +88,8 @@ public class Invoice : AuditableAggregateRoot
         string? note = null,
         string? paymentReference = null,
         string? paymentTerms = null,
-        DateOnly? dueDate = null)
+        DateOnly? dueDate = null,
+        AppEnvironmentMode environmentMode = AppEnvironmentMode.Production)
     {
         if (irn is null) throw new BadRequestException("IRN cannot be null", nameof(irn));
         if (invoiceType is null) throw new BadRequestException("Invoice type cannot be null", nameof(invoiceType));
@@ -112,7 +116,8 @@ public class Invoice : AuditableAggregateRoot
             DueDate = dueDate,
             InvoiceStatus = InvoiceStatus.APPROVED,
             Note = note,
-            InvoiceSource = invoiceSource
+            InvoiceSource = invoiceSource,
+            EnvironmentMode = environmentMode
         };
         invoice.AddDomainEvent(new InvoiceCreatedEvent(invoice.Id, invoice.Irn, businessId));
         return invoice;
@@ -135,7 +140,8 @@ public class Invoice : AuditableAggregateRoot
         string? note = null,
         string? paymentReference = null,
         string? paymentTerms = null,
-        DateOnly? dueDate = null)
+        DateOnly? dueDate = null,
+        AppEnvironmentMode environmentMode = AppEnvironmentMode.Production)
     {
         if (irn is null) throw new BadRequestException("IRN cannot be null", nameof(irn));
         if (invoiceType is null) throw new BadRequestException("Invoice type cannot be null", nameof(invoiceType));
@@ -161,7 +167,8 @@ public class Invoice : AuditableAggregateRoot
             DueDate = dueDate,
             InvoiceStatus = InvoiceStatus.CREATED,
             Note = note,
-            InvoiceSource = invoiceSource
+            InvoiceSource = invoiceSource,
+            EnvironmentMode = environmentMode
         };
     }
 
@@ -170,7 +177,8 @@ public class Invoice : AuditableAggregateRoot
         Guid businessId,
         string invoicePrefix,
         InvoiceType invoiceType,
-        Currency currency)
+        Currency currency,
+        AppEnvironmentMode environmentMode = AppEnvironmentMode.Production)
     {
         var draftInvoice = new Invoice
         {
@@ -182,7 +190,8 @@ public class Invoice : AuditableAggregateRoot
             Currency = currency,
             PaymentStatus = PaymentStatus.Pending,
             InvoiceStatus = InvoiceStatus.DRAFT,
-            Note = "Draft Invoice - Incomplete"
+            Note = "Draft Invoice - Incomplete",
+            EnvironmentMode = environmentMode
         };
 
         return draftInvoice;

@@ -42,7 +42,7 @@ public class AccessPointProvidersController(
         OperationId = "GetAdapterOptions",
         Tags = new[] { "Access Point Providers" })]
     [SwaggerResponse(200, "Adapter options", typeof(ApiResponse<IEnumerable<object>>))]
-    [RequireAegisAdmin]
+    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin)]
     public IActionResult GetAdapterOptions()
     {
         var options = adapters.Select(a => new { adapterKey = a.ProviderCode, displayName = a.DisplayName });

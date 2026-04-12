@@ -168,6 +168,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
                 PaymentReference = createInvoiceRequest.PaymentReference,
                 PaymentTerms = createInvoiceRequest.PaymentTerms,
                 InvoiceItems = createInvoiceRequest.InvoiceItems,
+                InvoiceKind = createInvoiceRequest.InvoiceKind,
                 DispatchDocumentReference = createInvoiceRequest.DispatchDocumentReference,
                 ReceiptDocumentReference = createInvoiceRequest.ReceiptDocumentReference,
                 OriginatorDocumentReference = createInvoiceRequest.OriginatorDocumentReference,
@@ -756,7 +757,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
         try
         {
             var command = new UpdateInvoicePaymentStatusCommand(id, updateInvoicePaymentStatusRequest.PaymentStatus);
-            var result = await _mediator.Send(command, cancellationToken);          
+            var result = await _mediator.Send(command, cancellationToken);
 
             return GenericResponse(result.Message, result.IsSuccess, result.StatusCodes);
         }

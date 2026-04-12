@@ -44,9 +44,7 @@
 		<PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.1" />
 		<PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
 		<PackageReference Include="DotNetEnv" Version="3.1.1" />
-		<PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.0.0" />
 		<PackageReference Include="NPOI" Version="2.7.5" />
-		<PackageReference Include="Serilog.Sinks.ApplicationInsights" Version="5.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3" />

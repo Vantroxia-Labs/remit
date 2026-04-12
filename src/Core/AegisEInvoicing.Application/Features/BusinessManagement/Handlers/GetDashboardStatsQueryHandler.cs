@@ -106,8 +106,8 @@ public class GetDashboardStatsQueryHandler(
                 TotalInvoicesThisMonth = invoiceStats?.ThisMonth ?? 0,
                 DraftInvoices = invoiceStats?.Draft ?? 0,
                 PendingApprovalInvoices = invoiceStats?.PendingApproval ?? 0,
-                SubmittedToFIRS = invoiceStats?.Submitted ?? 0,
-                ConfirmedByFIRS = invoiceStats?.Confirmed ?? 0,
+                SubmittedToNRS = invoiceStats?.Submitted ?? 0,
+                ConfirmedByNRS = invoiceStats?.Confirmed ?? 0,
                 RejectedInvoices = invoiceStats?.Rejected ?? 0,
                 PortalCreatedInvoices = invoiceStats?.PortalSource ?? 0,
                 SftpCreatedInvoices = invoiceStats?.SftpSource ?? 0,
@@ -132,7 +132,11 @@ public class GetDashboardStatsQueryHandler(
                 TotalReceivedInvoices = totalReceivedInvoices,
 
                 // Pending registrations
-                PendingRegistrations = pendingRegistrations
+                PendingRegistrations = pendingRegistrations,
+
+                // Platform revenue (future: sum subscription payments)
+                PlatformRevenueTotal = 0m,
+                PlatformRevenueThisMonth = 0m
             };
         }
         catch (Exception ex)

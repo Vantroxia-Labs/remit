@@ -11,6 +11,7 @@ using AegisEInvoicing.Application.Features.BusinessManagement.Commands.ActivateB
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.SuspendBusiness;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.UpdateBusiness;
 using AegisEInvoicing.Application.Features.BusinessManagement.DTOs;
+using AegisEInvoicing.Application.Features.BusinessManagement.Queries;
 using AegisEInvoicing.Application.Features.BusinessManagement.Queries.GetBusinesses;
 using AegisEInvoicing.Application.Features.BusinessManagement.Queries.GetFirsApiConfiguration;
 using AegisEInvoicing.Application.Features.BusinessManagement.Queries.GetQrCodeConfiguration;
@@ -47,11 +48,13 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 public partial class BusinessController(
     IMediator mediator,
     ILogger<BusinessController> logger,
-    IConfiguration configuration) : BaseApiController
+    IConfiguration configuration,
+    ICurrentUserService currentUserService) : BaseApiController
 {
     private readonly IMediator _mediator = mediator;
     private readonly ILogger<BusinessController> _logger = logger;
     private readonly IConfiguration _configuration = configuration;
+    private readonly ICurrentUserService _currentUserService = currentUserService;
 
 
     /// <summary>   
@@ -110,6 +113,7 @@ public partial class BusinessController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Assignment result</returns>
     [HttpPatch("update-firs-credentials")]
+    [HttpPatch("update-NRS-credentials")]
     [SwaggerOperation(
         Summary = "Update FIRS API Credentials to business",
         Description = "Update a FIRS API Credentials to the current authenticated business. If a configuration already exists, it will be updated."
@@ -438,6 +442,104 @@ public partial class BusinessController(
         var result = await _mediator.Send(command, cancellationToken);
         if (!result.IsSuccess)
             return BadRequest(Error(result.Message));
+        return Success<object>(null!, result.Message);
+    }
+
+    // ── Dashboard Stats (/business/dashboard/stats) ───────────────────────────
+
+    /// <summary>
+    /// Returns aggregated platform statistics for the dashboard.
+    /// Aegis admins see all-business stats; client admins see their own business.
+    /// </summary>
+    [HttpGet("dashboard/stats")]
+    [MapToApiVersion("1.0")]
+    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [SwaggerOperation(Summary = "Get Dashboard Statistics", Description = "Returns platform-wide statistics for Aegis admins, or business-scoped statistics for client users.")]
+    [SwaggerResponse(200, "Statistics retrieved", typeof(ApiResponse<KMPGDashboardStatsDto>))]
+    [SwaggerResponse(401, "Unauthenticated")]
+    [SwaggerResponse(403, "Forbidden")]
+    public async Task<IActionResult> GetDashboardStats(CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetDashboardStatsQuery(), cancellationToken);
+        return Success(result, "Dashboard statistics retrieved successfully");
+    }
+
+    // ── My Business (/business/me) ────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the profile of the currently authenticated user's business.
+    /// </summary>
+    [HttpGet("me")]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.AegisAdmin, RoleConstants.ClientUser)]
+    [SwaggerOperation(Summary = "Get My Business Profile", Description = "Returns the profile of the currently authenticated business.")]
+    [SwaggerResponse(200, "Profile retrieved", typeof(ApiResponse<BusinessProfileResponse>))]
+    [SwaggerResponse(404, "Business not found")]
+    public async Task<IActionResult> GetMyBusiness(CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetBusinessByIdQuery(null), cancellationToken);
+        if (result is null)
+            return Error("Business not found", 404);
+
+        var response = new BusinessProfileResponse
+        {
+            Id = result.Id,
+            Name = result.Name,
+            Description = result.Description,
+            BusinessRegistrationNumber = result.BusinessRegistrationNumber,
+            TaxIdentificationNumber = result.TIN,
+            ContactEmail = result.ContactEmail,
+            ContactPhone = result.ContactPhone,
+            Industry = result.Industry,
+            ServiceId = result.ServiceId ?? string.Empty,
+            NRSBusinessId = result.FIRSBusinessId == Guid.Empty ? null : result.FIRSBusinessId.ToString(),
+            IsActive = result.Status == AegisEInvoicing.Domain.Enums.BusinessStatus.Active,
+            OnboardingCompleted = true,
+            RegisteredAddress = result.RegisteredAddress is null ? null : new BusinessAddressResponse
+            {
+                Street = result.RegisteredAddress.Street ?? string.Empty,
+                City = result.RegisteredAddress.City ?? string.Empty,
+                State = result.RegisteredAddress.State ?? string.Empty,
+                Country = result.RegisteredAddress.Country ?? string.Empty,
+                PostalCode = result.RegisteredAddress.PostalCode ?? string.Empty
+            }
+        };
+        return Success(response, "Business profile retrieved successfully");
+    }
+
+    /// <summary>
+    /// Updates the profile of the currently authenticated user's business.
+    /// </summary>
+    [HttpPatch("me")]
+    [RequireRole(RoleConstants.ClientAdmin)]
+    [SwaggerOperation(Summary = "Update My Business Profile", Description = "Allows a client admin to update their own business profile.")]
+    [SwaggerResponse(200, "Profile updated")]
+    [SwaggerResponse(400, "Validation error")]
+    [SwaggerResponse(403, "Forbidden")]
+    public async Task<IActionResult> UpdateMyBusiness([FromBody] UpdateBusinessRequest request, CancellationToken cancellationToken = default)
+    {
+        if (!_currentUserService.BusinessId.HasValue)
+            return Error("User is not associated with a business", StatusCodes.Status403Forbidden);
+
+        var address = Address.Create(
+            request.RegisteredAddress.Street,
+            request.RegisteredAddress.City,
+            request.RegisteredAddress.State,
+            request.RegisteredAddress.Country,
+            request.RegisteredAddress.PostalCode);
+
+        var command = new UpdateBusinessCommand(
+            _currentUserService.BusinessId.Value,
+            address,
+            request.InvoicePrefix,
+            request.Industry,
+            request.ContactEmail,
+            request.ContactPhone,
+            request.Description);
+
+        var result = await _mediator.Send(command, cancellationToken);
+        if (!result.IsSuccess)
+            return Error(result.Message);
+
         return Success<object>(null!, result.Message);
     }
 

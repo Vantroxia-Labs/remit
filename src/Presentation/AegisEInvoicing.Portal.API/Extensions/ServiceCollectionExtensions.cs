@@ -11,6 +11,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
 using System.Text;
@@ -275,7 +279,7 @@ public static class ServiceCollectionExtensions
             options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
             options.AddPolicy("KMPGAdminOnly", policy => policy.RequireRole("KMPGAdmin"));
             options.AddPolicy("OrganizationAdminOnly", policy => policy.RequireRole("OrganizationAdmin"));
-            
+
             // Portal CUD operations require SaaS subscription tier
             // ApiOnly and SFTP tiers have read-only access to Portal
             options.AddPolicy("RequireSaasSubscription", policy =>
@@ -607,8 +611,38 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Add simplified OpenTelemetry - can be configured properly later
-        services.AddOpenTelemetry();
+        var sigNozEndpoint = configuration["SigNoz:Endpoint"]
+            ?? Environment.GetEnvironmentVariable("SIGNOZ_ENDPOINT")
+            ?? "http://localhost:4317";
+
+        var serviceName = configuration["SigNoz:ServiceName"] ?? "AegisEInvoicing-Portal";
+
+        services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource
+                .AddService(serviceName)
+                .AddAttributes(new Dictionary<string, object>
+                {
+                    ["deployment.environment"] = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"
+                }))
+            .WithTracing(tracing => tracing
+                .AddAspNetCoreInstrumentation(opts => opts.RecordException = true)
+                .AddHttpClientInstrumentation()
+                .AddEntityFrameworkCoreInstrumentation()
+                .AddSource("AegisEInvoicing")
+                .AddOtlpExporter(opts =>
+                {
+                    opts.Endpoint = new Uri(sigNozEndpoint);
+                    opts.Protocol = OtlpExportProtocol.Grpc;
+                }))
+            .WithMetrics(metrics => metrics
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddRuntimeInstrumentation()
+                .AddOtlpExporter(opts =>
+                {
+                    opts.Endpoint = new Uri(sigNozEndpoint);
+                    opts.Protocol = OtlpExportProtocol.Grpc;
+                }));
 
         return services;
     }

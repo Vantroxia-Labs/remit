@@ -5,6 +5,7 @@ using AegisEInvoicing.Application.Features.Authentication.Commands.Login;
 using AegisEInvoicing.Application.Features.Authentication.Commands.Logout;
 using AegisEInvoicing.Application.Features.Authentication.Commands.RefreshToken;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.RegisterBusiness;
+using AegisEInvoicing.Application.Features.UserManagement.Commands.UserCommands;
 using AegisEInvoicing.Application.Features.UserManagement.Commands.UserCommands.RequestChangePassword;
 using AegisEInvoicing.Application.Features.UserManagement.Commands.UserCommands.SendForgotPasswordOTP;
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
@@ -203,7 +204,7 @@ public class AuthenticationController : BaseApiController
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest? request = null)
     {
         var refreshToken = request?.RefreshToken ?? GetRefreshTokenFromCookie();
-        
+
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
             return Error("Refresh token is required", StatusCodes.Status400BadRequest);
@@ -294,7 +295,7 @@ public class AuthenticationController : BaseApiController
     [AllowAnonymous]
     [SwaggerOperation(Description = "This endpoint allows users to request otp while doing password reset. Rate limited to 5 attempts per IP per 5 minutes.")]
     [SwaggerResponse(200, "OTP sent successfully", typeof(ApiResponse<SendForgotPasswordOTPResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<SendForgotPasswordOTPResult>))]      
+    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<SendForgotPasswordOTPResult>))]
     public async Task<IActionResult> SendForgotPasswordOTP([FromBody] SendForgotPasswordOTP request)
     {
         var command = new SendForgotPasswordOTPCommand(request.PhoneNo_Email.Trim());
@@ -321,7 +322,7 @@ public class AuthenticationController : BaseApiController
     [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<SendForgotPasswordOTPResult>))]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPassword request)
     {
-        var command = new ForgotPasswordCommand(request.Otp.Trim(), request.Password.Trim(),request.PhoneNo_Email.Trim());
+        var command = new ForgotPasswordCommand(request.Otp.Trim(), request.Password.Trim(), request.PhoneNo_Email.Trim());
         var result = await Mediator.Send(command);
 
         if (!result.IsSuccess)
@@ -514,6 +515,25 @@ public class AuthenticationController : BaseApiController
     {
         Response.Cookies.Delete("refreshToken");
     }
+
+    /// <summary>
+    /// Allows the authenticated user to change their own password.
+    /// Exposed at /auth/change-password for frontend compatibility.
+    /// </summary>
+    [HttpPost("change-password")]
+    [Authorize]
+    [SwaggerOperation(Summary = "Change Password", Description = "Allows an authenticated user to change their own password.")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestModel request)
+    {
+        var command = new ChangePasswordCommand(request.CurrentPassword, request.NewPassword);
+        var result = await Mediator.Send(command);
+        if (!result.IsSuccess)
+            return Error(result.Message);
+        return Success<object>(null!, result.Message);
+    }
 }
 
 // Request/Response models
@@ -593,3 +613,11 @@ public record RegisterBusinessResponse(
     Guid PendingRegistrationId,
     string Reference,
     string PaymentUrl);
+
+/// <summary>
+/// Change password request (self-service)
+/// </summary>
+public record ChangePasswordRequestModel(
+    string CurrentPassword,
+    string NewPassword,
+    string ConfirmNewPassword);

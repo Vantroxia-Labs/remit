@@ -14,7 +14,6 @@ using OfficeOpenXml;
 using QuestPDF.Infrastructure;
 using Serilog;
 using Serilog.Events;
-using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 
 // CRITICAL: Write to both Console and Debug to ensure visibility in Azure
 var startupMessage = $"[STARTUP {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Application starting - Environment: {Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown"}";
@@ -133,42 +132,9 @@ try
                     "{Message:lj}{NewLine}{Exception}"
             );
 
-            // Application Insights sink
-            var appInsightsConnectionString = Environment.GetEnvironmentVariable("ApplicationInsights__ConnectionString");
-            if (!string.IsNullOrEmpty(appInsightsConnectionString))
-            {
-                loggerConfig.WriteTo.ApplicationInsights(
-                    appInsightsConnectionString,
-                    TelemetryConverter.Traces);
 
-                Log.Information("Application Insights sink configured successfully");
-            }
-            else
-            {
-                Log.Warning("Application Insights connection string not configured - skipping Application Insights sink");
-            }
     });
 
-    // Add Application Insights Telemetry
-    var appInsightsConnectionString = Environment.GetEnvironmentVariable("ApplicationInsights__ConnectionString");
-    if (!string.IsNullOrEmpty(appInsightsConnectionString))
-    {
-        builder.Services.AddApplicationInsightsTelemetry(options =>
-        {
-            options.ConnectionString = appInsightsConnectionString;
-            options.EnableDependencyTrackingTelemetryModule = bool.Parse(Environment.GetEnvironmentVariable("ApplicationInsights__EnableDependencyTracking") ?? "true");
-            options.EnablePerformanceCounterCollectionModule = bool.Parse(Environment.GetEnvironmentVariable("ApplicationInsights__EnablePerformanceCounters") ?? "true");
-            options.EnableRequestTrackingTelemetryModule = bool.Parse(Environment.GetEnvironmentVariable("ApplicationInsights__EnableRequestTracking") ?? "true");
-        });
-
-        // Register custom telemetry initializer for enriching telemetry with properties
-        var customTelemetryInitializer = new CustomTelemetryInitializer(
-            Environment.GetEnvironmentVariable("ApplicationInsights__CloudRoleName") ?? "AegisEInvoicing-Portal",
-            "1.0.0");
-        builder.Services.AddSingleton(customTelemetryInitializer);
-
-        Log.Information("Application Insights telemetry enabled");
-    }
 
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddProblemDetails();

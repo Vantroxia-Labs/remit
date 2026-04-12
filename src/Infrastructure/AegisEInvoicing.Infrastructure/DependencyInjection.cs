@@ -52,8 +52,8 @@ public static class DependencyInjection
         services.AddSingleton<IResponseIntegrityService, ResponseIntegrityService>();
         services.AddScoped<IInvoiceAuditService, InvoiceAuditService>();
 
-        // Application Insights Telemetry Service (nullable TelemetryClient support)
-        services.AddScoped<ITelemetryService, ApplicationInsightsTelemetryService>();
+        // Telemetry Service via SigNoz (OTLP)
+        services.AddScoped<ITelemetryService, SigNozTelemetryService>();
 
         // Reference Data Cache Service (validates invoice types, currencies, etc.)
         services.AddSingleton<IReferenceDataCacheService, ReferenceDataCacheService>();
@@ -88,9 +88,9 @@ public static class DependencyInjection
 
         // License and Subscription Services
         services.AddScoped<ILicenseValidationService, LicenseValidationService>();
-        
-       
-        
+
+
+
         // SFTP Directory Management Service
         services.AddScoped<ISftpDirectoryService, SftpDirectoryService>();
 
@@ -229,6 +229,6 @@ public static class DependencyInjection
         });
     }
 
-   
+
 
 }

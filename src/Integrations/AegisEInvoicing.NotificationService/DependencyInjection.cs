@@ -61,7 +61,7 @@ public static class DependencyInjection
             return new AmazonSimpleEmailServiceClient(config.AccessKey, config.SecretKey, awsConfig);
         });
 
-        //services.AddScoped<IEmailService, AwsSesEmailService>();
+        services.AddScoped<IEmailService, AwsSesEmailService>();
 
         return services;
     }
@@ -95,7 +95,7 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var emailProvider = configuration["EmailSettings:Provider"]?.ToLower() ?? "azure";
+        var emailProvider = configuration["EmailSettings:Provider"]?.ToLower() ?? "ses";
 
         switch (emailProvider)
         {
@@ -119,8 +119,11 @@ public static class DependencyInjection
                 break;
 
             default:
-                // Default to Azure if invalid provider specified
-                services.AddAzureCommunicationEmailService(configuration);
+                // Default to AWS SES if invalid provider specified
+                var defaultConnectionString = configuration["EmailSettings:AwsConnectionString"];
+                if (string.IsNullOrWhiteSpace(defaultConnectionString))
+                    throw new InvalidOperationException("AWS SES connection string is not configured");
+                services.AddAwsSesEmailService(defaultConnectionString);
                 break;
         }
 
