@@ -256,7 +256,8 @@ public class CreateFIRSInvoiceCommandHandler(
                 note: request.Note,
                 paymentReference: request.PaymentReference,
                 paymentTerms: request.PaymentTerms,
-                dueDate: request.DueDate);
+                dueDate: request.DueDate,
+                environmentMode: business.AppEnvironmentMode);
 
             if (string.IsNullOrEmpty(business.Certificate) ||
                 string.IsNullOrEmpty(business.PublicKey))

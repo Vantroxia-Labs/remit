@@ -140,7 +140,7 @@ public class OnboardBusinessCommandHandler(
                 // The business can still be onboarded and API key can be generated later
             }
 
-            // Create SFTP user in Cerberus and file system - Only for SaaS subscriptions
+            // Create SFTP user in SFTPGo and file system - Only for SaaS subscriptions
             string? sftpPassword = null;
             if (PlatformSubscription?.Tier == Domain.Entities.SubscriptionTier.SaaS)
             {

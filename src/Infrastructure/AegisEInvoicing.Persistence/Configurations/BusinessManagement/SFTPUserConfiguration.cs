@@ -48,7 +48,7 @@ public class SFTPUserConfiguration : IEntityTypeConfiguration<SFTPUser>
             .HasDefaultValue(false);
 
         // Configure nullable DateTime properties
-        builder.Property(e => e.CerberusCreatedAt)
+        builder.Property(e => e.SFTPGoCreatedAt)
             .HasColumnType("timestamp with time zone");
 
         builder.Property(e => e.LastSyncedAt)

@@ -1621,6 +1621,10 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int>("EnvironmentMode")
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2);
+
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")

@@ -6,6 +6,7 @@ using AegisEInvoicing.Application.Features.Authentication.Commands.Logout;
 using AegisEInvoicing.Application.Features.Authentication.Commands.RefreshToken;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.RegisterBusiness;
 using AegisEInvoicing.Application.Features.UserManagement.Commands.UserCommands;
+using AegisEInvoicing.Application.Features.UserManagement.Commands.UserCommands.SendActionOtp;
 using AegisEInvoicing.Application.Features.UserManagement.Commands.UserCommands.RequestChangePassword;
 using AegisEInvoicing.Application.Features.UserManagement.Commands.UserCommands.SendForgotPasswordOTP;
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
@@ -300,6 +301,27 @@ public class AuthenticationController : BaseApiController
     {
         var command = new SendForgotPasswordOTPCommand(request.PhoneNo_Email.Trim());
         var result = await Mediator.Send(command);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(Error(result.Message));
+        }
+
+        return Success(result, result.Message);
+    }
+
+    /// <summary>
+    /// Sends OTP for confirming a sensitive in-session action (authenticated users only).
+    /// </summary>
+    [HttpPost("send-action-otp")]
+    [Authorize]
+    [EnableRateLimiting("Authentication")]
+    [SwaggerOperation(Description = "Sends a one-time password for sensitive actions such as API key rotation and SFTP password change.")]
+    [SwaggerResponse(200, "OTP sent successfully", typeof(ApiResponse<SendActionOtpResult>))]
+    [SwaggerResponse(400, "Failed to send OTP", typeof(ApiResponse<object>))]
+    public async Task<IActionResult> SendActionOtp()
+    {
+        var result = await Mediator.Send(new SendActionOtpCommand());
 
         if (!result.IsSuccess)
         {

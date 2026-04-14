@@ -23,7 +23,7 @@ public class SftpUserDto
     public string RootDirectoryPath { get; set; } = null!;
     public string WorkingDirectory { get; set; } = null!;
     public bool DirectoriesCreated { get; set; }
-    public DateTimeOffset? CerberusCreatedAt { get; set; }
+    public DateTimeOffset? SFTPGoCreatedAt { get; set; }
     public DateTimeOffset? LastSyncedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }

@@ -87,7 +87,7 @@ public class GetAllSftpUsersQueryHandler : IRequestHandler<GetAllSftpUsersQuery,
                     RootDirectoryPath = s.RootDirectoryPath,
                     WorkingDirectory = s.WorkingDirectory,
                     DirectoriesCreated = s.DirectoriesCreated,
-                    CerberusCreatedAt = s.CerberusCreatedAt,
+                    SFTPGoCreatedAt = s.SFTPGoCreatedAt,
                     LastSyncedAt = s.LastSyncedAt,
                     CreatedAt = s.CreatedAt,
                     UpdatedAt = s.UpdatedAt

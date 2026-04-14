@@ -199,7 +199,8 @@ public sealed class ImportFirsInvoicesCommandHandler(
             invoiceSource: InvoiceSource.FIRS,
             note: detail.Note,
             paymentTerms: detail.PaymentTermsNote,
-            dueDate: dueDate);
+            dueDate: dueDate,
+            environmentMode: business.AppEnvironmentMode);
 
         invoice.CreatedBy = createdById;
         // 6. QR code (skip if business lacks cert/key)

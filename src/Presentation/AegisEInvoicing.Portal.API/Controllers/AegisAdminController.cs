@@ -15,7 +15,7 @@ using AegisEInvoicing.Application.Features.PlatformSubscriptions.Queries.GetAllP
 using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.AddVirtualDirectoryToUser;
 using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.ChangeSftpPassword;
 using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.DeleteSftpUser;
-using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.EnsureCerberusUserFromDb;
+using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.EnsureSFTPGoUserFromDb;
 using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.EnsureUserDirectories;
 using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.RenameSftpUser;
 using AegisEInvoicing.Application.Features.SftpUserManagement.Queries.GetAllSftpUsers;
@@ -266,7 +266,7 @@ public class AegisAdminController(
     }
 
     /// <summary>
-    /// Rename SFTP user in Cerberus and database (Aegis Admin Only)
+    /// Rename SFTP user in SFTPGo and database (Aegis Admin Only)
     /// </summary>
     /// <param name="request">Request containing current and new username</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -274,7 +274,7 @@ public class AegisAdminController(
     [HttpPost("sftp-users/rename")]
     [SwaggerOperation(
         Summary = "Rename SFTP User (Aegis Admin Only)",
-        Description = "Renames SFTP user in both CerberusService and database. Only KMPG administrators can perform this operation."
+        Description = "Renames SFTP user in both SFTPGoService and database. Only KMPG administrators can perform this operation."
     )]
     [SwaggerResponse(200, "User renamed successfully", typeof(ApiResponse<SftpOperationResponse>))]
     [SwaggerResponse(400, "Invalid request or rename failed", typeof(ApiResponse<object>))]
@@ -300,7 +300,7 @@ public class AegisAdminController(
     }
 
     /// <summary>
-    /// Delete SFTP user from Cerberus and database (Aegis Admin Only)
+    /// Delete SFTP user from SFTPGo and database (Aegis Admin Only)
     /// </summary>
     /// <param name="username">Username to delete</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -308,7 +308,7 @@ public class AegisAdminController(
     [HttpDelete("sftp-users/{username}")]
     [SwaggerOperation(
         Summary = "Delete SFTP User (Aegis Admin Only)",
-        Description = "Deletes SFTP user from both CerberusService and database. Only KMPG administrators can perform this operation."
+        Description = "Deletes SFTP user from both SFTPGoService and database. Only KMPG administrators can perform this operation."
     )]
     [SwaggerResponse(200, "User deleted successfully", typeof(ApiResponse<SftpOperationResponse>))]
     [SwaggerResponse(400, "Invalid request or deletion failed", typeof(ApiResponse<object>))]
@@ -336,19 +336,19 @@ public class AegisAdminController(
     // SFTP Directory Management Endpoints
 
     /// <summary>
-    /// If a user exists in the SFTPUser table but not in Cerberus, create it in Cerberus and set up directories/mappings.
+    /// If a user exists in the SFTPUser table but not in SFTPGo, create it in SFTPGo and set up directories/mappings.
     /// </summary>
     /// 
-    [HttpGet("sftp-users/{username}/cerberus-sync")] 
-    [SwaggerOperation(Summary = "Ensure User Exists in Cerberus", Description = "Creates the user in Cerberus if missing, based on SFTPUser table entry. Also sets up directories and mappings.")]
-    [SwaggerResponse(200, "User ensured in Cerberus", typeof(ApiResponse<SftpOperationResponse>))]
+    [HttpGet("sftp-users/{username}/SFTPGo-sync")] 
+    [SwaggerOperation(Summary = "Ensure User Exists in SFTPGo", Description = "Creates the user in SFTPGo if missing, based on SFTPUser table entry. Also sets up directories and mappings.")]
+    [SwaggerResponse(200, "User ensured in SFTPGo", typeof(ApiResponse<SftpOperationResponse>))]
     [AllowAnonymous]
-    public async Task<IActionResult> EnsureUserExistsInCerberus(string username)
+    public async Task<IActionResult> EnsureUserExistsInSFTPGo(string username)
     {
         if (string.IsNullOrWhiteSpace(username))
             return BadRequest(Error("username is required"));
 
-        var result = await _mediator.Send(new EnsureCerberusUserFromDbCommand(username));
+        var result = await _mediator.Send(new EnsureSFTPGoUserFromDbCommand(username));
         if (result.Failed)
             return BadRequest(Error(result.Errors.FirstOrDefault() ?? "Failed"));
 

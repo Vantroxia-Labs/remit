@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace AegisEInvoicing.Application.Common.Models.SFTP
 {
-    public class CerberusAddUserRequest
+    public class SFTPGoAddUserRequest
     {
         public string UserName { get; set; }
         public string UserPassword { get; set; }
@@ -14,7 +14,7 @@ namespace AegisEInvoicing.Application.Common.Models.SFTP
         public string LastName { get; set; }
         public string Email { get; set; }
 
-        public CerberusAddUserRequest()
+        public SFTPGoAddUserRequest()
         {
             // Initialize with empty strings to avoid null references
             UserName = string.Empty;
@@ -25,24 +25,24 @@ namespace AegisEInvoicing.Application.Common.Models.SFTP
         }
     }
 
-    public class CerberusRenameUserRequest
+    public class SFTPGoRenameUserRequest
     {
         public string UserName { get; set; }
         public string NewUserName { get; set; }
 
-        public CerberusRenameUserRequest()
+        public SFTPGoRenameUserRequest()
         {
             UserName = string.Empty;
             NewUserName = string.Empty;
         }
     }
-    public class CerberusChangePasswordRequest
+    public class SFTPGoChangePasswordRequest
     {
         public string UserName { get; set; }
         public string OldPassword { get; set; }
         public string NewPassword { get; set; }
 
-        public CerberusChangePasswordRequest()
+        public SFTPGoChangePasswordRequest()
         {
             UserName = string.Empty;
             OldPassword = string.Empty;

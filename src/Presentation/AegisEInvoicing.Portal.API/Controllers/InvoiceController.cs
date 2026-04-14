@@ -414,6 +414,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// <param name="startDate">Optional start date filter</param>
     /// <param name="endDate">Optional end date filter</param>
     /// <param name="searchTerm">Optional search term</param>
+    /// <param name="environmentMode">Optional app environment mode filter</param>
     /// <param name="pageNumber">Page number (default: 1)</param>
     /// <param name="pageSize">Page size (default: 10)</param>
     /// <param name="orderBy">Order by field (default: createdAt)</param>
@@ -433,6 +434,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
         [FromQuery] DateOnly? startDate,
         [FromQuery] DateOnly? endDate,
         [FromQuery] string? searchTerm,
+        [FromQuery] AppEnvironmentMode? environmentMode,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? orderBy = "createdAt",
@@ -448,6 +450,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
                 StartDate = startDate,
                 EndDate = endDate,
                 SearchTerm = searchTerm,
+                EnvironmentMode = environmentMode,
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 OrderBy = orderBy,

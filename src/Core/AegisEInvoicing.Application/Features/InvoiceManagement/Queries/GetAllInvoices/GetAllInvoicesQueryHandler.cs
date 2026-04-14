@@ -79,6 +79,11 @@ public class GetAllInvoicesQueryHandler : IRequestHandler<GetAllInvoicesQuery, P
                     (i.Note != null && i.Note.ToLower().Contains(searchTerm)));
             }
 
+            if (request.EnvironmentMode.HasValue)
+            {
+                query = query.Where(i => i.EnvironmentMode == request.EnvironmentMode.Value);
+            }
+
             // Exclude deleted invoices
             query = query.Where(inv => !inv.IsDeleted);
 
@@ -131,8 +136,8 @@ public class GetAllInvoicesQueryHandler : IRequestHandler<GetAllInvoicesQuery, P
             _ => i => i.CreatedAt
         };
 
-        return descending 
-            ? query.OrderByDescending(keySelector) 
+        return descending
+            ? query.OrderByDescending(keySelector)
             : query.OrderBy(keySelector);
     }
 

@@ -43,7 +43,18 @@ public class GetDashboardAnalyticsQueryHandler : IRequestHandler<GetDashboardAna
 
         // Apply security filters - Business admins can only see their own business statistics
         if (!_currentUserService.IsPlatformAdmin && _currentUserService.BusinessId.HasValue)
+        {
             query = query.Where(b => b.BusinessId == _currentUserService.BusinessId!.Value);
+
+            // Also filter by the business's current environment mode so sandbox
+            // and production invoices are shown separately.
+            var businessEnvMode = await _context.Businesses
+                .AsNoTracking()
+                .Where(b => b.Id == _currentUserService.BusinessId!.Value)
+                .Select(b => b.AppEnvironmentMode)
+                .FirstOrDefaultAsync(cancellationToken);
+            query = query.Where(i => i.EnvironmentMode == businessEnvMode);
+        }
 
         var filteredQuery = query.Where(i => i.CreatedAt.Date >= startDate.Date && i.CreatedAt.Date < endDate.AddDays(1).Date);
 
@@ -132,8 +143,8 @@ public class GetDashboardAnalyticsQueryHandler : IRequestHandler<GetDashboardAna
 
         // Get invoices with processing time data (submitted invoices that have been processed)
         var processedInvoices = await query
-            .Where(i => i.FIRSSubmissionResponseMessage== "Invoice transmitted successfully" &&
-                       (i.InvoiceStatus == Domain.Enums.InvoiceStatus.TRANSMITTED 
+            .Where(i => i.FIRSSubmissionResponseMessage == "Invoice transmitted successfully" &&
+                       (i.InvoiceStatus == Domain.Enums.InvoiceStatus.TRANSMITTED
                       ))
             .Select(i => new
             {
@@ -370,5 +381,5 @@ public class GetDashboardAnalyticsQueryHandler : IRequestHandler<GetDashboardAna
         return (startOfMonth, endOfMonth);
     }
 
-    
+
 }

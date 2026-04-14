@@ -4,7 +4,7 @@ using MediatR;
 namespace AegisEInvoicing.Application.Features.SftpUserManagement.Commands.DeleteSftpUser;
 
 /// <summary>
-/// Command to delete an SFTP user from both Cerberus and database
+/// Command to delete an SFTP user from both SFTPGo and database
 /// </summary>
 public class DeleteSftpUserCommand : IRequest<DeleteSftpUserResult>, ITransactionalCommand
 {

@@ -68,6 +68,14 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
             var businessId = _currentUserService.BusinessId.Value;
             invoiceQuery = invoiceQuery.Where(b => b.BusinessId == businessId);
             receivedInvoiceQuery = receivedInvoiceQuery.Where(r => r.BusinessId == businessId);
+
+            // Filter by the business's current environment mode
+            var businessEnvMode = await _context.Businesses
+                .AsNoTracking()
+                .Where(b => b.Id == businessId)
+                .Select(b => b.AppEnvironmentMode)
+                .FirstOrDefaultAsync(cancellationToken);
+            invoiceQuery = invoiceQuery.Where(i => i.EnvironmentMode == businessEnvMode);
         }
 
         // Project only the fields we need - this is much faster than loading full entities
@@ -125,6 +133,14 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
             var businessId = _currentUserService.BusinessId.Value;
             invoiceQuery = invoiceQuery.Where(b => b.BusinessId == businessId);
             receivedInvoiceQuery = receivedInvoiceQuery.Where(r => r.BusinessId == businessId);
+
+            // Filter by the business's current environment mode
+            var businessEnvMode = await _context.Businesses
+                .AsNoTracking()
+                .Where(b => b.Id == businessId)
+                .Select(b => b.AppEnvironmentMode)
+                .FirstOrDefaultAsync(cancellationToken);
+            invoiceQuery = invoiceQuery.Where(i => i.EnvironmentMode == businessEnvMode);
         }
 
         // Project only the fields we need

@@ -70,7 +70,8 @@ public class CreateInvoiceCommandHandler(
                 note: request.Note,
                 paymentReference: request.PaymentReference,
                 paymentTerms: request.PaymentTerms,
-                dueDate: request.DueDate);
+                dueDate: request.DueDate,
+                environmentMode: business.AppEnvironmentMode);
 
             var qrCode = InvoiceQrService.GenerateQrCode(
                                 invoice.Irn,

@@ -121,7 +121,7 @@ public class Invoice : AuditableAggregateRoot
         };
         invoice.AddDomainEvent(new InvoiceCreatedEvent(invoice.Id, invoice.Irn, businessId));
         return invoice;
-    }    
+    }
 
     // Factory method for importing existing invoices from FIRS (skips future date validation)
     public static Invoice CreateFromImport(

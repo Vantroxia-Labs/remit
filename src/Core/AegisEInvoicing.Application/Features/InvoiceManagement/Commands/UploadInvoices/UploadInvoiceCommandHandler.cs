@@ -189,7 +189,8 @@ public class UploadInvoiceCommandHandler(
                         partyId,
                         irn,
                         business.InvoicePrefix,
-                        invoiceItems);
+                        invoiceItems,
+                        business.AppEnvironmentMode);
 
                     var qrCode = InvoiceQrService.GenerateQrCode(
                                invoice.Irn,
@@ -531,7 +532,8 @@ public class UploadInvoiceCommandHandler(
         Guid partyId,
         IRN irn,
         string invoicePrefix,
-        List<InvoiceItemData> invoiceItems)
+        List<InvoiceItemData> invoiceItems,
+        AppEnvironmentMode environmentMode = AppEnvironmentMode.Production)
     {
         // Parse InvoiceKind if provided
         Domain.Enums.InvoiceKind? invoiceKind = null;
@@ -556,7 +558,8 @@ public class UploadInvoiceCommandHandler(
             note: request.Note,
             paymentReference: request.PaymentReference,
             paymentTerms: request.PaymentTerms,
-            dueDate: DateOnly.Parse(request.DueDate));
+            dueDate: DateOnly.Parse(request.DueDate),
+            environmentMode: environmentMode);
 
         foreach (var itemData in invoiceItems)
         {
