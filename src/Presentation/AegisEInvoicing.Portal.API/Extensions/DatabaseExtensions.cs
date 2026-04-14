@@ -36,7 +36,7 @@ public static class DatabaseExtensions
             {
                 logger.LogWarning("Migration conflict detected: {Message}. This usually means the database schema already exists.", sqlEx.Message);
                 logger.LogInformation("Attempting to resolve migration conflict...");
-                
+
                 // Try to get pending migrations
                 var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
                 if (pendingMigrations.Any())
@@ -47,7 +47,7 @@ public static class DatabaseExtensions
                         logger.LogWarning("Pending migration: {Migration}", migration);
                     }
                 }
-                
+
                 logger.LogError("Migration failed due to existing schema. Please run the fix_migration.sql script or manually resolve the conflict.");
                 throw new InvalidOperationException(
                     "Database migration failed because tables already exist. " +
@@ -101,7 +101,7 @@ public static class DatabaseExtensions
 
             // Step 2: Seed Platform Roles (now that system user exists)
             logger.LogInformation("Seeding platform roles...");
-          
+
             var seedRoles = UserSeedData.GetSeedPlatformRoles(user.Id);
             logger.LogInformation("Adding {RoleCount} platform roles to database", seedRoles.Count);
 
@@ -121,7 +121,7 @@ public static class DatabaseExtensions
             // Get the actual user and role from the database
             var systemAdminRole = await context.PlatformRoles
                 .FirstOrDefaultAsync(r => r.Name == RoleConstants.AegisAdmin);
-            
+
             if (systemAdminRole != null && user != null)
             {
                 // Create role assignment using actual database IDs
@@ -131,11 +131,11 @@ public static class DatabaseExtensions
                     assignedBy: user.Id, // Use the actual user ID as assignedBy
                     expiresAt: null // No expiration for system admin
                 );
-                
+
                 await context.UserRoleAssignments.AddAsync(superAdminAssignment);
                 logger.LogDebug("Added role assignment: User {UserId} -> Role {RoleId}",
                     superAdminAssignment.UserId, superAdminAssignment.PlatformRoleId);
-                
+
                 await context.SaveChangesAsync();
                 logger.LogInformation("Successfully seeded role assignments");
             }

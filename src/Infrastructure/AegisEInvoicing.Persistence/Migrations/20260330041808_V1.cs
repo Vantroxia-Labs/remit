@@ -11,6 +11,14 @@ namespace AegisEInvoicing.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Create ICU collation used for case-insensitive email columns
+            migrationBuilder.Sql(@"
+                CREATE COLLATION IF NOT EXISTS case_insensitive (
+                    provider = icu,
+                    locale = 'und-u-ks-level2',
+                    deterministic = false
+                );");
+
             migrationBuilder.CreateTable(
                 name: "BusinessOnboardings",
                 columns: table => new
