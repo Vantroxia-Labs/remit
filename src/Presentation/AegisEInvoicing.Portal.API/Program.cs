@@ -12,6 +12,7 @@ using AegisEInvoicing.Persistence;
 using Microsoft.AspNetCore.Http.Features;
 using OfficeOpenXml;
 using QuestPDF.Infrastructure;
+using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
 
@@ -311,18 +312,19 @@ try
         //app.UseDeveloperExceptionPage();
     }
 
-    app.UseSwagger();
+    // Scalar API documentation (replaces Swagger)
+    app.MapOpenApi("/openapi/v1.json").WithGroupName("v1");
+    app.MapOpenApi("/openapi/v2.json").WithGroupName("v2");
 
     // Apply OpenAPI version middleware to ensure IBM API Connect compatibility
     app.UseMiddleware<OpenApiVersionMiddleware>();
 
-    app.UseSwaggerUI(c =>
+    app.MapScalarApiReference(options =>
     {
-        c.SwaggerEndpoint("v1/swagger.json", "EInvoice Integrator API V1");
-        c.SwaggerEndpoint("v2/swagger.json", "EInvoice Integrator API V2");
-        c.RoutePrefix = "swagger";
-        c.DocumentTitle = "EInvoice Integrator API Documentation";
-        c.DisplayRequestDuration();
+        options
+            .WithTitle("EInvoice Integrator API Documentation")
+            .WithTheme(ScalarTheme.Purple)
+            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });
 
     app.UseStaticFiles();

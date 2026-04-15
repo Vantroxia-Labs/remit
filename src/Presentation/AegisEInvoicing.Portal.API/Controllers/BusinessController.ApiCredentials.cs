@@ -5,20 +5,13 @@ using AegisEInvoicing.Application.Features.BusinessManagement.Commands.RotateApi
 using AegisEInvoicing.Application.Features.BusinessManagement.Queries.GetApiCredentials;
 using AegisEInvoicing.Domain.Constants;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
 public partial class BusinessController
 {
     [HttpGet("api-credentials")]
-    [RequireRole(RoleConstants.ClientAdmin)]
-    [SwaggerOperation(
-        Summary = "Get API credentials",
-        Description = "Returns masked API key, ERP API base URL, and required headers for the current business.")]
-    [SwaggerResponse(200, "API credentials retrieved", typeof(ApiResponse<GetApiCredentialsResult>))]
-    [SwaggerResponse(404, "Business not found", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> GetApiCredentials(CancellationToken cancellationToken = default)
+    [RequireRole(RoleConstants.ClientAdmin)]    public async Task<IActionResult> GetApiCredentials(CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new GetApiCredentialsQuery(), cancellationToken);
 
@@ -36,13 +29,7 @@ public partial class BusinessController
     }
 
     [HttpPost("rotate-api-key")]
-    [RequireRole(RoleConstants.ClientAdmin)]
-    [SwaggerOperation(
-        Summary = "Rotate API key",
-        Description = "Verifies OTP and rotates the API key for the current business.")]
-    [SwaggerResponse(200, "API key rotated", typeof(ApiResponse<object>))]
-    [SwaggerResponse(400, "Invalid OTP or request", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> RotateApiKey([FromBody] RotateApiKeyRequest request, CancellationToken cancellationToken = default)
+    [RequireRole(RoleConstants.ClientAdmin)]    public async Task<IActionResult> RotateApiKey([FromBody] RotateApiKeyRequest request, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(request.Otp))
             return BadRequest(Error("OTP is required."));

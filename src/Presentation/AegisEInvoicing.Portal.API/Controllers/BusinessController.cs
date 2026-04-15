@@ -29,7 +29,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
-using Swashbuckle.AspNetCore.Annotations;
 
 
 namespace AegisEInvoicing.Portal.API.Controllers;
@@ -42,9 +41,7 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiVersion("1.0")]
-[ApiVersion("2.0")]
-[SwaggerTag("Business Operations which includes onboarding, fetching business info")]
-[Authorize]
+[ApiVersion("2.0")][Authorize]
 public partial class BusinessController(
     IMediator mediator,
     ILogger<BusinessController> logger,
@@ -66,14 +63,7 @@ public partial class BusinessController(
     /// <returns>Update result with subscription status</returns>
     /// <returns></returns>
     [HttpPut("update-business/{businessId}")]
-    [RequireRole(RoleConstants.AegisAdmin)]
-    [SwaggerOperation(
-        Summary = "Update Business by (KMPG Admin Only)",
-        Description = "Update business to EInvoice Integrator platform. Only KMPG platform administrators can perform business update. KMPG manages all FIRS interactions for SaaS/API solutions and activates business subscriptions.")]
-    [SwaggerResponse(200, "Update successful", typeof(ApiResponse<OnboardBusinessResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<OnboardBusinessResponse>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<OnboardBusinessResponse>))]
-    public async Task<IActionResult> UpdateBusiness([FromBody] UpdateBusinessRequest request, Guid businessId,
+    [RequireRole(RoleConstants.AegisAdmin)]    public async Task<IActionResult> UpdateBusiness([FromBody] UpdateBusinessRequest request, Guid businessId,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("KMPG business update to EInvoice Integrator platform");
@@ -113,17 +103,7 @@ public partial class BusinessController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Assignment result</returns>
     [HttpPatch("update-firs-credentials")]
-    [HttpPatch("update-NRS-credentials")]
-    [SwaggerOperation(
-        Summary = "Update FIRS API Credentials to business",
-        Description = "Update a FIRS API Credentials to the current authenticated business. If a configuration already exists, it will be updated."
-    )]
-    [RequireRole(RoleConstants.ClientAdmin)]
-    [SwaggerResponse(200, "Configuration updated successfully", typeof(ApiResponse<GenericResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Unauthorized", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Configuration not found", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> UpdateFirsCredentials(
+    [HttpPatch("update-NRS-credentials")]    [RequireRole(RoleConstants.ClientAdmin)]    public async Task<IActionResult> UpdateFirsCredentials(
         [FromBody] UpdateFirsCredentialsRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -147,17 +127,7 @@ public partial class BusinessController(
     /// <param name="request">Configuration assignment request</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Assignment result</returns>
-    [HttpPatch("update-qrcode-configuration")]
-    [SwaggerOperation(
-        Summary = "Update QR Code Configuration to business",
-        Description = "Update a QR Code Configuration to the current authenticated business. If a configuration already exists, it will be updated."
-    )]
-    [RequireRole(RoleConstants.ClientAdmin)]
-    [SwaggerResponse(200, "Configuration updated successfully", typeof(ApiResponse<GenericResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Unauthorized", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Configuration not found", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> AddQrCodeConfigurationCommand(
+    [HttpPatch("update-qrcode-configuration")]    [RequireRole(RoleConstants.ClientAdmin)]    public async Task<IActionResult> AddQrCodeConfigurationCommand(
         [FromBody] UpdateQrCodeConfigurationRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -174,14 +144,7 @@ public partial class BusinessController(
         }
     }
 
-    [HttpGet("get-firs-credentials")]
-    [SwaggerOperation(Summary = "Returns configured Firs credentials for business",
-        Description = "configured the Firs credentials specified by the admin for the business"
-    )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<GetFirsApiConfigurationResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<GetFirsApiConfigurationResult>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<GetFirsApiConfigurationResult>))]
-    [RequireRole(RoleConstants.ClientAdmin)]
+    [HttpGet("get-firs-credentials")]    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> GetFirsCredentials(
         CancellationToken cancellationToken = default)
     {
@@ -195,14 +158,7 @@ public partial class BusinessController(
             result.FirsApiConfiguration);
     }
 
-    [HttpGet("get-qrcode-configuration")]
-    [SwaggerOperation(Summary = "Returns configured QRCode Keys for business",
-       Description = "returns the configured QRCode Keys specified by the admin for the business"
-   )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<GetQrCodeConfigurationResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<GetQrCodeConfigurationResult>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<GetQrCodeConfigurationResult>))]
-    [RequireRole(RoleConstants.ClientAdmin)]
+    [HttpGet("get-qrcode-configuration")]    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> GetQrCodeConfiguration(
        CancellationToken cancellationToken = default)
     {
@@ -222,15 +178,7 @@ public partial class BusinessController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Update result with subscription status</returns>
     /// <returns></returns>
-    [HttpGet("business")]
-    [SwaggerOperation(Summary = "Returns all businesses by (KMPG Admin Only)",
-        Description = "Fetch all businesses to EInvoice Integrator platform. Only KMPG platform administrators can perform business update. KMPG manages all FIRS interactions for SaaS/API solutions and activates business subscriptions."
-    )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<PaginatedList<BusinessSummaryDto>>))]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<PaginatedList<BusinessSummaryDto>>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<PaginatedList<BusinessSummaryDto>>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<PaginatedList<BusinessSummaryDto>>))]
-    [RequireRole(RoleConstants.AegisAdmin)]
+    [HttpGet("business")]    [RequireRole(RoleConstants.AegisAdmin)]
     public async Task<IActionResult> GetBusinesses([FromQuery] GetBusinessesQuery request, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("KMPG fetch businesses to EInvoice Integrator platform");
@@ -247,17 +195,7 @@ public partial class BusinessController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Dashboard analytics data with invoice counts and amounts</returns>
     [HttpGet("dashboard-analytics")]
-    [MapToApiVersion("1.0")]
-    [SwaggerOperation(
-        Summary = "Get Dashboard Analytics",
-        Description = "Retrieves dashboard analytics and statistics for invoice management, including invoice status counts and total invoice amount."
-    )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<DashboardAnalyticsDto>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<DashboardAnalyticsDto>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<DashboardAnalyticsDto>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<DashboardAnalyticsDto>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [MapToApiVersion("1.0")]    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetDashboardAnalytics(
         [FromQuery] GetDashboardAnalyticsQuery request,
         CancellationToken cancellationToken = default)
@@ -276,19 +214,7 @@ public partial class BusinessController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Dashboard analytics data with 12-month historical data</returns>
     [HttpGet("dashboard-analytics")]
-    [MapToApiVersion("2.0")]
-    [SwaggerOperation(
-        Summary = "Get Dashboard Analytics V2 (12-Month Data)",
-        Description = "Retrieves V2 dashboard analytics with 12-month historical data. " +
-                      "General Dashboard includes summary metrics and charts (Sales vs Purchases, VAT Trends, Sales per Region). " +
-                      "VATTable Dashboard includes only VAT-related breakdowns and comparisons by currency and taxable status."
-    )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<DashboardAnalyticsV2Dto>))]
-    [SwaggerResponse(400, "Invalid request - Invalid dashboard type", typeof(ApiResponse<DashboardAnalyticsV2Dto>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<DashboardAnalyticsV2Dto>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<DashboardAnalyticsV2Dto>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [MapToApiVersion("2.0")]    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetDashboardAnalyticsV2(
         [FromQuery] DashboardType dashboardType = DashboardType.General,
         CancellationToken cancellationToken = default)
@@ -307,14 +233,7 @@ public partial class BusinessController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <param name="businessId">Business Id</param>
     /// <returns></returns>
-    [HttpGet("fetch-business")]
-    [SwaggerOperation(Summary = "Returns a single business by (KMPG Admin Only)",
-        Description = "Fetch a single business to EInvoice Integrator platform. Only KMPG platform administrators can perform business update. KMPG manages all FIRS interactions for SaaS/API solutions and activates business subscriptions."
-    )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<BusinessDetailDto>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<BusinessDetailDto>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<BusinessDetailDto>))]
-    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin)]
+    [HttpGet("fetch-business")]    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin)]
     public async Task<IActionResult> GetBusiness([FromQuery] Guid? businessId = null, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("fetch business to EInvoice Integrator platform");
@@ -335,16 +254,7 @@ public partial class BusinessController(
     /// <param name="request">Validation request containing field types and values</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Validation results indicating whether each field exists</returns>
-    [HttpPost("validate")]
-    [SwaggerOperation(
-        Summary = "Validate Business Fields (KMPG Admin Only)",
-        Description = "Validates whether business fields (ServiceId, BusinessRegistrationNumber, TaxIdentificationNumber,ContactEmail,AdminEmail) exist in the system. Only KMPG platform administrators can perform field validation."
-    )]
-    [SwaggerResponse(200, "Validation completed successfully", typeof(ApiResponse<BusinessValidationResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> ValidateBusinessFieldsAsync(
+    [HttpPost("validate")]    public async Task<IActionResult> ValidateBusinessFieldsAsync(
         [FromBody] BusinessValidationRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -384,9 +294,7 @@ public partial class BusinessController(
         return Success(response, message);
     }
 
-    [HttpGet("all-business-roles")]
-    [SwaggerOperation(Description = "This endpoint allows fetching list of business roles")]
-    [ProducesResponseType(typeof(ApiResponse<PaginatedList<PlatformBusinessRoleSummaryDto>>), StatusCodes.Status200OK)]
+    [HttpGet("all-business-roles")]    [ProducesResponseType(typeof(ApiResponse<PaginatedList<PlatformBusinessRoleSummaryDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<PaginatedList<PlatformBusinessRoleSummaryDto>>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<PaginatedList<PlatformBusinessRoleSummaryDto>>), StatusCodes.Status403Forbidden)]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.AegisAdmin)]
@@ -405,12 +313,7 @@ public partial class BusinessController(
     /// Suspend a business (Aegis Platform Admin only)
     /// </summary>
     [HttpPost("{businessId:guid}/suspend")]
-    [RequireRole(RoleConstants.AegisAdmin)]
-    [SwaggerOperation(Summary = "Suspend a business", Description = "Suspends a registered business, preventing logins and invoice submissions.")]
-    [SwaggerResponse(200, "Business suspended", typeof(ApiResponse<object>))]
-    [SwaggerResponse(400, "Failed to suspend", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Forbidden", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> SuspendBusiness(Guid businessId, [FromBody] BusinessStatusReasonRequest? request = null, CancellationToken cancellationToken = default)
+    [RequireRole(RoleConstants.AegisAdmin)]    public async Task<IActionResult> SuspendBusiness(Guid businessId, [FromBody] BusinessStatusReasonRequest? request = null, CancellationToken cancellationToken = default)
     {
         var command = new SuspendBusinessCommand
         {
@@ -427,12 +330,7 @@ public partial class BusinessController(
     /// Reactivate a suspended business (Aegis Platform Admin only)
     /// </summary>
     [HttpPost("{businessId:guid}/activate")]
-    [RequireRole(RoleConstants.AegisAdmin)]
-    [SwaggerOperation(Summary = "Activate / reactivate a business", Description = "Reactivates a suspended business, restoring access for its users.")]
-    [SwaggerResponse(200, "Business activated", typeof(ApiResponse<object>))]
-    [SwaggerResponse(400, "Failed to activate", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Forbidden", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> ActivateBusiness(Guid businessId, [FromBody] BusinessStatusReasonRequest? request = null, CancellationToken cancellationToken = default)
+    [RequireRole(RoleConstants.AegisAdmin)]    public async Task<IActionResult> ActivateBusiness(Guid businessId, [FromBody] BusinessStatusReasonRequest? request = null, CancellationToken cancellationToken = default)
     {
         var command = new ReactivateBusinessCommand
         {
@@ -453,12 +351,7 @@ public partial class BusinessController(
     /// </summary>
     [HttpGet("dashboard/stats")]
     [MapToApiVersion("1.0")]
-    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(Summary = "Get Dashboard Statistics", Description = "Returns platform-wide statistics for Aegis admins, or business-scoped statistics for client users.")]
-    [SwaggerResponse(200, "Statistics retrieved", typeof(ApiResponse<KMPGDashboardStatsDto>))]
-    [SwaggerResponse(401, "Unauthenticated")]
-    [SwaggerResponse(403, "Forbidden")]
-    public async Task<IActionResult> GetDashboardStats(CancellationToken cancellationToken = default)
+    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> GetDashboardStats(CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new GetDashboardStatsQuery(), cancellationToken);
         return Success(result, "Dashboard statistics retrieved successfully");
@@ -470,11 +363,7 @@ public partial class BusinessController(
     /// Returns the profile of the currently authenticated user's business.
     /// </summary>
     [HttpGet("me")]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.AegisAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(Summary = "Get My Business Profile", Description = "Returns the profile of the currently authenticated business.")]
-    [SwaggerResponse(200, "Profile retrieved", typeof(ApiResponse<BusinessProfileResponse>))]
-    [SwaggerResponse(404, "Business not found")]
-    public async Task<IActionResult> GetMyBusiness(CancellationToken cancellationToken = default)
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.AegisAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> GetMyBusiness(CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new GetBusinessByIdQuery(null), cancellationToken);
         if (result is null)
@@ -510,12 +399,7 @@ public partial class BusinessController(
     /// Updates the profile of the currently authenticated user's business.
     /// </summary>
     [HttpPatch("me")]
-    [RequireRole(RoleConstants.ClientAdmin)]
-    [SwaggerOperation(Summary = "Update My Business Profile", Description = "Allows a client admin to update their own business profile.")]
-    [SwaggerResponse(200, "Profile updated")]
-    [SwaggerResponse(400, "Validation error")]
-    [SwaggerResponse(403, "Forbidden")]
-    public async Task<IActionResult> UpdateMyBusiness([FromBody] UpdateBusinessRequest request, CancellationToken cancellationToken = default)
+    [RequireRole(RoleConstants.ClientAdmin)]    public async Task<IActionResult> UpdateMyBusiness([FromBody] UpdateBusinessRequest request, CancellationToken cancellationToken = default)
     {
         if (!_currentUserService.BusinessId.HasValue)
             return Error("User is not associated with a business", StatusCodes.Status403Forbidden);

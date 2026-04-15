@@ -10,12 +10,11 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
+using Microsoft.AspNetCore.OpenApi;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -23,18 +22,6 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 namespace AegisEInvoicing.Portal.API.Extensions;
-
-/// <summary>
-/// Schema filter to ensure OpenAPI 3.0.3 compatibility for IBM API Connect
-/// </summary>
-public class OpenApi303CompatibilityFilter : ISchemaFilter
-{
-    public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
-    {
-        // Remove any OpenAPI 3.1+ specific features that might cause issues
-        schema.Extensions?.Remove("x-nullable");
-    }
-}
 
 /// <summary>
 /// Service collection extensions for API configuration
@@ -289,65 +276,10 @@ public static class ServiceCollectionExtensions
         // Register authorization handler for SaaS subscription requirement
         services.AddSingleton<IAuthorizationHandler, AegisEInvoicing.Portal.API.Authorization.RequireSaasSubscriptionHandler>();
 
-        // Swagger/OpenAPI
+        // OpenAPI with multiple document support
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen(options =>
-        {
-            options.SwaggerDoc("v1", new OpenApiInfo
-            {
-                Title = "EInvoice Integrator API",
-                Version = "v1",
-                Description = "Enterprise Electronic Invoice Integration System API",
-                Contact = new OpenApiContact
-                {
-                    Name = "Development Team",
-                    Email = "dev@aegiseinvoicing.com"
-                },
-                License = new OpenApiLicense
-                {
-                    Name = "MIT",
-                    Url = new Uri("https://opensource.org/licenses/MIT")
-                }
-            });
-
-            options.SwaggerDoc("v2", new OpenApiInfo
-            {
-                Title = "EInvoice Integrator API",
-                Version = "v2",
-                Description = "Enterprise Electronic Invoice Integration System API V2"
-            });
-
-            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-            {
-                Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-                Name = "Authorization",
-                In = ParameterLocation.Header,
-                Type = SecuritySchemeType.Http,
-                Scheme = "bearer",
-                BearerFormat = "JWT"
-            });
-
-            options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
-            {
-                {
-                    new OpenApiSecuritySchemeReference("Bearer"),
-                    new List<string>()
-                }
-            });
-
-            options.EnableAnnotations();
-            options.CustomSchemaIds(type => type.FullName);
-
-            // Add schema filter for OpenAPI 3.0.3 compatibility with IBM API Connect
-            options.SchemaFilter<OpenApi303CompatibilityFilter>();
-
-            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-            if (File.Exists(xmlPath))
-            {
-                options.IncludeXmlComments(xmlPath);
-            }
-        });
+        services.AddOpenApi("v1");
+        services.AddOpenApi("v2");
 
         // =================================================================
         // CORS CONFIGURATION

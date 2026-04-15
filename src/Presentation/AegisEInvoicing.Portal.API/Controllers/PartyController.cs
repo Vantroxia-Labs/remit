@@ -15,7 +15,6 @@ using AegisEInvoicing.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -24,9 +23,7 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// Handles CRUD operations for parties (customers, suppliers, etc.) within business context
 /// </summary>
 [ApiController]
-[Route("api/v{version:apiVersion}/[controller]")]
-[SwaggerTag("Party Management Operations including create, read, update, delete and list parties")]
-[Authorize]
+[Route("api/v{version:apiVersion}/[controller]")][Authorize]
 public class PartyController(IMediator mediator, ILogger<PartyController> logger) : BaseApiController
 {
     private readonly IMediator _mediator = mediator;
@@ -39,17 +36,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Created party information</returns>
     [HttpPost]
-    [Authorize(Policy = "RequireSaasSubscription")]
-    [SwaggerOperation(
-        Summary = "Create Party",
-        Description = "Creates a new party (customer, supplier, etc.) for the current business. Only business administrators with SaaS subscription can create parties."
-    )]
-    [SwaggerResponse(201, "Party created successfully", typeof(ApiResponse<CreatePartyResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions - Requires SaaS subscription", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.ClientAdmin)]
+    [Authorize(Policy = "RequireSaasSubscription")]    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> CreateAsync([FromBody] CreatePartyRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -96,14 +83,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("CreateBulkParty")]
-    [Authorize(Policy = "RequireSaasSubscription")]
-    [SwaggerOperation(Summary = "Create bulk party", Description = "Upload a file of data to creates a mulitple new party (customer, supplier, etc.) for the current business. Only business administrators with SaaS subscription can create parties."
-    )]
-    [SwaggerResponse(200, "Request successfully", typeof(ApiResponse<CreatePartyResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions - Requires SaaS subscription", typeof(ApiResponse<object>))]    
-    [RequireRole(RoleConstants.ClientAdmin)]
+    [Authorize(Policy = "RequireSaasSubscription")]    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> CreateBulkParty(CreateBulkPartyUploadRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -128,17 +108,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="id">Party ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Party details</returns>
-    [HttpGet("{id:guid}")]
-    [SwaggerOperation(
-        Summary = "Get Party by ID",
-        Description = "Retrieves a specific party by its ID. Only parties belonging to the current business can be accessed."
-    )]
-    [SwaggerResponse(200, "Party retrieved successfully", typeof(ApiResponse<PartyResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Party not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [HttpGet("{id:guid}")]    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetByIdAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Retrieving party with ID: {Id}", id);
@@ -184,18 +154,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Update result</returns>
     [HttpPut("{id:guid}")]
-    [Authorize(Policy = "RequireSaasSubscription")]
-    [SwaggerOperation(
-        Summary = "Update Party",
-        Description = "Updates an existing party. Only business administrators with SaaS subscription can update parties."
-    )]
-    [SwaggerResponse(200, "Party updated successfully", typeof(ApiResponse<UpdatePartyResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions - Requires SaaS subscription", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Party not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.ClientAdmin)]
+    [Authorize(Policy = "RequireSaasSubscription")]    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> UpdateAsync([FromRoute] Guid id, [FromBody] UpdatePartyRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -243,17 +202,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="request">Validation request containing field types and values</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Validation results indicating whether each field exists</returns>
-    [HttpPost("validate")]
-
-    [SwaggerOperation(
-        Summary = "Validate Party Fields",
-        Description = "Validates whether party fields (TaxIdentificationNumber) exist in the system."
-    )]
-    [SwaggerResponse(200, "Validation completed successfully", typeof(ApiResponse<PartyValidationResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [HttpPost("validate")]    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> ValidatePartyFieldsAsync(
         [FromBody] PartyValidationRequest request,
         CancellationToken cancellationToken = default)
@@ -301,18 +250,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Delete result</returns>
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = "RequireSaasSubscription")]
-    [SwaggerOperation(
-        Summary = "Delete Party",
-        Description = "Deletes a party. Only business administrators with SaaS subscription can delete parties."
-    )]
-    [SwaggerResponse(200, "Party deleted successfully", typeof(ApiResponse<DeletePartyResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions - Requires SaaS subscription", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Party not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.ClientAdmin)]
+    [Authorize(Policy = "RequireSaasSubscription")]    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> DeleteAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Deleting party with ID: {Id}", id);
@@ -350,33 +288,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="sortDescending">Sort in descending order (default: false)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of parties</returns>
-    [HttpGet]
-    [SwaggerOperation(
-        Summary = "Get Parties List",
-        Description = @"Retrieve all parties for the current business with pagination, search, and sorting capabilities.
-
-**Features:**
-- **Pagination**: Use pageNumber and pageSize parameters
-- **Search**: Filter by name, email, or tax identification number using searchTerm  
-- **Sorting**: Sort by name, email, or createdat
-- **Security**: Only returns parties belonging to the current business
-
-**Query Parameters:**
-- `pageNumber`: Page number (default: 1)
-- `pageSize`: Items per page (default: 10, max: 100)
-- `searchTerm`: Search in name, email, and TIN
-- `sortBy`: Field to sort by (name, email, createdat)
-- `sortDescending`: Sort order (default: false - ascending)
-
-**Access Control:**
-- **Business Admin**: Can view all parties for their business
-- **Business User**: Can view all parties for their business"
-    )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<IEnumerable<PartySummaryResponse>>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [HttpGet]    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetListAsync(
         [FromQuery] Guid? BusinessId,
         [FromQuery] int pageNumber = 1,
@@ -435,38 +347,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="sortDescending">Sort in descending order (default: false)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of parties for the specified business</returns>
-    [HttpGet("business/{businessId:guid}")]
-    [SwaggerOperation(
-        Summary = "Get Parties by Business ID",
-        Description = @"Retrieve all parties for a specific business with pagination, search, and sorting capabilities.
-        
-**Important:** This endpoint is primarily for KMPG administrators to view parties across different businesses. 
-Business administrators will typically use the regular GET endpoint which automatically filters to their business.
-
-**Features:**
-- **Pagination**: Use pageNumber and pageSize parameters
-- **Search**: Filter by name, email, or tax identification number using searchTerm  
-- **Sorting**: Sort by name, email, or createdat
-- **Cross-Business Access**: KMPG admins can view parties from any business
-
-**Query Parameters:**
-- `businessId`: Specific business ID to retrieve parties from
-- `pageNumber`: Page number (default: 1)
-- `pageSize`: Items per page (default: 10, max: 100)
-- `searchTerm`: Search in name, email, and TIN
-- `sortBy`: Field to sort by (name, email, createdat)
-- `sortDescending`: Sort order (default: false - ascending)
-
-**Access Control:**
-- **KMPG Admin**: Can view parties for any business
-- **Business Admin**: Can view parties for their own business only"
-    )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<IEnumerable<PartySummaryResponse>>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.ClientAdmin)]
+    [HttpGet("business/{businessId:guid}")]    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> GetByBusinessIdAsync(
         [FromRoute] Guid businessId,
         [FromQuery] int pageNumber = 1,

@@ -7,7 +7,6 @@ using AegisEInvoicing.Paystack.Models.Webhook;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 using System.Text.Json;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
@@ -25,11 +24,7 @@ public class PaymentController(
     /// Initialize a payment transaction for subscription or other payments
     /// </summary>
     [HttpPost("initialize")]
-    [AllowAnonymous]
-    [SwaggerOperation(
-        Summary = "Initialize Payment",
-        Description = "Initialize a Paystack payment transaction and returns the authorization URL for payment.")]
-    [ProducesResponseType(typeof(ApiResponse<PaymentInitializationResponse>), StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<PaymentInitializationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> InitializePayment(
         [FromBody] PaymentInitializationRequest request,
@@ -75,11 +70,7 @@ public class PaymentController(
     /// Activates pending business registrations on charge.success.
     /// </summary>
     [HttpPost("webhook")]
-    [AllowAnonymous]
-    [SwaggerOperation(
-        Summary = "Paystack Webhook",
-        Description = "Receives Paystack webhook events. Validates the signature and processes charge.success to activate pending business registrations.")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> PaystackWebhook(CancellationToken cancellationToken = default)
     {
@@ -133,11 +124,7 @@ public class PaymentController(
     /// Can be used by the frontend to poll payment status after redirect from Paystack.
     /// </summary>
     [HttpGet("verify/{reference}")]
-    [AllowAnonymous]
-    [SwaggerOperation(
-        Summary = "Verify Payment",
-        Description = "Verifies a Paystack payment by reference. If the payment is successful and a pending registration exists, it will be activated.")]
-    [ProducesResponseType(typeof(ApiResponse<PaymentVerificationResponse>), StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<PaymentVerificationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> VerifyPayment(string reference, CancellationToken cancellationToken = default)
     {
@@ -183,9 +170,7 @@ public class PaymentController(
     /// Returns available subscription plans with pricing
     /// </summary>
     [HttpGet("plans")]
-    [AllowAnonymous]
-    [SwaggerOperation(Summary = "Get Subscription Plans", Description = "Returns all available subscription plans with monthly and annual pricing.")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<SubscriptionPlanDto>>), StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<IEnumerable<SubscriptionPlanDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPlans(CancellationToken cancellationToken = default)
     {
         var result = await mediator.Send(new GetSubscriptionPlansQuery(), cancellationToken);

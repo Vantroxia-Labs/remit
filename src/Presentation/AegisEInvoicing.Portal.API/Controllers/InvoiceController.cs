@@ -25,7 +25,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Swashbuckle.AspNetCore.Annotations;
 using System.Text.Json;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
@@ -35,7 +34,6 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
-[SwaggerTag("Invoice Management Operations - Create, Read, Update, Delete invoices")]
 [Authorize]
 public partial class InvoiceController(IMediator mediator, ILogger<InvoiceController> logger) : BaseApiController
 {
@@ -51,99 +49,6 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     [HttpPost]
     [EnableRateLimiting("InvoiceCreation")] // Strict rate limit: 10 invoices per minute per user
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Create Invoice",
-        Description = @"Creates a new invoice with invoice items compliant with FIRS UBL (Universal Business Language) format.
-
-**Rate Limit:** Maximum 10 invoices per user per minute to prevent flooding attacks.
-
-**Features:**
-- FIRS UBL 2.1 compliant invoice structure
-- Automatic IRN (Invoice Reference Number) generation
-- VAT calculation and tax category assignment
-- Support for multiple invoice items
-- Party (customer) validation
-- Payment terms and delivery period tracking
-
-**Access Control:**
-- **Required Roles**: Business Administrator or Business User
-- **Tenant Isolation**: Invoice automatically assigned to authenticated business
-
-**Validation Rules:**
-- Party ID must exist and belong to business
-- At least one invoice item is required
-- Invoice type must be valid FIRS type
-- Currency must be supported (NGN, USD, EUR, GBP)
-- Tax category must be valid
-- Unit prices must be positive
-- Due date must be after issue date
-
-**Invoice Status Workflow:**
-1. **Draft** - Initial state, can be edited
-2. **Validated** - Passed FIRS validation
-3. **Signed** - Digitally signed for FIRS
-4. **Submitted** - Sent to FIRS
-5. **Confirmed** - Confirmed by FIRS
-
-**Example Request:**
-```json
-{
-  ""partyId"": ""3fa85f64-5717-4562-b3fc-2c963f66afa6"",
-  ""issueDate"": ""2025-01-15"",
-  ""dueDate"": ""2025-02-15"",
-  ""invoiceType"": {
-    ""name"": ""Standard Invoice"",
-    ""code"": ""380""
-  },
-  ""currency"": {
-    ""name"": ""Nigerian Naira"",
-    ""code"": ""NGN""
-  },
-  ""deliveryPeriod"": {
-    ""startDate"": ""2025-01-01"",
-    ""endDate"": ""2025-01-31""
-  },
-  ""paymentMeans"": {
-    ""code"": ""30"",
-    ""name"": ""Credit Transfer""
-  },
-  ""paymentReference"": ""PAY-2025-001"",
-  ""paymentTerms"": ""Net 30 days"",
-  ""note"": ""Payment due within 30 days"",
-  ""invoiceItems"": [
-    {
-      ""businessItemId"": ""7c8e9f10-1234-5678-9abc-def012345678"",
-      ""quantity"": 10,
-      ""unitPrice"": 50000.00,
-      ""discount"": 5000.00
-    }
-  ]
-}
-```
-
-**Example Response:**
-```json
-{
-  ""data"": {
-    ""invoiceId"": ""9d7e6f5c-4321-8765-bcde-f012345678ab"",
-    ""irn"": ""ITW001-2025-00001"",
-    ""status"": ""Draft"",
-    ""totalAmount"": 495000.00,
-    ""vatAmount"": 37125.00,
-    ""message"": ""Invoice created successfully""
-  },
-  ""message"": ""Invoice created successfully"",
-  ""isSuccess"": true,
-  ""statusCode"": 201
-}
-```"
-    )]
-    [SwaggerResponse(201, "Invoice created successfully", typeof(ApiResponse<CreateInvoiceResult>))]
-    [SwaggerResponse(400, "Invalid request or validation failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Party or business item not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     public async Task<IActionResult> CreateInvoice(
         [FromBody] CreateInvoiceRequest createInvoiceRequest,
         CancellationToken cancellationToken)
@@ -198,65 +103,6 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(500_000_000)] // 500MB limit
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Bulk Upload Invoices",
-        Description = @"Bulk creates invoices from an Excel file upload with streaming processing for large files.
-
-**File Requirements:**
-- **Format**: Excel (.xlsx or .xls)
-- **Max Size**: 500 MB
-- **Batch Processing**: Processed in batches of 1000 invoices
-- **Required Columns**: PartyName, PartyTIN, IssueDate, DueDate, InvoiceType, Currency, ItemName, Quantity, UnitPrice
-- **Optional Columns**: PaymentReference, Note, PaymentTerms, Discount, TaxAmount
-
-**Streaming Processing:**
-- Large files are processed in chunks to avoid memory issues
-- Progress is logged during conversion
-- Failed rows are tracked with error messages
-
-**Validation:**
-- Each invoice row is validated independently
-- Invalid invoices are skipped and reported
-- Valid invoices are created successfully
-
-**Excel Template:**
-| PartyName | PartyTIN | IssueDate | DueDate | InvoiceType | Currency | ItemName | Quantity | UnitPrice | Discount |
-|-----------|----------|-----------|---------|-------------|----------|----------|----------|-----------|----------|
-| ABC Corp | 12345678 | 2025-01-15 | 2025-02-15 | 380 | NGN | Consulting | 10 | 50000 | 5000 |
-
-**Example Response:**
-```json
-{
-  ""data"": {
-    ""totalProcessed"": 1000,
-    ""successfullyCreated"": 950,
-    ""failed"": 50,
-    ""errors"": [
-      {
-        ""row"": 12,
-        ""partyName"": ""XYZ Ltd"",
-        ""error"": ""Party not found""
-      },
-      {
-        ""row"": 45,
-        ""partyName"": ""Invalid Corp"",
-        ""error"": ""Invalid TIN format""
-      }
-    ],
-    ""processingTime"": ""45.23s""
-  },
-  ""message"": ""Bulk upload completed: 950 created, 50 failed"",
-  ""isSuccess"": true,
-  ""statusCode"": 200
-}
-```"
-    )]
-    [SwaggerResponse(200, "Upload processed (check response for individual invoice results)", typeof(ApiResponse<UploadInvoiceResult>))]
-    [SwaggerResponse(400, "Invalid file format or empty file", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(413, "File size exceeds 500MB limit", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error or file processing error", typeof(ApiResponse<object>))]
     public async Task<IActionResult> UploadInvoice(
         IFormFile invoicesUpload,
         CancellationToken cancellationToken)
@@ -326,62 +172,6 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// <returns>Complete invoice details including items, party information, and status</returns>
     [HttpGet("{id}")]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Get Invoice by ID",
-        Description = @"Retrieves complete invoice details including all invoice items, party information, and FIRS status.
-
-**Returned Information:**
-- Invoice header (IRN, dates, totals, status)
-- All invoice line items with quantities and pricing
-- Party (customer) details
-- Payment information and terms
-- Tax calculations and VAT breakdown
-- FIRS submission status and timestamps
-
-**Access Control:**
-- **Aegis Admin**: Can view all invoices across all businesses
-- **Business Admin/User**: Can only view invoices from their own business
-- **Tenant Isolation**: Enforced automatically
-
-**Example Response:**
-```json
-{
-  ""data"": {
-    ""invoice"": {
-      ""invoiceId"": ""9d7e6f5c-4321-8765-bcde-f012345678ab"",
-      ""irn"": ""ITW001-2025-00001"",
-      ""issueDate"": ""2025-01-15"",
-      ""dueDate"": ""2025-02-15"",
-      ""status"": ""Confirmed"",
-      ""paymentStatus"": ""Paid"",
-      ""totalAmount"": 495000.00,
-      ""vatAmount"": 37125.00,
-      ""party"": {
-        ""name"": ""ABC Corporation"",
-        ""tin"": ""12345678""
-      },
-      ""invoiceItems"": [
-        {
-          ""itemName"": ""Consulting Services"",
-          ""quantity"": 10,
-          ""unitPrice"": 50000.00,
-          ""discount"": 5000.00,
-          ""lineTotal"": 495000.00
-        }
-      ]
-    }
-  },
-  ""message"": ""Invoice retrieved successfully"",
-  ""isSuccess"": true,
-  ""statusCode"": 200
-}
-```"
-    )]
-    [SwaggerResponse(200, "Invoice found and retrieved successfully", typeof(ApiResponse<GetInvoiceByIdResult>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions or accessing invoice from different business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     public async Task<IActionResult> GetInvoiceById(
          Guid id,
         CancellationToken cancellationToken)
@@ -423,11 +213,6 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// <returns>Paginated list of invoices</returns>
     [HttpGet]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Get all invoices",
-        Description = "Retrieves a paginated list of invoices with optional filtering"
-    )]
-    [SwaggerResponse(200, "Invoices retrieved successfully", typeof(ApiResponse<PaginatedList<InvoiceDto>>))]
     public async Task<IActionResult> GetAllInvoices(
         [FromQuery] Guid? businessId,
         [FromQuery] InvoiceStatus? status,
@@ -480,11 +265,6 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// <returns>Paginated list of received invoices</returns>
     [HttpGet("recieved-invoices")]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Get all received invoices",
-        Description = "Retrieves a paginated list of received invoices with optional filtering"
-    )]
-    [SwaggerResponse(200, "Invoices retrieved successfully", typeof(ApiResponse<PaginatedList<InvoiceDto>>))]
     public async Task<IActionResult> GetAllReceivedInvoices(
         [FromQuery] string? searchTerm,
         [FromQuery] int pageNumber = 1,
@@ -533,56 +313,6 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// <returns>Complete received invoice details including invoice lines and tax totals</returns>
     [HttpGet("received-invoices/{id}")]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Get received invoice by ID",
-        Description = @"Retrieves complete details for a single received invoice including all line items, tax totals, and party information.
-
-**Returned Information:**
-- Invoice header (IRN, dates, totals, status)
-- Supplier and customer details with full addresses
-- All financial amounts and tax calculations
-- Invoice lines (JSON format)
-- Tax totals breakdown (JSON format)
-- Reconciliation status and history
-- Complete audit trail
-
-**Access Control:**
-- **Aegis Admin**: Can view all received invoices across all businesses
-- **Business Admin/User**: Can only view received invoices for their own business
-- **Tenant Isolation**: Enforced automatically
-
-**Example Response:**
-```json
-{
-  ""data"": {
-    ""invoice"": {
-      ""id"": ""9d7e6f5c-4321-8765-bcde-f012345678ab"",
-      ""irn"": ""ABC123456789"",
-      ""issueDate"": ""2025-01-15"",
-      ""dueDate"": ""2025-02-15"",
-      ""paymentStatus"": ""Unpaid"",
-      ""entryStatus"": ""Valid"",
-      ""supplierPartyName"": ""ABC Suppliers Ltd"",
-      ""supplierTIN"": ""12345678"",
-      ""customerPartyName"": ""My Business"",
-      ""customerTIN"": ""87654321"",
-      ""payableAmount"": 495000.00,
-      ""invoiceLinesJson"": ""[...]"",
-      ""taxTotalJson"": ""[...]"",
-      ""isReconciled"": false
-    }
-  },
-  ""message"": ""Received invoice retrieved successfully"",
-  ""isSuccess"": true,
-  ""statusCode"": 200
-}
-```"
-    )]
-    [SwaggerResponse(200, "Received invoice found and retrieved successfully", typeof(ApiResponse<GetReceivedInvoiceByIdResult>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions or accessing invoice from different business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Received invoice not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     public async Task<IActionResult> GetReceivedInvoiceById(
         [FromRoute] Guid id,
         CancellationToken cancellationToken = default)
@@ -624,12 +354,6 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// <returns>Excel file with invoice data grouped by PaymentReference</returns>
     [HttpGet("export")]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Export invoices to Excel",
-        Description = "Exports invoices with full internal data to Excel format. Invoice items are grouped by PaymentReference."
-    )]
-    [SwaggerResponse(200, "Excel file generated successfully", typeof(FileContentResult))]
-    [SwaggerResponse(404, "No invoices found matching criteria", typeof(ApiResponse<object>))]
     public async Task<IActionResult> ExportInvoices(
         [FromQuery] InvoiceStatus? status,
         [FromQuery] PaymentStatus? paymentStatus,
@@ -681,13 +405,6 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// <returns>Update result</returns>
     [HttpPut("{id}")]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Update invoice",
-        Description = "Updates an existing invoice (only draft invoices can be updated)"
-    )]
-    [SwaggerResponse(200, "Invoice updated successfully", typeof(ApiResponse<UpdateInvoiceResult>))]
-    [SwaggerResponse(400, "Invalid request or invoice cannot be updated", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
     public async Task<IActionResult> UpdateInvoice(
         [FromRoute] Guid id,
         [FromBody] UpdateInvoiceRequest updateInvoiceRequest,
@@ -745,13 +462,6 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// <returns>Update result</returns>
     [HttpPatch("update-payment-status/{id}")]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Update invoice payment status",
-        Description = "Update an existing invoice payment status"
-    )]
-    [SwaggerResponse(200, "Invoice updated successfully", typeof(ApiResponse<UpdateInvoicePaymentStatusResult>))]
-    [SwaggerResponse(400, "Invalid request or invoice cannot be updated", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
     public async Task<IActionResult> UpdateInvoicePaymentStatus(
         [FromRoute] Guid id,
         [FromBody] UpdateInvoicePaymentStatusRequest updateInvoicePaymentStatusRequest,
@@ -780,13 +490,6 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// <returns>Delete result</returns>
     [HttpDelete("{id}")]
     [RequireRole(RoleConstants.ClientAdmin)]
-    [SwaggerOperation(
-        Summary = "Delete invoice",
-        Description = "Deletes an invoice (only draft invoices can be deleted)"
-    )]
-    [SwaggerResponse(200, "Invoice deleted successfully", typeof(ApiResponse<DeleteInvoiceResult>))]
-    [SwaggerResponse(400, "Invoice cannot be deleted", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
     public async Task<IActionResult> DeleteInvoice(
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
@@ -823,12 +526,6 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// <returns>List of invoice IRNs</returns>
     [HttpGet("irns")]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Get Invoice IRNs",
-        Description = "Retrieves all invoice IRNs (Invoice Reference Numbers) for the authenticated user's business or specified business (admins only)"
-    )]
-    [SwaggerResponse(200, "IRNs retrieved successfully", typeof(ApiResponse<GetInvoiceIrnsResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
     public async Task<IActionResult> GetInvoiceIrns(
         CancellationToken cancellationToken = default)
     {

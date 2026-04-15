@@ -4,7 +4,6 @@ using AegisEInvoicing.Paystack.Models.Requests;
 using AegisEInvoicing.Paystack.Models.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -22,11 +21,7 @@ public class SubscriptionController(
     /// <summary>
     /// Create a new subscription plan
     /// </summary>
-    [HttpPost("plans")]
-    [SwaggerOperation(
-        Summary = "Create Subscription Plan",
-        Description = "Creates a new subscription plan in Paystack with specified pricing and interval.")]
-    [ProducesResponseType(typeof(ApiResponse<PlanData>), StatusCodes.Status200OK)]
+    [HttpPost("plans")]    [ProducesResponseType(typeof(ApiResponse<PlanData>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreatePlan(
         [FromBody] CreatePlanRequest request,
@@ -46,11 +41,7 @@ public class SubscriptionController(
     /// List all subscription plans
     /// </summary>
     [HttpGet("plans")]
-    [AllowAnonymous]
-    [SwaggerOperation(
-        Summary = "List Subscription Plans",
-        Description = "Retrieves all available subscription plans from Paystack.")]
-    [ProducesResponseType(typeof(ApiResponse<List<PlanData>>), StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<List<PlanData>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListPlans(
         [FromQuery] int page = 1,
         [FromQuery] int perPage = 50,
@@ -70,11 +61,7 @@ public class SubscriptionController(
     /// Get a specific subscription plan
     /// </summary>
     [HttpGet("plans/{idOrCode}")]
-    [AllowAnonymous]
-    [SwaggerOperation(
-        Summary = "Get Subscription Plan",
-        Description = "Retrieves a specific subscription plan by ID or code.")]
-    [ProducesResponseType(typeof(ApiResponse<PlanData>), StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<PlanData>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPlan(
         string idOrCode,
@@ -93,11 +80,7 @@ public class SubscriptionController(
     /// <summary>
     /// Update a subscription plan
     /// </summary>
-    [HttpPut("plans/{idOrCode}")]
-    [SwaggerOperation(
-        Summary = "Update Subscription Plan",
-        Description = "Updates an existing subscription plan.")]
-    [ProducesResponseType(typeof(ApiResponse<PlanData>), StatusCodes.Status200OK)]
+    [HttpPut("plans/{idOrCode}")]    [ProducesResponseType(typeof(ApiResponse<PlanData>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdatePlan(
         string idOrCode,
@@ -119,11 +102,7 @@ public class SubscriptionController(
     /// <summary>
     /// Create a new subscription for a customer
     /// </summary>
-    [HttpPost("subscriptions")]
-    [SwaggerOperation(
-        Summary = "Create Subscription",
-        Description = "Creates a new subscription for a customer to a specific plan.")]
-    [ProducesResponseType(typeof(ApiResponse<SubscriptionData>), StatusCodes.Status200OK)]
+    [HttpPost("subscriptions")]    [ProducesResponseType(typeof(ApiResponse<SubscriptionData>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateSubscription(
         [FromBody] CreateSubscriptionRequest request,
@@ -143,11 +122,7 @@ public class SubscriptionController(
     /// <summary>
     /// List all subscriptions
     /// </summary>
-    [HttpGet("subscriptions")]
-    [SwaggerOperation(
-        Summary = "List Subscriptions",
-        Description = "Retrieves all subscriptions from Paystack.")]
-    [ProducesResponseType(typeof(ApiResponse<List<SubscriptionData>>), StatusCodes.Status200OK)]
+    [HttpGet("subscriptions")]    [ProducesResponseType(typeof(ApiResponse<List<SubscriptionData>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListSubscriptions(
         [FromQuery] int page = 1,
         [FromQuery] int perPage = 50,
@@ -166,11 +141,7 @@ public class SubscriptionController(
     /// <summary>
     /// Get a specific subscription
     /// </summary>
-    [HttpGet("subscriptions/{idOrCode}")]
-    [SwaggerOperation(
-        Summary = "Get Subscription",
-        Description = "Retrieves a specific subscription by ID or code.")]
-    [ProducesResponseType(typeof(ApiResponse<SubscriptionData>), StatusCodes.Status200OK)]
+    [HttpGet("subscriptions/{idOrCode}")]    [ProducesResponseType(typeof(ApiResponse<SubscriptionData>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetSubscription(
         string idOrCode,
@@ -189,11 +160,7 @@ public class SubscriptionController(
     /// <summary>
     /// Enable a subscription
     /// </summary>
-    [HttpPost("subscriptions/{code}/enable")]
-    [SwaggerOperation(
-        Summary = "Enable Subscription",
-        Description = "Enables a subscription that was previously disabled.")]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [HttpPost("subscriptions/{code}/enable")]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> EnableSubscription(
         string code,
@@ -213,11 +180,7 @@ public class SubscriptionController(
     /// <summary>
     /// Disable a subscription
     /// </summary>
-    [HttpPost("subscriptions/{code}/disable")]
-    [SwaggerOperation(
-        Summary = "Disable Subscription",
-        Description = "Disables an active subscription.")]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [HttpPost("subscriptions/{code}/disable")]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> DisableSubscription(
         string code,

@@ -5,7 +5,6 @@ using AegisEInvoicing.Application.Features.UserManagement.Commands.UserCommands;
 using AegisEInvoicing.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -23,49 +22,7 @@ public class UserProfileController : BaseApiController
     /// </summary>
     /// <param name="request">Password change request with current and new password</param>
     /// <returns>Password change confirmation</returns>
-    [HttpPost("change-password")]
-    [SwaggerOperation(
-        Summary = "Change Password",
-        Description = @"Allows authenticated users to change their own password.
-
-**Security Features:**
-- Requires current password verification
-- New password must meet complexity requirements
-- Old password is verified before change
-- Password history check (prevents reuse of recent passwords)
-- Automatic session invalidation after password change
-
-**Password Requirements:**
-- Minimum 8 characters
-- At least one uppercase letter
-- At least one lowercase letter
-- At least one digit
-- At least one special character
-- Cannot be the same as current password
-
-**Access Control:**
-- **Authentication Required**: Yes
-- **Self-Service**: Users can only change their own password
-
-**Example Request:**
-```json
-{
-  ""currentPassword"": ""OldP@ssw0rd"",
-  ""newPassword"": ""NewP@ssw0rd123""
-}
-```
-
-**Example Response:**
-```json
-{
-  ""data"": null,
-  ""message"": ""Password changed successfully"",
-  ""isSuccess"": true,
-  ""statusCode"": 200
-}
-```"
-    )]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [HttpPost("change-password")]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
@@ -88,69 +45,7 @@ public class UserProfileController : BaseApiController
     /// </summary>
     /// <param name="request">Profile update request</param>
     /// <returns>Profile update result</returns>
-    [HttpPut("update")]
-    [SwaggerOperation(
-        Summary = "Update Own Profile",
-        Description = @"Allows authenticated users to update their own profile information.
-
-**Features:**
-- Self-service profile updates
-- Update first name, last name, and phone number
-- Email cannot be changed through this endpoint (requires verification)
-- Automatic validation of profile data
-- Audit trail for profile changes
-
-**Access Control:**
-- **Authentication Required**: Yes
-- **Self-Service Only**: Users can only update their own profile
-- No administrative privileges required
-
-**Updatable Fields:**
-- First name (optional)
-- Last name (optional)
-- Phone number (optional, must be valid format if provided)
-
-**Non-Updatable Fields:**
-- Email (requires separate email change process with verification)
-- User ID
-- Business/Tenant ID
-- Roles and permissions
-- Account status
-
-**Validation Rules:**
-- Phone number must be valid format if provided (E.164 format recommended: +2348012345678)
-- First name and last name must not exceed maximum length
-- All fields are optional (null values = no change)
-
-**Example Request:**
-```json
-{
-  ""firstName"": ""John"",
-  ""lastName"": ""Doe"",
-  ""phoneNumber"": ""+2348012345678""
-}
-```
-
-**Example Request (Partial Update):**
-```json
-{
-  ""firstName"": ""Jane"",
-  ""lastName"": null,
-  ""phoneNumber"": null
-}
-```
-
-**Example Response:**
-```json
-{
-  ""data"": null,
-  ""message"": ""Profile updated successfully"",
-  ""isSuccess"": true,
-  ""statusCode"": 200
-}
-```"
-    )]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [HttpPut("update")]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
@@ -181,79 +76,7 @@ public class UserProfileController : BaseApiController
     /// <returns>Profile update result</returns>
     [HttpPut("users/{userId}")]
     [RequireClientAdmin]
-    [RequirePermission(PermissionConstants.UpdateUsers)]
-    [SwaggerOperation(
-        Summary = "Update User Profile (Admin)",
-        Description = @"Allows business administrators to update profile information for users within their business.
-
-**Features:**
-- Administrative profile updates
-- Update first name, last name, and phone number for any user in business
-- Tenant isolation enforced
-- Email cannot be changed through this endpoint (requires verification)
-- Automatic validation of profile data
-- Audit trail with admin information
-
-**Access Control:**
-- **Required Role**: Business Administrator
-- **Required Permission**: UpdateUsers
-- **Tenant Isolation**: Admins can only update users from their own business
-- Cross-tenant profile updates are strictly prohibited
-
-**Updatable Fields:**
-- First name (optional)
-- Last name (optional)
-- Phone number (optional, must be valid format if provided)
-
-**Non-Updatable Fields:**
-- Email (requires separate email change process with verification)
-- User ID
-- Business/Tenant ID
-- Roles and permissions (use separate endpoints)
-- Account status (use activate/deactivate endpoints)
-- Password (use reset password endpoint)
-
-**Use Cases:**
-- Correct user information errors
-- Update user details on behalf of users
-- Administrative profile maintenance
-- Bulk profile updates
-
-**Validation Rules:**
-- User must belong to admin's business
-- Phone number must be valid format if provided (E.164 format recommended: +2348012345678)
-- First name and last name must not exceed maximum length
-- All fields are optional (null values = no change)
-
-**Example Request:**
-```json
-{
-  ""firstName"": ""John"",
-  ""lastName"": ""Doe"",
-  ""phoneNumber"": ""+2348012345678""
-}
-```
-
-**Example Request (Partial Update):**
-```json
-{
-  ""firstName"": ""Jane"",
-  ""lastName"": null,
-  ""phoneNumber"": null
-}
-```
-
-**Example Response:**
-```json
-{
-  ""data"": null,
-  ""message"": ""User profile updated successfully"",
-  ""isSuccess"": true,
-  ""statusCode"": 200
-}
-```"
-    )]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [RequirePermission(PermissionConstants.UpdateUsers)]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]

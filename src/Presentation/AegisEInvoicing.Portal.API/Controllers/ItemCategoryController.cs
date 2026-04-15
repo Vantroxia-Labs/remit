@@ -10,7 +10,6 @@ using AegisEInvoicing.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -19,9 +18,7 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// Handles CRUD operations for item categories within business context
 /// </summary>
 [ApiController]
-[Route("api/v{version:apiVersion}/[controller]")]
-[SwaggerTag("Item Category Operations including create, read, update and list categories")]
-[Authorize]
+[Route("api/v{version:apiVersion}/[controller]")][Authorize]
 public class ItemCategoryController(IMediator mediator, ILogger<ItemCategoryController> logger) : BaseApiController
 {
     private readonly IMediator _mediator = mediator;
@@ -33,17 +30,7 @@ public class ItemCategoryController(IMediator mediator, ILogger<ItemCategoryCont
     /// <param name="request">Item category creation details</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Created item category information</returns>
-    [HttpPost]
-    [SwaggerOperation(
-        Summary = "Create Item Category",
-        Description = "Creates a new item category for the current business. Only business administrators can create item categories."
-    )]
-    [SwaggerResponse(201, "Item category created successfully", typeof(ApiResponse<CreateItemCategoryResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.ClientAdmin)]
+    [HttpPost]    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateItemCategoryRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -76,17 +63,7 @@ public class ItemCategoryController(IMediator mediator, ILogger<ItemCategoryCont
     /// <param name="id">Item category ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Item category details</returns>
-    [HttpGet("{id:guid}")]
-    [SwaggerOperation(
-        Summary = "Get Item Category by ID",
-        Description = "Retrieves a specific item category by its ID. Only categories belonging to the current business can be accessed."
-    )]
-    [SwaggerResponse(200, "Item category retrieved successfully", typeof(ApiResponse<ItemCategoryResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Item category not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [HttpGet("{id:guid}")]    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetByIdAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Retrieving item category with ID: {Id}", id);
@@ -118,18 +95,7 @@ public class ItemCategoryController(IMediator mediator, ILogger<ItemCategoryCont
     /// <param name="request">Updated item category details</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Update result</returns>
-    [HttpPut("{id:guid}")]
-    [SwaggerOperation(
-        Summary = "Update Item Category",
-        Description = "Updates an existing item category. Only business administrators can update item categories belonging to their business."
-    )]
-    [SwaggerResponse(200, "Item category updated successfully", typeof(ApiResponse<UpdateItemCategoryResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Item category not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.ClientAdmin)]
+    [HttpPut("{id:guid}")]    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> UpdateAsync([FromRoute] Guid id, [FromBody] UpdateItemCategoryRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -168,33 +134,7 @@ public class ItemCategoryController(IMediator mediator, ILogger<ItemCategoryCont
     /// <param name="sortDescending">Sort in descending order (default: false)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of item categories</returns>
-    [HttpGet]
-    [SwaggerOperation(
-        Summary = "Get Item Categories List",
-        Description = @"Retrieve all item categories for the current business with pagination, search, and sorting capabilities.
-
-**Features:**
-- **Pagination**: Use pageNumber and pageSize parameters
-- **Search**: Filter by name or description using searchTerm  
-- **Sorting**: Sort by name, description, or createdat
-- **Security**: Only returns categories belonging to the current business
-
-**Query Parameters:**
-- `pageNumber`: Page number (default: 1)
-- `pageSize`: Items per page (default: 10, max: 100)
-- `searchTerm`: Search in name and description
-- `sortBy`: Field to sort by (name, description, createdat)
-- `sortDescending`: Sort order (default: false - ascending)
-
-**Access Control:**
-- **Business Admin**: Can view all categories for their business
-- **Business User**: Can view all categories for their business"
-    )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<IEnumerable<ItemCategoryResponse>>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [HttpGet]    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetListAsync(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,

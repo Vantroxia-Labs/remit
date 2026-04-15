@@ -9,7 +9,6 @@ using AegisEInvoicing.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -17,9 +16,7 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// Controller for invoice item management operations
 /// </summary>
 [ApiController]
-[Route("api/v{version:apiVersion}/invoice-items")]
-[SwaggerTag("Invoice Item Management Operations - Create, Read, Update, Delete invoice items")]
-[Authorize]
+[Route("api/v{version:apiVersion}/invoice-items")][Authorize]
 public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemController> logger) : BaseApiController
 {
     private readonly IMediator _mediator = mediator;
@@ -32,15 +29,7 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Created invoice item details</returns>
     [HttpPost]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Create invoice item",
-        Description = "Adds a new item to an existing draft invoice"
-    )]
-    [SwaggerResponse(201, "Invoice item created successfully", typeof(ApiResponse<CreateInvoiceItemResult>))]
-    [SwaggerResponse(400, "Invalid request or invoice is not draft", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> CreateInvoiceItem(
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> CreateInvoiceItem(
         [FromBody] CreateInvoiceItemCommand command,
         CancellationToken cancellationToken)
     {
@@ -81,14 +70,7 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Invoice item details</returns>
     [HttpGet("{id}")]
-    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Get invoice item by ID",
-        Description = "Retrieves detailed invoice item information"
-    )]
-    [SwaggerResponse(200, "Invoice item found", typeof(ApiResponse<GetInvoiceItemByIdResult>))]
-    [SwaggerResponse(404, "Invoice item not found", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> GetInvoiceItemById(
+    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> GetInvoiceItemById(
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
@@ -119,14 +101,7 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of invoice items</returns>
     [HttpGet("by-invoice/{invoiceId}")]
-    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Get invoice items by invoice ID",
-        Description = "Retrieves all items for a specific invoice"
-    )]
-    [SwaggerResponse(200, "Invoice items retrieved successfully", typeof(ApiResponse<GetInvoiceItemsByInvoiceIdResult>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> GetInvoiceItemsByInvoiceId(
+    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> GetInvoiceItemsByInvoiceId(
         [FromRoute] Guid invoiceId,
         CancellationToken cancellationToken)
     {
@@ -161,15 +136,7 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Update result</returns>
     [HttpPut("{id}")]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Update invoice item",
-        Description = "Updates an existing invoice item (only in draft invoices). Supports partial updates for quantity, discount, and price."
-    )]
-    [SwaggerResponse(200, "Invoice item updated successfully", typeof(ApiResponse<UpdateInvoiceItemResult>))]
-    [SwaggerResponse(400, "Invalid request or invoice item cannot be updated", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice item not found", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> UpdateInvoiceItem(
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> UpdateInvoiceItem(
         [FromRoute] Guid id,
         [FromBody] UpdateInvoiceItemCommand command,
         CancellationToken cancellationToken)
@@ -207,15 +174,7 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Delete result</returns>
     [HttpDelete("{id}")]
-    [RequireRole(RoleConstants.ClientAdmin)]
-    [SwaggerOperation(
-        Summary = "Delete invoice item",
-        Description = "Deletes an invoice item (only from draft invoices)"
-    )]
-    [SwaggerResponse(200, "Invoice item deleted successfully", typeof(ApiResponse<DeleteInvoiceItemResult>))]
-    [SwaggerResponse(400, "Invoice item cannot be deleted", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice item not found", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> DeleteInvoiceItem(
+    [RequireRole(RoleConstants.ClientAdmin)]    public async Task<IActionResult> DeleteInvoiceItem(
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
@@ -253,15 +212,7 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of created invoice items</returns>
     [HttpPost("bulk")]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Bulk create invoice items",
-        Description = "Creates multiple invoice items for a draft invoice in a single operation"
-    )]
-    [SwaggerResponse(201, "Invoice items created successfully", typeof(ApiResponse<List<CreateInvoiceItemResult>>))]
-    [SwaggerResponse(400, "Invalid request or invoice is not draft", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> BulkCreateInvoiceItems(
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> BulkCreateInvoiceItems(
         [FromQuery] Guid invoiceId,
         [FromBody] List<CreateInvoiceItemCommand> items,
         CancellationToken cancellationToken)
@@ -319,15 +270,7 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Delete results</returns>
     [HttpDelete("bulk")]
-    [RequireRole(RoleConstants.ClientAdmin)]
-    [SwaggerOperation(
-        Summary = "Bulk delete invoice items",
-        Description = "Deletes multiple invoice items from draft invoices in a single operation"
-    )]
-    [SwaggerResponse(200, "Invoice items deleted successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(207, "Partial success - some items deleted", typeof(ApiResponse<object>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> BulkDeleteInvoiceItems(
+    [RequireRole(RoleConstants.ClientAdmin)]    public async Task<IActionResult> BulkDeleteInvoiceItems(
         [FromBody] List<Guid> itemIds,
         CancellationToken cancellationToken)
     {

@@ -6,20 +6,13 @@ using AegisEInvoicing.Application.Features.BusinessManagement.Queries.GetSftpCre
 using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.ChangeSftpPassword;
 using AegisEInvoicing.Domain.Constants;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
 public partial class BusinessController
 {
     [HttpGet("sftp-credentials")]
-    [RequireRole(RoleConstants.ClientAdmin)]
-    [SwaggerOperation(
-        Summary = "Get SFTP credentials",
-        Description = "Returns SFTP host, port, username and status for the current business.")]
-    [SwaggerResponse(200, "SFTP credentials retrieved", typeof(ApiResponse<GetSftpCredentialsResult>))]
-    [SwaggerResponse(404, "SFTP user not found", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> GetSftpCredentials(CancellationToken cancellationToken = default)
+    [RequireRole(RoleConstants.ClientAdmin)]    public async Task<IActionResult> GetSftpCredentials(CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new GetSftpCredentialsQuery(), cancellationToken);
 
@@ -37,13 +30,7 @@ public partial class BusinessController
     }
 
     [HttpPost("sftp-change-password")]
-    [RequireRole(RoleConstants.ClientAdmin)]
-    [SwaggerOperation(
-        Summary = "Change SFTP password",
-        Description = "Verifies OTP and changes the SFTP password for the current business SFTP user.")]
-    [SwaggerResponse(200, "Password changed successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(400, "Invalid OTP or password change failed", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> ChangeSftpPassword(
+    [RequireRole(RoleConstants.ClientAdmin)]    public async Task<IActionResult> ChangeSftpPassword(
         [FromBody] ChangeSftpPasswordWithOtpRequest request,
         [FromServices] ITotpService totpService,
         CancellationToken cancellationToken = default)

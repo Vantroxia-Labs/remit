@@ -1,4 +1,4 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using AegisEInvoicing.Portal.API.Models;
 using AegisEInvoicing.Portal.API.Models.Authentication.ForgotPassword;
 using AegisEInvoicing.Application.Features.Authentication.Commands.Login;
@@ -13,7 +13,6 @@ using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Swashbuckle.AspNetCore.Annotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
@@ -29,15 +28,11 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 public class AuthenticationController : BaseApiController
 {
     /// <summary>
-    /// Self-service business registration — initiates Paystack payment
+    /// Self-service business registration � initiates Paystack payment
     /// </summary>
     [HttpPost("register")]
     [EnableRateLimiting("Authentication")]
-    [AllowAnonymous]
-    [SwaggerOperation(
-        Summary = "Register Business (Self-Service)",
-        Description = "Initiates business registration. Creates a pending registration and returns a Paystack payment URL. The account is activated automatically after successful payment via webhook.")]
-    [ProducesResponseType(typeof(ApiResponse<RegisterBusinessResponse>), StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<RegisterBusinessResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegisterBusinessRequest request)
     {
@@ -69,51 +64,7 @@ public class AuthenticationController : BaseApiController
     /// <returns>JWT access and refresh tokens with user information and expiration</returns>
     [HttpPost("login")]
     [EnableRateLimiting("Authentication")] // Rate limit: 5 attempts per IP per 5 minutes
-    [AllowAnonymous]
-    [SwaggerOperation(
-        Summary = "User Login",
-        Description = @"Authenticates a user using email and password credentials.
-
-**Security Features:**
-- **Rate Limiting**: 5 attempts per IP per 5 minutes
-- **Account Lockout**: 5 failed attempts locks account for 30 minutes
-- **Token Lifetime**: Access token expires in 1 hour, refresh token in 7 days
-- **Secure Cookies**: Refresh token stored in HTTP-only cookie
-- **IP Tracking**: Login IP address is logged for security audit
-
-**Password Requirements:**
-- Minimum 8 characters
-- At least one uppercase letter
-- At least one lowercase letter
-- At least one digit
-- At least one special character
-
-**Example Request:**
-```json
-{
-  ""email"": ""user@example.com"",
-  ""password"": ""SecureP@ssw0rd""
-}
-```
-
-**Example Success Response:**
-```json
-{
-  ""data"": {
-    ""accessToken"": ""eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."",
-    ""refreshToken"": ""f8d3c2e1..."",
-    ""userId"": ""3fa85f64-5717-4562-b3fc-2c963f66afa6"",
-    ""businessId"": ""7c8e9f10-1234-5678-9abc-def012345678"",
-    ""mustChangePassword"": false,
-    ""expiresAt"": ""2025-01-15T11:30:00Z""
-  },
-  ""message"": ""Login successful"",
-  ""isSuccess"": true,
-  ""statusCode"": 200
-}
-```"
-    )]
-    [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status423Locked)]
@@ -158,47 +109,7 @@ public class AuthenticationController : BaseApiController
     /// <returns>New JWT access and refresh tokens with updated expiration</returns>
     [HttpPost("refresh")]
     [EnableRateLimiting("Authentication")] // Rate limit: 5 attempts per IP per 5 minutes
-    [AllowAnonymous]
-    [SwaggerOperation(
-        Summary = "Refresh JWT Token",
-        Description = @"Generates new access and refresh tokens using a valid refresh token.
-
-**Token Sources:**
-- Refresh token can be provided in request body
-- Or automatically read from HTTP-only cookie
-
-**Token Lifetime:**
-- **New Access Token**: Valid for 1 hour
-- **New Refresh Token**: Valid for 7 days
-- **Old Refresh Token**: Automatically revoked
-
-**Security:**
-- One-time use: Each refresh token can only be used once
-- IP tracking: New tokens are bound to client IP
-- Automatic rotation: New refresh token issued with each refresh
-
-**Example Request:**
-```json
-{
-  ""refreshToken"": ""f8d3c2e1-a5b6-4c3d-9e8f-0a1b2c3d4e5f""
-}
-```
-
-**Example Response:**
-```json
-{
-  ""data"": {
-    ""accessToken"": ""eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."",
-    ""refreshToken"": ""c5d4e3f2-b6a7-5d4c-8f9e-1b2a3c4d5e6f"",
-    ""expiresAt"": ""2025-01-15T12:30:00Z""
-  },
-  ""message"": ""Token refreshed successfully"",
-  ""isSuccess"": true,
-  ""statusCode"": 200
-}
-```"
-    )]
-    [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponse>), StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
@@ -236,40 +147,7 @@ public class AuthenticationController : BaseApiController
     /// <param name="request">Optional logout request with refresh token</param>
     /// <returns>Logout confirmation</returns>
     [HttpPost("logout")]
-    [Authorize] // Require authentication to logout
-    [SwaggerOperation(
-        Summary = "User Logout",
-        Description = @"Logs out the authenticated user and revokes all active tokens.
-
-**Token Revocation:**
-- Refresh token is revoked and cannot be reused
-- Access token is blacklisted (if blacklist is enabled)
-- HTTP-only cookie is cleared
-- Session is terminated
-
-**Security:**
-- Requires valid authentication
-- Logs logout event with IP address
-- Prevents token reuse after logout
-
-**Example Request:**
-```json
-{
-  ""refreshToken"": ""f8d3c2e1-a5b6-4c3d-9e8f-0a1b2c3d4e5f""
-}
-```
-
-**Example Response:**
-```json
-{
-  ""data"": null,
-  ""message"": ""Logout successful"",
-  ""isSuccess"": true,
-  ""statusCode"": 200
-}
-```"
-    )]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [Authorize] // Require authentication to logout    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest? request = null)
@@ -293,11 +171,7 @@ public class AuthenticationController : BaseApiController
     /// <returns></returns>
     [HttpPost("forgot-password-request-otp")]
     [EnableRateLimiting("Authentication")] // Rate limit: 5 attempts per IP per 5 minutes
-    [AllowAnonymous]
-    [SwaggerOperation(Description = "This endpoint allows users to request otp while doing password reset. Rate limited to 5 attempts per IP per 5 minutes.")]
-    [SwaggerResponse(200, "OTP sent successfully", typeof(ApiResponse<SendForgotPasswordOTPResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<SendForgotPasswordOTPResult>))]
-    public async Task<IActionResult> SendForgotPasswordOTP([FromBody] SendForgotPasswordOTP request)
+    [AllowAnonymous]    public async Task<IActionResult> SendForgotPasswordOTP([FromBody] SendForgotPasswordOTP request)
     {
         var command = new SendForgotPasswordOTPCommand(request.PhoneNo_Email.Trim());
         var result = await Mediator.Send(command);
@@ -315,11 +189,7 @@ public class AuthenticationController : BaseApiController
     /// </summary>
     [HttpPost("send-action-otp")]
     [Authorize]
-    [EnableRateLimiting("Authentication")]
-    [SwaggerOperation(Description = "Sends a one-time password for sensitive actions such as API key rotation and SFTP password change.")]
-    [SwaggerResponse(200, "OTP sent successfully", typeof(ApiResponse<SendActionOtpResult>))]
-    [SwaggerResponse(400, "Failed to send OTP", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> SendActionOtp()
+    [EnableRateLimiting("Authentication")]    public async Task<IActionResult> SendActionOtp()
     {
         var result = await Mediator.Send(new SendActionOtpCommand());
 
@@ -338,11 +208,7 @@ public class AuthenticationController : BaseApiController
     /// <returns></returns>
     [HttpPost("forgot-password")]
     [EnableRateLimiting("Authentication")] // Rate limit: 5 attempts per IP per 5 minutes
-    [AllowAnonymous]
-    [SwaggerOperation(Description = "This endpoint allows users to do forget password. Rate limited to 5 attempts per IP per 5 minutes.")]
-    [SwaggerResponse(200, "OTP sent successfully", typeof(ApiResponse<SendForgotPasswordOTPResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<SendForgotPasswordOTPResult>))]
-    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPassword request)
+    [AllowAnonymous]    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPassword request)
     {
         var command = new ForgotPasswordCommand(request.Otp.Trim(), request.Password.Trim(), request.PhoneNo_Email.Trim());
         var result = await Mediator.Send(command);
@@ -360,34 +226,7 @@ public class AuthenticationController : BaseApiController
     /// </summary>
     /// <returns>Revocation confirmation</returns>
     [HttpPost("revoke-all")]
-    [Authorize] // Require authentication
-    [SwaggerOperation(
-        Summary = "Revoke All User Tokens",
-        Description = @"Revokes all active refresh tokens for the authenticated user across all devices.
-
-**Use Cases:**
-- Security incident response (suspected account compromise)
-- Password change (force re-authentication)
-- Device management (log out from all devices)
-- Administrative action
-
-**Security:**
-- Requires valid authentication
-- Revokes all refresh tokens for the user
-- Forces re-authentication on all devices
-- Logs security event with IP address
-
-**Example Response:**
-```json
-{
-  ""data"": null,
-  ""message"": ""All tokens revoked successfully"",
-  ""isSuccess"": true,
-  ""statusCode"": 200
-}
-```"
-    )]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [Authorize] // Require authentication    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public Task<IActionResult> RevokeAllTokens()
@@ -402,43 +241,7 @@ public class AuthenticationController : BaseApiController
     /// </summary>
     /// <returns>Token claims including user info, roles, and permissions</returns>
     [HttpGet("token-claims")]
-    [Authorize]
-    [SwaggerOperation(
-        Summary = "Get Token Claims",
-        Description = @"Returns the claims from the authenticated user's token for frontend display.
-
-**Use Cases:**
-- Page refresh: Frontend lost claims from memory
-- Session restoration: Rebuild user context without re-authenticating
-
-**Response includes:**
-- User info (firstName, lastName, email)
-- Roles and permissions
-- Business/branch context
-- Aegis-specific attributes
-
-**Example Response:**
-```json
-{
-  ""data"": {
-    ""firstName"": ""John"",
-    ""lastName"": ""Doe"",
-    ""email"": ""john.doe@example.com"",
-    ""roles"": [""Admin"", ""User""],
-    ""permissions"": [""invoice.create"", ""invoice.view""],
-    ""businessId"": ""7c8e9f10-1234-5678-9abc-def012345678"",
-    ""branchId"": null,
-    ""isAegisUser"": false,
-    ""AegisRole"": null,
-    ""subscriptionTier"": ""Premium""
-  },
-  ""message"": ""Token claims retrieved successfully"",
-  ""isSuccess"": true,
-  ""statusCode"": 200
-}
-```"
-    )]
-    [ProducesResponseType(typeof(ApiResponse<TokenClaimsDto>), StatusCodes.Status200OK)]
+    [Authorize]    [ProducesResponseType(typeof(ApiResponse<TokenClaimsDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public IActionResult GetTokenClaims()
     {
@@ -472,7 +275,7 @@ public class AuthenticationController : BaseApiController
         if (string.IsNullOrWhiteSpace(rawIp))
             return "0.0.0.0";
 
-        // Normalize IPv6 with port: [2001:db8::1]:443 → 2001:db8::1
+        // Normalize IPv6 with port: [2001:db8::1]:443 ? 2001:db8::1
         if (rawIp.StartsWith("[") && rawIp.Contains("]"))
             rawIp = rawIp.Substring(1, rawIp.IndexOf(']') - 1);
 
@@ -543,9 +346,7 @@ public class AuthenticationController : BaseApiController
     /// Exposed at /auth/change-password for frontend compatibility.
     /// </summary>
     [HttpPost("change-password")]
-    [Authorize]
-    [SwaggerOperation(Summary = "Change Password", Description = "Allows an authenticated user to change their own password.")]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [Authorize]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestModel request)
