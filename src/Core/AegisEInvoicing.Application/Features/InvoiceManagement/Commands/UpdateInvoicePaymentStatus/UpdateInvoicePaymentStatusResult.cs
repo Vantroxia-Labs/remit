@@ -6,7 +6,7 @@ using AegisEInvoicing.Domain.Models;
 
 namespace AegisEInvoicing.Application.Features.InvoiceManagement.Commands.UpdateInvoicePaymentStatus;
 
-public record UpdateInvoicePaymentStatusResult : GenericResult 
+public record UpdateInvoicePaymentStatusResult : GenericResult
 {
     public new static UpdateInvoicePaymentStatusResult Successful()
     {
@@ -45,6 +45,26 @@ public record UpdateInvoicePaymentStatusResult : GenericResult
             IsSuccess = false,
             StatusCodes = HttpStatusCodes.Forbidden.ToInt(),
             Message = message ?? ResponseMessages.INSUFFICIENT_PERMISSIONS
+        };
+    }
+
+    public new static UpdateInvoicePaymentStatusResult BadRequest(string message)
+    {
+        return new UpdateInvoicePaymentStatusResult
+        {
+            IsSuccess = false,
+            StatusCodes = HttpStatusCodes.BadRequest.ToInt(),
+            Message = message
+        };
+    }
+
+    public new static UpdateInvoicePaymentStatusResult Failure(string message)
+    {
+        return new UpdateInvoicePaymentStatusResult
+        {
+            IsSuccess = false,
+            StatusCodes = HttpStatusCodes.ExpectationFailed.ToInt(),
+            Message = message
         };
     }
 }

@@ -5,7 +5,11 @@ namespace AegisEInvoicing.Domain.Entities.InvoiceManagement;
 
 public class InvoiceItem : AuditableEntity
 {
-    public Guid BusinessItemId { get; private set; }
+    /// <summary>
+    /// Nullable for vendor-submitted free-text line items (broadcast invoices).
+    /// Required for standard catalog-based invoice items.
+    /// </summary>
+    public Guid? BusinessItemId { get; private set; }
     public Guid InvoiceId { get; private set; }
     public decimal Quantity { get; private set; }
     public DiscountFee? DiscountFee { get; private set; }
@@ -17,9 +21,15 @@ public class InvoiceItem : AuditableEntity
     /// </summary>
     public decimal UnitPriceSnapshot { get; private set; }
 
+    /// <summary>Free-text description for vendor-submitted line items (when BusinessItemId is null).</summary>
+    public string? FreeTextDescription { get; private set; }
+
+    /// <summary>Unit of measure for vendor-submitted line items.</summary>
+    public string? UnitOfMeasure { get; private set; }
+
     // Navigation properties
     public Invoice Invoice { get; private set; } = null!;
-    public BusinessItem BusinessItem { get; private set; } = null!;
+    public BusinessItem? BusinessItem { get; private set; }
 
     // EF Constructor
     private InvoiceItem() { }
@@ -44,6 +54,30 @@ public class InvoiceItem : AuditableEntity
             UnitPriceSnapshot = unitPriceSnapshot,
             DiscountFee = discountFee,
             AdditionalFee = additionalFee
+        };
+    }
+
+    /// <summary>Creates a free-text line item for vendor-submitted invoices (not tied to a BusinessItem).</summary>
+    public static InvoiceItem CreateFreeText(
+        Guid invoiceId,
+        string description,
+        decimal quantity,
+        decimal unitPrice,
+        string? unitOfMeasure = null)
+    {
+        if (invoiceId == Guid.Empty) throw new ArgumentException("InvoiceId cannot be empty", nameof(invoiceId));
+        if (string.IsNullOrWhiteSpace(description)) throw new ArgumentException("Description is required for free-text line items", nameof(description));
+        if (quantity <= 0) throw new ArgumentException("Quantity must be greater than zero", nameof(quantity));
+        if (unitPrice < 0) throw new ArgumentException("Unit price cannot be negative", nameof(unitPrice));
+
+        return new InvoiceItem
+        {
+            BusinessItemId = null,
+            InvoiceId = invoiceId,
+            Quantity = quantity,
+            UnitPriceSnapshot = unitPrice,
+            FreeTextDescription = description.Trim(),
+            UnitOfMeasure = unitOfMeasure?.Trim()
         };
     }
 
@@ -79,7 +113,7 @@ public class InvoiceItem : AuditableEntity
 
     public void UpdateQuantity(decimal quantity)
     {
-        if(quantity <= 0)
+        if (quantity <= 0)
             throw new BadRequestException("Quantity cannot be less than 0", nameof(quantity));
 
         Quantity = quantity;

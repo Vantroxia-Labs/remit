@@ -2,6 +2,7 @@
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Entities.UserManagement;
+using AegisEInvoicing.Domain.Entities.VendorManagement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -49,6 +50,12 @@ public interface IApplicationDbContext
     DbSet<PendingBusinessRegistration> PendingBusinessRegistrations { get; }
     DbSet<VatSchedule> VatSchedules { get; }
     DbSet<VatScheduleItem> VatScheduleItems { get; }
+
+    // Vendor Management
+    DbSet<VendorGroup> VendorGroups { get; }
+    DbSet<Vendor> Vendors { get; }
+    DbSet<InvoiceBroadcast> InvoiceBroadcasts { get; }
+    DbSet<InvoiceBroadcastVendor> InvoiceBroadcastVendors { get; }
 
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

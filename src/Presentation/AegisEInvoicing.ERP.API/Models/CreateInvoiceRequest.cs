@@ -329,5 +329,6 @@ public class PaymentMeansRequest
 /// <param name="PaymentStatus">New payment status for the invoice</param>
 public record UpdateInvoicePaymentStatusRequest(
     [Required(ErrorMessage = "Payment status is required")]
-    PaymentStatus PaymentStatus
+    PaymentStatus PaymentStatus,
+    string? Reference
 );

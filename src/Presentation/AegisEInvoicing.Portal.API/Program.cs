@@ -251,6 +251,7 @@ try
 
     // Add session cleanup background service
     builder.Services.AddHostedService<AegisEInvoicing.Portal.API.BackgroundServices.SessionCleanupService>();
+    builder.Services.AddHostedService<AegisEInvoicing.Portal.API.BackgroundServices.NrsWindowWarningService>();
 
     builder.Services.Configure<FormOptions>(options =>
     {

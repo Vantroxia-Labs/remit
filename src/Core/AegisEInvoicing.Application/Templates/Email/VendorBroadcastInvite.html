@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Request</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f0f4f8; font-family: Arial, sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+        style="background-color: #f0f4f8; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0"
+                    style="background-color: #ffffff; border-top: 6px solid #1E49E2; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h1 style="color: #1E49E2; font-size: 22px; margin: 0 0 20px;">Invoice Submission Request</h1>
+                            <p style="font-size: 14px; color: #333333; line-height: 1.6; margin: 0 0 16px;">
+                                Dear <strong>{vendorName}</strong>,
+                            </p>
+                            <p style="font-size: 14px; color: #333333; line-height: 1.6; margin: 0 0 16px;">
+                                <strong>{tenantName}</strong> has sent you an invoice submission request.
+                                Please complete your invoice details using the secure link below.
+                            </p>
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                                style="background-color: #f8f9fa; border-radius: 6px; margin: 20px 0;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <p style="font-size: 13px; color: #555; margin: 0 0 8px;"><strong>Request Title:</strong> {broadcastTitle}</p>
+                                        <p style="font-size: 13px; color: #555; margin: 0 0 8px;"><strong>Due Date:</strong> {dueDate}</p>
+                                        {noteSection}
+                                    </td>
+                                </tr>
+                            </table>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="{formLink}" style="display: inline-block; background-color: #1E49E2; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 15px; font-weight: bold;">
+                                    Submit Invoice
+                                </a>
+                            </div>
+                            <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; border-radius: 4px; margin: 20px 0;">
+                                <p style="font-size: 12px; color: #856404; margin: 0; line-height: 1.5;">
+                                    This link is unique to you. Do not share it with others. You will need to verify your email with a one-time code before accessing the form.
+                                </p>
+                            </div>
+                            <div style="text-align: center; margin-top: 40px; border-top: 1px solid #e9ecef; padding-top: 25px;">
+                                <p style="font-size: 10px; color: #999; margin: 0;">&copy; 2026 Aegis. All rights reserved.</p>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

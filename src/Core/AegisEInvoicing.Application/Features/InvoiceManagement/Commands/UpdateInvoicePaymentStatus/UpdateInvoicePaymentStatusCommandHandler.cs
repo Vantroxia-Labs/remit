@@ -33,37 +33,39 @@ public class UpdateInvoicePaymentStatusCommandHandler : IRequestHandler<UpdateIn
     public async Task<UpdateInvoicePaymentStatusResult> Handle(UpdateInvoicePaymentStatusCommand request, CancellationToken cancellationToken)
     {
         if (!IsUserAuthorized())
-                return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.AuthorizationError();
+            return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.AuthorizationError();
 
-            var businessId = _currentUser.BusinessId!.Value;
+        var businessId = _currentUser.BusinessId!.Value;
 
-            var business = await _context.Businesses
-                .Where(b => b.Id == businessId)
-                .FirstOrDefaultAsync(cancellationToken);
+        var business = await _context.Businesses
+            .Where(b => b.Id == businessId)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            if (business is null)
-                return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.NotFound(ResponseMessages.BUSINESS_NOT_FOUND);
+        if (business is null)
+            return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.NotFound(ResponseMessages.BUSINESS_NOT_FOUND);
 
-            var invoice = await _context.Invoices
-                              .Where(i => i.Id == request.InvoiceId)
-                              .FirstOrDefaultAsync(cancellationToken);
+        var invoice = await _context.Invoices
+                          .Where(i => i.Id == request.InvoiceId)
+                          .FirstOrDefaultAsync(cancellationToken);
 
-            if (invoice is null)
-                return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.NotFound(ResponseMessages.INVOICE_NOT_FOUND);
+        if (invoice is null)
+            return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.NotFound(ResponseMessages.INVOICE_NOT_FOUND);
 
-          
-            var updatePaymentStatus = await _interswitchHttpClient.UpdateStatusAsync(
-                new Interswitch.Models.Requests.UpdateStatus.UpdateStatusRequest
-                {
-                    PaymentStatus = FormatPaymentStatus(request.PaymentStatus),
-                    Reference = invoice.PaymentReference,
-                    IRN = invoice.Irn.Value
-                }, cancellationToken);
+        if (request.PaymentStatus == PaymentStatus.Paid && string.IsNullOrWhiteSpace(request.Reference))
+            return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.BadRequest("A payment reference is required when marking an invoice as Paid.");
 
-            if (updatePaymentStatus.IsSuccess)
-                invoice.UpdatePaymentStatus(request.PaymentStatus);
-            else
-                invoice.UpdatePaymentStatus(PaymentStatus.Failed);
+        var updatePaymentStatus = await _interswitchHttpClient.UpdateStatusAsync(
+            new Interswitch.Models.Requests.UpdateStatus.UpdateStatusRequest
+            {
+                PaymentStatus = FormatPaymentStatus(request.PaymentStatus),
+                Reference = request.Reference,
+                IRN = invoice.Irn.Value
+            }, cancellationToken);
+
+        if (updatePaymentStatus.IsSuccess)
+            invoice.UpdatePaymentStatus(request.PaymentStatus, request.Reference);
+        else
+            return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.Failure("Failed to update payment status with the regulator. Please try again.");
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -80,8 +82,7 @@ public class UpdateInvoicePaymentStatusCommandHandler : IRequestHandler<UpdateIn
         return paymentStatus switch
         {
             PaymentStatus.Paid => "PAID",
-            PaymentStatus.Pending => "PENDING",
-            PaymentStatus.Cancelled or PaymentStatus.Failed => "REJECTED",
+            PaymentStatus.Rejected => "REJECTED",
             _ => "PENDING"
         };
     }

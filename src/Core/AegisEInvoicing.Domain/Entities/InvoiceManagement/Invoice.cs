@@ -220,10 +220,11 @@ public class Invoice : AuditableAggregateRoot
         }
     }
 
-    public void UpdatePaymentStatus(PaymentStatus newStatus)
+    public void UpdatePaymentStatus(PaymentStatus newStatus, string? reference = null)
     {
-        var oldStatus = PaymentStatus;
         PaymentStatus = newStatus;
+        if (newStatus == PaymentStatus.Paid && !string.IsNullOrWhiteSpace(reference))
+            PaymentReference = reference;
     }
 
     /// <summary>
@@ -271,6 +272,13 @@ public class Invoice : AuditableAggregateRoot
     public void UpdateStatus(InvoiceStatus newStatus)
     {
         InvoiceStatus = newStatus;
+    }
+
+    /// <summary>Sets the PartyId on an invoice that was created without one (e.g. vendor portal drafts).</summary>
+    public void SetParty(Guid partyId)
+    {
+        if (partyId == Guid.Empty) throw new ArgumentException("PartyId cannot be empty", nameof(partyId));
+        PartyId = partyId;
     }
 
     public void SetQRCode(string encryptedData, byte[]? base64Image)

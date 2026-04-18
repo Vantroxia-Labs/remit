@@ -469,7 +469,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     {
         try
         {
-            var command = new UpdateInvoicePaymentStatusCommand(id, updateInvoicePaymentStatusRequest.PaymentStatus);
+            var command = new UpdateInvoicePaymentStatusCommand(id, updateInvoicePaymentStatusRequest.PaymentStatus, updateInvoicePaymentStatusRequest.Reference);
             var result = await _mediator.Send(command, cancellationToken);
 
             return GenericResponse(result.Message, result.IsSuccess, result.StatusCodes);

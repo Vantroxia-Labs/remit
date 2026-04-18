@@ -5,6 +5,7 @@ using AegisEInvoicing.Domain.Entities;
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Entities.UserManagement;
+using AegisEInvoicing.Domain.Entities.VendorManagement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -68,6 +69,12 @@ public sealed class ApplicationDbContext(
     public DbSet<PendingBusinessRegistration> PendingBusinessRegistrations => Set<PendingBusinessRegistration>();
     public DbSet<VatSchedule> VatSchedules => Set<VatSchedule>();
     public DbSet<VatScheduleItem> VatScheduleItems => Set<VatScheduleItem>();
+
+    // Vendor Management
+    public DbSet<VendorGroup> VendorGroups => Set<VendorGroup>();
+    public DbSet<Vendor> Vendors => Set<Vendor>();
+    public DbSet<InvoiceBroadcast> InvoiceBroadcasts => Set<InvoiceBroadcast>();
+    public DbSet<InvoiceBroadcastVendor> InvoiceBroadcastVendors => Set<InvoiceBroadcastVendor>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

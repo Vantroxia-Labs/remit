@@ -8,9 +8,6 @@ public enum PaymentStatus
     Pending,
     [Display(Name = "PAID")]
     Paid,
-    [Display(Name = "CANCELLED")]
-    Cancelled,
-    [Display(Name = "FAILED")]
-    Failed,
+    [Display(Name = "REJECTED")]
     Rejected
 }
