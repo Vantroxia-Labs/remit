@@ -255,6 +255,11 @@ public sealed class ReceivedInvoiceConfiguration : IEntityTypeConfiguration<Rece
         builder.HasIndex(x => new { x.BusinessId, x.IssueDate })
             .HasDatabaseName("IX_ReceivedInvoices_Business_IssueDate");
 
+        builder.Property(x => x.InputVatScheduleId);
+
+        builder.HasIndex(x => x.InputVatScheduleId)
+            .HasDatabaseName("IX_ReceivedInvoices_InputVatScheduleId");
+
         // Soft delete filter
         builder.HasQueryFilter(x => !x.IsDeleted);
     }

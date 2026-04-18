@@ -4,7 +4,7 @@ using AegisEInvoicing.Portal.API.Models.Party.Request;
 using AegisEInvoicing.Portal.API.Models.Party.Response;
 using AegisEInvoicing.Application.Features.PartyManagement.Commands.CreateBulkParty;
 using AegisEInvoicing.Application.Features.PartyManagement.Commands.CreateParty;
-using AegisEInvoicing.Application.Features.PartyManagement.Commands.DeleteParty;
+using AegisEInvoicing.Application.Features.PartyManagement.Commands.DeactivateParty;
 using AegisEInvoicing.Application.Features.PartyManagement.Commands.UpdateParty;
 using AegisEInvoicing.Application.Features.PartyManagement.DTOs;
 using AegisEInvoicing.Application.Features.PartyManagement.Queries.GetPartiesByBusinessId;
@@ -23,7 +23,8 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// Handles CRUD operations for parties (customers, suppliers, etc.) within business context
 /// </summary>
 [ApiController]
-[Route("api/v{version:apiVersion}/[controller]")][Authorize]
+[Route("api/v{version:apiVersion}/[controller]")]
+[Authorize]
 public class PartyController(IMediator mediator, ILogger<PartyController> logger) : BaseApiController
 {
     private readonly IMediator _mediator = mediator;
@@ -36,7 +37,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Created party information</returns>
     [HttpPost]
-    [Authorize(Policy = "RequireSaasSubscription")]    [RequireRole(RoleConstants.ClientAdmin)]
+    [Authorize(Policy = "RequireSaasSubscription")]
+    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> CreateAsync([FromBody] CreatePartyRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -83,7 +85,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("CreateBulkParty")]
-    [Authorize(Policy = "RequireSaasSubscription")]    [RequireRole(RoleConstants.ClientAdmin)]
+    [Authorize(Policy = "RequireSaasSubscription")]
+    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> CreateBulkParty(CreateBulkPartyUploadRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -108,7 +111,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="id">Party ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Party details</returns>
-    [HttpGet("{id:guid}")]    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [HttpGet("{id:guid}")]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetByIdAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Retrieving party with ID: {Id}", id);
@@ -154,7 +158,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Update result</returns>
     [HttpPut("{id:guid}")]
-    [Authorize(Policy = "RequireSaasSubscription")]    [RequireRole(RoleConstants.ClientAdmin)]
+    [Authorize(Policy = "RequireSaasSubscription")]
+    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> UpdateAsync([FromRoute] Guid id, [FromBody] UpdatePartyRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -180,8 +185,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
         if (!result.IsSuccess)
         {
             _logger.LogWarning("Failed to update party: {Message}", result.Message);
-            return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase) 
-                ? Error(result.Message, 404) 
+            return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                ? Error(result.Message, 404)
                 : BadRequest(Error(result.Message));
         }
 
@@ -202,7 +207,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="request">Validation request containing field types and values</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Validation results indicating whether each field exists</returns>
-    [HttpPost("validate")]    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [HttpPost("validate")]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> ValidatePartyFieldsAsync(
         [FromBody] PartyValidationRequest request,
         CancellationToken cancellationToken = default)
@@ -244,37 +250,38 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     }
 
     /// <summary>
-    /// Delete a party
+    /// Deactivate a party (soft delete)
     /// </summary>
     /// <param name="id">Party ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Delete result</returns>
-    [HttpDelete("{id:guid}")]
-    [Authorize(Policy = "RequireSaasSubscription")]    [RequireRole(RoleConstants.ClientAdmin)]
-    public async Task<IActionResult> DeleteAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
+    /// <returns>Deactivation result</returns>
+    [HttpPatch("{id:guid}/deactivate")]
+    [Authorize(Policy = "RequireSaasSubscription")]
+    [RequireRole(RoleConstants.ClientAdmin)]
+    public async Task<IActionResult> DeactivateAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Deleting party with ID: {Id}", id);
+        _logger.LogInformation("Deactivating party with ID: {Id}", id);
 
-        var command = new DeletePartyCommand(id);
+        var command = new DeactivatePartyCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
 
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("Failed to delete party: {Message}", result.Message);
-            return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase) 
-                ? Error(result.Message, 404) 
+            _logger.LogWarning("Failed to deactivate party: {Message}", result.Message);
+            return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                ? Error(result.Message, 404)
                 : BadRequest(Error(result.Message));
         }
 
-        _logger.LogInformation("Party deleted successfully. ID: {PartyId}", result.PartyId);
+        _logger.LogInformation("Party deactivated successfully. ID: {PartyId}", result.PartyId);
 
         var response = new DeletePartyResponse
         {
-            PartyId = result.PartyId ?? id, // Use the original ID if PartyId is null
+            PartyId = result.PartyId ?? id,
             Message = result.Message
         };
 
-        return Success(response, "Party deleted successfully");
+        return Success(response, "Party deactivated successfully");
     }
 
     /// <summary>
@@ -288,7 +295,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="sortDescending">Sort in descending order (default: false)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of parties</returns>
-    [HttpGet]    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [HttpGet]
+    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetListAsync(
         [FromQuery] Guid? BusinessId,
         [FromQuery] int pageNumber = 1,
@@ -298,7 +306,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
         [FromQuery] bool sortDescending = false,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving parties list - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}", 
+        _logger.LogInformation("Retrieving parties list - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}",
             pageNumber, pageSize, searchTerm ?? "None");
 
         // Validate pagination parameters
@@ -329,7 +337,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
             CreatedAt = p.CreatedAt
         });
 
-        var message = string.IsNullOrWhiteSpace(searchTerm) 
+        var message = string.IsNullOrWhiteSpace(searchTerm)
             ? $"Retrieved {result.Items.Count} parties (Page {pageNumber} of {pageSize} items)"
             : $"Found {result.Items.Count} parties matching '{searchTerm}' (Page {pageNumber} of {pageSize} items)";
 
@@ -347,7 +355,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="sortDescending">Sort in descending order (default: false)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of parties for the specified business</returns>
-    [HttpGet("business/{businessId:guid}")]    [RequireRole(RoleConstants.ClientAdmin)]
+    [HttpGet("business/{businessId:guid}")]
+    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> GetByBusinessIdAsync(
         [FromRoute] Guid businessId,
         [FromQuery] int pageNumber = 1,
@@ -357,7 +366,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
         [FromQuery] bool sortDescending = false,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving parties for business {BusinessId} - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}", 
+        _logger.LogInformation("Retrieving parties for business {BusinessId} - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}",
             businessId, pageNumber, pageSize, searchTerm ?? "None");
 
         // Validate pagination parameters
@@ -388,7 +397,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
             CreatedAt = p.CreatedAt
         });
 
-        var message = string.IsNullOrWhiteSpace(searchTerm) 
+        var message = string.IsNullOrWhiteSpace(searchTerm)
             ? $"Retrieved {result.Items.Count} parties for business {businessId} (Page {pageNumber} of {pageSize} items)"
             : $"Found {result.Items.Count} parties for business {businessId} matching '{searchTerm}' (Page {pageNumber} of {pageSize} items)";
 

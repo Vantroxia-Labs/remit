@@ -4,7 +4,7 @@ using AegisEInvoicing.Portal.API.Models.BusinessItem.Request;
 using AegisEInvoicing.Portal.API.Models.BusinessItem.Response;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.CreateBulkBusinessItem;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.CreateBusinessItem;
-using AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.DeleteBusinessItem;
+using AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.DeactivateBusinessItem;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.UpdateBusinessItem;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.DTOs;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.Queries.GetBusinessItemById;
@@ -21,7 +21,8 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// Handles CRUD operations for business items including products and services
 /// </summary>
 [ApiController]
-[Route("api/v{version:apiVersion}/[controller]")][Authorize]
+[Route("api/v{version:apiVersion}/[controller]")]
+[Authorize]
 public class BusinessItemController(IMediator mediator, ILogger<BusinessItemController> logger) : BaseApiController
 {
     private readonly IMediator _mediator = mediator;
@@ -33,7 +34,8 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     /// <param name="request">Business item creation details</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Created business item information</returns>
-    [HttpPost]    [RequireRole(RoleConstants.ClientAdmin)]
+    [HttpPost]
+    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateBusinessItemRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -78,7 +80,8 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    [HttpPost("CreateBulkItem")]    [RequireRole(RoleConstants.ClientAdmin)]
+    [HttpPost("CreateBulkItem")]
+    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> CreateBulkItem(CreateBulkBusinessItemUploadRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -103,7 +106,8 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     /// <param name="id">Business item ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Business item details</returns>
-    [HttpGet("{id:guid}")]    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [HttpGet("{id:guid}")]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetByIdAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Retrieving business item with ID: {Id}", id);
@@ -158,7 +162,8 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     /// <param name="request">Updated business item details</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Update result</returns>
-    [HttpPut("{id:guid}")]    [RequireRole(RoleConstants.ClientAdmin)]
+    [HttpPut("{id:guid}")]
+    [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> UpdateAsync([FromRoute] Guid id, [FromBody] UpdateBusinessItemRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -201,29 +206,30 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     }
 
     /// <summary>
-    /// Delete a business item
+    /// Deactivate a business item (soft delete)
     /// </summary>
     /// <param name="id">Business item ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Deletion result</returns>
-    [HttpDelete("{id:guid}")]    [RequireRole(RoleConstants.ClientAdmin)]
-    public async Task<IActionResult> DeleteAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
+    /// <returns>Deactivation result</returns>
+    [HttpPatch("{id:guid}/deactivate")]
+    [RequireRole(RoleConstants.ClientAdmin)]
+    public async Task<IActionResult> DeactivateAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Deleting business item with ID: {Id}", id);
+        _logger.LogInformation("Deactivating business item with ID: {Id}", id);
 
-        var command = new DeleteBusinessItemCommand(id);
+        var command = new DeactivateBusinessItemCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
 
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("Failed to delete business item: {Message}", result.Message);
+            _logger.LogWarning("Failed to deactivate business item: {Message}", result.Message);
             return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
                 ? Error(result.Message, 404)
                 : BadRequest(Error(result.Message));
         }
 
-        _logger.LogInformation("Business item deleted successfully. ID: {Id}", id);
-        return Success<object?>(null, "Business item deleted successfully");
+        _logger.LogInformation("Business item deactivated successfully. ID: {Id}", id);
+        return Success<object?>(null, "Business item deactivated successfully");
     }
 
     /// <summary>
@@ -237,7 +243,8 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     /// <param name="sortDescending">Sort in descending order (default: false)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of business items</returns>
-    [HttpGet]    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    [HttpGet]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetListAsync(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,

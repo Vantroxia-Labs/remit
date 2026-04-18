@@ -1,7 +1,7 @@
 using AegisEInvoicing.Application.Features.VendorManagement.Commands.CreateVendor;
 using AegisEInvoicing.Application.Features.VendorManagement.Commands.CreateVendorGroup;
-using AegisEInvoicing.Application.Features.VendorManagement.Commands.DeleteVendor;
-using AegisEInvoicing.Application.Features.VendorManagement.Commands.DeleteVendorGroup;
+using AegisEInvoicing.Application.Features.VendorManagement.Commands.DeactivateVendor;
+using AegisEInvoicing.Application.Features.VendorManagement.Commands.DeactivateVendorGroup;
 using AegisEInvoicing.Application.Features.VendorManagement.Commands.ToggleVendorStatus;
 using AegisEInvoicing.Application.Features.VendorManagement.Commands.UpdateVendor;
 using AegisEInvoicing.Application.Features.VendorManagement.Commands.UpdateVendorGroup;
@@ -75,11 +75,11 @@ public class VendorController(IMediator mediator, ILogger<VendorController> logg
         return Success(new { result.Id, result.Message }, result.Message);
     }
 
-    [HttpDelete("groups/{id:guid}")]
+    [HttpPatch("groups/{id:guid}/deactivate")]
     [RequireRole(RoleConstants.ClientAdmin)]
-    public async Task<IActionResult> DeleteGroupAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> DeactivateGroupAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new DeleteVendorGroupCommand(id), cancellationToken);
+        var result = await _mediator.Send(new DeactivateVendorGroupCommand(id), cancellationToken);
         if (!result.IsSuccess)
             return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
                 ? Error(result.Message, 404)
@@ -139,11 +139,11 @@ public class VendorController(IMediator mediator, ILogger<VendorController> logg
         return Success(new { result.Id, result.Message }, result.Message);
     }
 
-    [HttpDelete("{id:guid}")]
+    [HttpPatch("{id:guid}/deactivate")]
     [RequireRole(RoleConstants.ClientAdmin)]
-    public async Task<IActionResult> DeleteVendorAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> DeactivateVendorAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new DeleteVendorCommand(id), cancellationToken);
+        var result = await _mediator.Send(new DeactivateVendorCommand(id), cancellationToken);
         if (!result.IsSuccess)
             return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
                 ? Error(result.Message, 404)

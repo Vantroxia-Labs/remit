@@ -4,18 +4,18 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace AegisEInvoicing.Application.Features.VendorManagement.Commands.DeleteVendor;
+namespace AegisEInvoicing.Application.Features.VendorManagement.Commands.DeactivateVendor;
 
-public class DeleteVendorCommandHandler(
+public class DeactivateVendorCommandHandler(
     IApplicationDbContext context,
     ICurrentUserService currentUser,
-    ILogger<DeleteVendorCommandHandler> logger) : IRequestHandler<DeleteVendorCommand, VendorResult>
+    ILogger<DeactivateVendorCommandHandler> logger) : IRequestHandler<DeactivateVendorCommand, VendorResult>
 {
     private readonly IApplicationDbContext _context = context;
     private readonly ICurrentUserService _currentUser = currentUser;
-    private readonly ILogger<DeleteVendorCommandHandler> _logger = logger;
+    private readonly ILogger<DeactivateVendorCommandHandler> _logger = logger;
 
-    public async Task<VendorResult> Handle(DeleteVendorCommand request, CancellationToken cancellationToken)
+    public async Task<VendorResult> Handle(DeactivateVendorCommand request, CancellationToken cancellationToken)
     {
         try
         {
@@ -28,16 +28,19 @@ public class DeleteVendorCommandHandler(
             if (vendor is null)
                 return new VendorResult(false, "Vendor not found.");
 
-            _context.Vendors.Remove(vendor);
+            if (vendor.IsDeleted)
+                return new VendorResult(false, "Vendor is already deactivated.");
+
+            vendor.MarkAsDeleted(_currentUser.UserId);
             await _context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Vendor {VendorId} deleted", vendor.Id);
-            return new VendorResult(true, "Vendor deleted successfully.", vendor.Id);
+            _logger.LogInformation("Vendor {VendorId} deactivated", vendor.Id);
+            return new VendorResult(true, "Vendor deactivated successfully.", vendor.Id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting vendor {VendorId}", request.Id);
-            return new VendorResult(false, "An error occurred while deleting the vendor.");
+            _logger.LogError(ex, "Error deactivating vendor {VendorId}", request.Id);
+            return new VendorResult(false, "An error occurred while deactivating the vendor.");
         }
     }
 }

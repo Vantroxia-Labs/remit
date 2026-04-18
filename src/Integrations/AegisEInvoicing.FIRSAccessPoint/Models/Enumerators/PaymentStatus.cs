@@ -9,5 +9,7 @@ public enum PaymentStatus
     [Display(Name = "PAID")]
     Paid,
     [Display(Name = "REJECTED")]
-    Rejected
+    Rejected,
+    [Display(Name = "DISMISSED")]
+    Dismissed
 }

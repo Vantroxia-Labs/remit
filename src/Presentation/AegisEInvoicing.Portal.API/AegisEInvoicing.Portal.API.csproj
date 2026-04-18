@@ -6,8 +6,9 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);CS1591</NoWarn>
+		<NuGetAudit>false</NuGetAudit>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<UserSecretsId>einvoice-integrator-api-secrets</UserSecretsId>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<PublishReadyToRun>false</PublishReadyToRun>

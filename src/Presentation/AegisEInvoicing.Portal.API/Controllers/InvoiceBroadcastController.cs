@@ -1,5 +1,7 @@
+using AegisEInvoicing.Application.Features.VendorManagement.Commands.ApproveBroadcastSubmissions;
 using AegisEInvoicing.Application.Features.VendorManagement.Commands.CreateInvoiceBroadcast;
 using AegisEInvoicing.Application.Features.VendorManagement.Commands.DeactivateBroadcast;
+using AegisEInvoicing.Application.Features.VendorManagement.Commands.DismissBroadcastSubmissions;
 using AegisEInvoicing.Application.Features.VendorManagement.Commands.ExtendBroadcastDueDate;
 using AegisEInvoicing.Application.Features.VendorManagement.Commands.MarkBroadcastSubmissions;
 using AegisEInvoicing.Application.Features.VendorManagement.Commands.RejectAllBroadcastInvoices;
@@ -145,6 +147,26 @@ public class InvoiceBroadcastController(IMediator mediator, ILogger<InvoiceBroad
     public async Task<IActionResult> MarkRejectedAsync([FromBody] BulkInvoiceIdsRequest request, CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new MarkBroadcastSubmissionsRejectedCommand(request.InvoiceIds), cancellationToken);
+        if (!result.IsSuccess)
+            return BadRequest(Error(result.Message));
+        return Success(new { result.Message }, result.Message);
+    }
+
+    [HttpPatch("submissions/approve")]
+    [RequireRole(RoleConstants.ClientAdmin)]
+    public async Task<IActionResult> ApproveSubmissionsAsync([FromBody] BulkInvoiceIdsRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new ApproveBroadcastSubmissionsCommand(request.InvoiceIds), cancellationToken);
+        if (!result.IsSuccess)
+            return BadRequest(Error(result.Message));
+        return Success(new { result.Message }, result.Message);
+    }
+
+    [HttpPatch("submissions/dismiss")]
+    [RequireRole(RoleConstants.ClientAdmin)]
+    public async Task<IActionResult> DismissSubmissionsAsync([FromBody] BulkInvoiceIdsRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new DismissBroadcastSubmissionsCommand(request.InvoiceIds), cancellationToken);
         if (!result.IsSuccess)
             return BadRequest(Error(result.Message));
         return Success(new { result.Message }, result.Message);

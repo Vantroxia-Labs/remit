@@ -205,6 +205,12 @@ public class ReceivedInvoice : AuditableAggregateRoot
     public Business Business { get; private set; } = null!;
 
     /// <summary>
+    /// Set when this invoice is included in a VAT schedule's input section.
+    /// Prevents double-counting across schedule generations.
+    /// </summary>
+    public Guid? InputVatScheduleId { get; private set; }
+
+    /// <summary>
     /// Indicates whether this invoice has been reconciled/processed
     /// </summary>
     public bool IsReconciled { get; private set; }
@@ -413,6 +419,11 @@ public class ReceivedInvoice : AuditableAggregateRoot
 
         UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void AssignToInputVatSchedule(Guid scheduleId)
+    {
+        InputVatScheduleId = scheduleId;
     }
 
     /// <summary>

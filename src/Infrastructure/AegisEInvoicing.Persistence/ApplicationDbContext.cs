@@ -69,6 +69,7 @@ public sealed class ApplicationDbContext(
     public DbSet<PendingBusinessRegistration> PendingBusinessRegistrations => Set<PendingBusinessRegistration>();
     public DbSet<VatSchedule> VatSchedules => Set<VatSchedule>();
     public DbSet<VatScheduleItem> VatScheduleItems => Set<VatScheduleItem>();
+    public DbSet<InputVatScheduleItem> InputVatScheduleItems => Set<InputVatScheduleItem>();
 
     // Vendor Management
     public DbSet<VendorGroup> VendorGroups => Set<VendorGroup>();

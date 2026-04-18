@@ -50,6 +50,7 @@ public interface IApplicationDbContext
     DbSet<PendingBusinessRegistration> PendingBusinessRegistrations { get; }
     DbSet<VatSchedule> VatSchedules { get; }
     DbSet<VatScheduleItem> VatScheduleItems { get; }
+    DbSet<InputVatScheduleItem> InputVatScheduleItems { get; }
 
     // Vendor Management
     DbSet<VendorGroup> VendorGroups { get; }

@@ -50,6 +50,18 @@ public class VatScheduleConfiguration : IEntityTypeConfiguration<VatSchedule>
             .IsRequired()
             .HasColumnType("numeric(18,2)");
 
+        builder.Property(x => x.TotalInputInvoiceCount).IsRequired();
+
+        builder.Property(x => x.TotalInputTaxableAmount)
+            .IsRequired()
+            .HasColumnType("numeric(18,2)");
+
+        builder.Property(x => x.TotalInputVatAmount)
+            .IsRequired()
+            .HasColumnType("numeric(18,2)");
+
+        builder.Ignore(x => x.NetVatPayable);
+
         builder.Property(x => x.BusinessId).IsRequired();
 
         // One schedule per business per month — enforced at the DB level
@@ -64,6 +76,11 @@ public class VatScheduleConfiguration : IEntityTypeConfiguration<VatSchedule>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(x => x.Items)
+            .WithOne(x => x.Schedule)
+            .HasForeignKey(x => x.ScheduleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.InputItems)
             .WithOne(x => x.Schedule)
             .HasForeignKey(x => x.ScheduleId)
             .OnDelete(DeleteBehavior.Cascade);
