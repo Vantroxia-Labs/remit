@@ -76,8 +76,7 @@ public class CreateInvoiceBroadcastCommandHandler(
             await _context.SaveChangesAsync(cancellationToken);
 
             // Send invite emails
-            var frontendBase = request.FrontendBaseUrl
-                ?? _configuration["VendorPortal:FrontendBaseUrl"]
+            var frontendBase = _configuration["App:PortalUrl"]
                 ?? "https://app.example.com";
 
             var templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "Email", "VendorBroadcastInvite.html");

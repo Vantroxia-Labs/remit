@@ -14,5 +14,4 @@ public record CreateInvoiceBroadcastCommand(
     /// <summary>Target specific vendors. If null AND VendorGroupId is set, targets all vendors in that group.</summary>
     List<Guid>? VendorIds = null,
     /// <summary>Target all vendors in this group (ignored if VendorIds is specified).</summary>
-    Guid? VendorGroupId = null,
-    string? FrontendBaseUrl = null) : IRequest<InvoiceBroadcastResult>, ITransactionalCommand;
+    Guid? VendorGroupId = null) : IRequest<InvoiceBroadcastResult>, ITransactionalCommand;

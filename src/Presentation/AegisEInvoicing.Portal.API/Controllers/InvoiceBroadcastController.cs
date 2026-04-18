@@ -60,8 +60,7 @@ public class InvoiceBroadcastController(IMediator mediator, ILogger<InvoiceBroad
             request.Currency,
             request.Note,
             request.VendorIds,
-            request.VendorGroupId,
-            request.FrontendBaseUrl);
+            request.VendorGroupId);
 
         var result = await _mediator.Send(command, cancellationToken);
         if (!result.IsSuccess)
@@ -162,8 +161,7 @@ public record CreateBroadcastRequest(
     string Currency,
     string? Note,
     List<Guid>? VendorIds,
-    Guid? VendorGroupId,
-    string? FrontendBaseUrl);
+    Guid? VendorGroupId);
 
 public record UpdateBroadcastRequest(string Title, string? Note);
 public record ExtendDueDateRequest(DateOnly NewDueDate);
