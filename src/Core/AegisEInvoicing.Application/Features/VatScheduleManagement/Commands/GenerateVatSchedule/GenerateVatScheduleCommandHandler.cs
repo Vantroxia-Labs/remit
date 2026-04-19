@@ -20,6 +20,7 @@ public class GenerateVatScheduleCommandHandler(
 {
     private static readonly InvoiceStatus[] EligibleStatuses =
     [
+        InvoiceStatus.SIGNED,
         InvoiceStatus.TRANSMITTED,
         InvoiceStatus.ACKNOWLEDGED,
         InvoiceStatus.COMPLETELYTRANSMITTED,
