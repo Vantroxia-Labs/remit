@@ -39,12 +39,12 @@ public class AssignRoleCommandHandler(
                 return AssignRoleResult.Failure("Authentication required");
             }
 
-            
+
 
             // Step 3: Get the target user and verify it belongs to the same tenant
             var targetUser = await _context.Users
                 .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
-            
+
             if (targetUser == null)
             {
                 return AssignRoleResult.Failure("User not found");
@@ -56,10 +56,15 @@ public class AssignRoleCommandHandler(
                 return AssignRoleResult.Failure("Cannot assign roles to users from other merchants");
             }
 
-            // Step 5: Get the platform role
+            // Step 5: Get the platform role — allow system roles (BusinessId = null)
+            // or custom roles scoped to the current user's business
             var platformRole = await _context.PlatformRoles
-                .FirstOrDefaultAsync(r => r.Id == request.RoleId && r.IsActive, cancellationToken);
-            
+                .FirstOrDefaultAsync(r => r.Id == request.RoleId
+                                       && r.IsActive
+                                       && !r.IsDeleted
+                                       && (r.BusinessId == null || r.BusinessId == _currentUser.BusinessId.Value),
+                                    cancellationToken);
+
             if (platformRole == null)
             {
                 return AssignRoleResult.Failure("Platform role not found or is inactive");
@@ -68,7 +73,7 @@ public class AssignRoleCommandHandler(
             // Step 6: Get the merchant and verify admin relationship
             var merchant = await _context.Businesses
                 .FirstOrDefaultAsync(m => m.Id == _currentUser.BusinessId.Value, cancellationToken);
-            
+
             if (merchant == null || !merchant.CanManageUsers(_currentUser.UserId!.Value))
             {
                 return AssignRoleResult.Failure("Only merchant administrators can assign roles");
@@ -81,11 +86,11 @@ public class AssignRoleCommandHandler(
             }
 
             // Step 8: Assign role using domain method
-            
+
             //targetUser.AssignRole(request.RoleId, _currentUser.UserId.Value, request?.ExpiresAt);
-           
+
             var UserRole = UserRoleAssignment.Create(targetUser.Id, platformRole.Id, _currentUser.UserId.Value, request?.ExpiresAt);
-             await _context.UserRoleAssignments.AddAsync(UserRole);
+            await _context.UserRoleAssignments.AddAsync(UserRole);
             await _context.SaveChangesAsync(cancellationToken);
 
             return AssignRoleResult.Success($"Role '{platformRole.Name}' assigned successfully to user '{targetUser.Email}'");

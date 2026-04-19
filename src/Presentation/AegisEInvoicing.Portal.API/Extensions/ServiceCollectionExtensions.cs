@@ -273,6 +273,11 @@ public static class ServiceCollectionExtensions
                 policy.Requirements.Add(new AegisEInvoicing.Portal.API.Authorization.RequireSaasSubscriptionRequirement()));
         });
 
+        // PBAC: dynamic policy provider resolves "RequirePermissions:{permission}" policies
+        // automatically — no manual AddPolicy needed per permission string
+        services.AddSingleton<IAuthorizationPolicyProvider, AegisEInvoicing.Portal.API.Authorization.PermissionPolicyProvider>();
+        services.AddSingleton<IAuthorizationHandler, AegisEInvoicing.Portal.API.Authorization.PermissionAuthorizationHandler>();
+
         // Register authorization handler for SaaS subscription requirement
         services.AddSingleton<IAuthorizationHandler, AegisEInvoicing.Portal.API.Authorization.RequireSaasSubscriptionHandler>();
 
