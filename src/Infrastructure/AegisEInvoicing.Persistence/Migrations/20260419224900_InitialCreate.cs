@@ -6,18 +6,36 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AegisEInvoicing.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class V1 : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Create ICU collation used for case-insensitive email columns
-            migrationBuilder.Sql(@"
-                CREATE COLLATION IF NOT EXISTS case_insensitive (
-                    provider = icu,
-                    locale = 'und-u-ks-level2',
-                    deterministic = false
-                );");
+            migrationBuilder.CreateTable(
+                name: "AppProviderConfigurations",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    AdapterKey = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    BaseUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    EncryptedCredentials = table.Column<string>(type: "text", nullable: true),
+                    SandboxBaseUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    EncryptedSandboxCredentials = table.Column<string>(type: "text", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AppProviderConfigurations", x => x.Id);
+                });
 
             migrationBuilder.CreateTable(
                 name: "BusinessOnboardings",
@@ -216,6 +234,7 @@ namespace AegisEInvoicing.Persistence.Migrations
                     IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     IsSystemRole = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    BusinessId = table.Column<Guid>(type: "uuid", nullable: true),
                     permissions = table.Column<string>(type: "json", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -491,6 +510,8 @@ namespace AegisEInvoicing.Persistence.Migrations
                     IsApiKeyActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     PublicKey = table.Column<string>(type: "text", nullable: true),
                     Certificate = table.Column<string>(type: "text", nullable: true),
+                    ActiveAdapterKey = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    AppEnvironmentMode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false, defaultValue: "Production"),
                     DeploymentMode = table.Column<int>(type: "integer", nullable: false),
                     LicenseKey = table.Column<string>(type: "text", nullable: true),
                     LicenseKeyIssuedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -572,6 +593,40 @@ namespace AegisEInvoicing.Persistence.Migrations
                     table.PrimaryKey("PK_FlowRules", x => x.Id);
                     table.ForeignKey(
                         name: "FK_FlowRules_Businesses_BusinessId",
+                        column: x => x.BusinessId,
+                        principalTable: "Businesses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InvoiceBroadcasts",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Title = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    InvoiceTypeCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    DueDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    RequiresApproval = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    IsApprovalLocked = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    Note = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Currency = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    BusinessId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    Version = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InvoiceBroadcasts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InvoiceBroadcasts_Businesses_BusinessId",
                         column: x => x.BusinessId,
                         principalTable: "Businesses",
                         principalColumn: "Id",
@@ -685,11 +740,14 @@ namespace AegisEInvoicing.Persistence.Migrations
                     PayableRoundingAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
                     Note = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
                     BuyerReference = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    PaymentReference = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     AccountingCost = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     InvoiceLinesJson = table.Column<string>(type: "text", nullable: true),
                     TaxTotalJson = table.Column<string>(type: "text", nullable: true),
                     FirsBusinessId = table.Column<string>(type: "text", nullable: false),
                     BusinessId = table.Column<Guid>(type: "uuid", nullable: false),
+                    InputVatScheduleId = table.Column<Guid>(type: "uuid", nullable: true),
+                    WhtScheduleId = table.Column<Guid>(type: "uuid", nullable: true),
                     IsReconciled = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     ReconciledAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     ReconciledBy = table.Column<Guid>(type: "uuid", nullable: true),
@@ -726,7 +784,7 @@ namespace AegisEInvoicing.Persistence.Migrations
                     WorkingDirectory = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     DirectoriesCreated = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     SftpInvoiceTransmissionEnabled = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                    CerberusCreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    SFTPGoCreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     LastSyncedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -864,6 +922,9 @@ namespace AegisEInvoicing.Persistence.Migrations
                     TotalInvoiceCount = table.Column<int>(type: "integer", nullable: false),
                     TotalTaxableAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     TotalVatAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    TotalInputInvoiceCount = table.Column<int>(type: "integer", nullable: false),
+                    TotalInputTaxableAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    TotalInputVatAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     BusinessId = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -886,16 +947,82 @@ namespace AegisEInvoicing.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "VendorGroups",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    BusinessId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    Version = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_VendorGroups", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_VendorGroups_Businesses_BusinessId",
+                        column: x => x.BusinessId,
+                        principalTable: "Businesses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WhtSchedules",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Year = table.Column<int>(type: "integer", nullable: false),
+                    Month = table.Column<int>(type: "integer", nullable: false),
+                    MonthName = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    PeriodStart = table.Column<DateOnly>(type: "date", nullable: false),
+                    PeriodEnd = table.Column<DateOnly>(type: "date", nullable: false),
+                    DueDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    FiledAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
+                    TotalItemCount = table.Column<int>(type: "integer", nullable: false),
+                    TotalGrossAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    TotalWhtAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    TotalNrsWhtAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    TotalStateWhtAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    BusinessId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    Version = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WhtSchedules", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WhtSchedules_Businesses_BusinessId",
+                        column: x => x.BusinessId,
+                        principalTable: "Businesses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "BusinessItems",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ItemId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    ItemType = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     ServiceCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     ServiceCodeName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    TaxCategoryName = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    TaxCategoryPercent = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false),
                     ItemCategoryId = table.Column<Guid>(type: "uuid", nullable: false),
                     ItemDescription = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     UnitPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
@@ -1012,6 +1139,31 @@ namespace AegisEInvoicing.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "InputVatScheduleItems",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ScheduleId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ReceivedInvoiceId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Irn = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    SupplierName = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    SupplierTin = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    IssueDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    TaxableAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    VatAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InputVatScheduleItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InputVatScheduleItems_VatSchedules_ScheduleId",
+                        column: x => x.ScheduleId,
+                        principalTable: "VatSchedules",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Invoices",
                 columns: table => new
                 {
@@ -1035,6 +1187,7 @@ namespace AegisEInvoicing.Persistence.Migrations
                     PaymentReference = table.Column<string>(type: "text", nullable: true),
                     PaymentMeans_Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     PaymentMeans_Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    EnvironmentMode = table.Column<int>(type: "integer", nullable: false),
                     InvoiceStatus = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     QRCode_EncryptedData = table.Column<string>(type: "text", nullable: true),
                     QRCode_Base64Image = table.Column<string>(type: "text", nullable: true),
@@ -1111,6 +1264,72 @@ namespace AegisEInvoicing.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Vendors",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    BusinessName = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Phone = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    BusinessId = table.Column<Guid>(type: "uuid", nullable: false),
+                    VendorGroupId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    Version = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Vendors", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Vendors_Businesses_BusinessId",
+                        column: x => x.BusinessId,
+                        principalTable: "Businesses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Vendors_VendorGroups_VendorGroupId",
+                        column: x => x.VendorGroupId,
+                        principalTable: "VendorGroups",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WhtScheduleItems",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ScheduleId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ReceivedInvoiceId = table.Column<Guid>(type: "uuid", nullable: false),
+                    VendorName = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    VendorAddress = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    VendorTin = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Irn = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    IssueDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    NatureOfTransaction = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    GrossAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    WhtRate = table.Column<decimal>(type: "numeric(5,2)", nullable: false),
+                    WhtAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    TaxAuthority = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WhtScheduleItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WhtScheduleItems_WhtSchedules_ScheduleId",
+                        column: x => x.ScheduleId,
+                        principalTable: "WhtSchedules",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "BusinessItemItemCategory",
                 columns: table => new
                 {
@@ -1179,6 +1398,28 @@ namespace AegisEInvoicing.Persistence.Migrations
                         column: x => x.ApproverId,
                         principalTable: "Users",
                         principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "BusinessItemTaxCategories",
+                columns: table => new
+                {
+                    Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    BusinessItemId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    IsPercentage = table.Column<bool>(type: "boolean", nullable: false),
+                    Percent = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: true),
+                    FlatAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BusinessItemTaxCategories", x => new { x.BusinessItemId, x.Code });
+                    table.ForeignKey(
+                        name: "FK_BusinessItemTaxCategories_BusinessItems_BusinessItemId",
+                        column: x => x.BusinessItemId,
+                        principalTable: "BusinessItems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1273,7 +1514,7 @@ namespace AegisEInvoicing.Persistence.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    BusinessItemId = table.Column<Guid>(type: "uuid", nullable: false),
+                    BusinessItemId = table.Column<Guid>(type: "uuid", nullable: true),
                     InvoiceId = table.Column<Guid>(type: "uuid", nullable: false),
                     Quantity = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: false),
                     DiscountFee_Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
@@ -1281,6 +1522,8 @@ namespace AegisEInvoicing.Persistence.Migrations
                     AdditionalFee_Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
                     AdditionalFee_Code = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     UnitPriceSnapshot = table.Column<decimal>(type: "numeric", nullable: false),
+                    FreeTextDescription = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    UnitOfMeasure = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
@@ -1360,6 +1603,50 @@ namespace AegisEInvoicing.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "InvoiceBroadcastVendors",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    InvoiceBroadcastId = table.Column<Guid>(type: "uuid", nullable: false),
+                    VendorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    InvoiceId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Token = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    IsEmailVerified = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    VerificationCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    VerificationCodeExpiresAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    EmailVerifiedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InvoiceBroadcastVendors", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InvoiceBroadcastVendors_InvoiceBroadcasts_InvoiceBroadcastId",
+                        column: x => x.InvoiceBroadcastId,
+                        principalTable: "InvoiceBroadcasts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_InvoiceBroadcastVendors_Invoices_InvoiceId",
+                        column: x => x.InvoiceId,
+                        principalTable: "Invoices",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_InvoiceBroadcastVendors_Vendors_VendorId",
+                        column: x => x.VendorId,
+                        principalTable: "Vendors",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AdditionalDocumentReferences_InvoiceId",
                 table: "AdditionalDocumentReferences",
@@ -1425,6 +1712,27 @@ namespace AegisEInvoicing.Persistence.Migrations
                 name: "IX_ApiUsageTrackings_UserId",
                 table: "ApiUsageTrackings",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AppProviderConfigurations_AdapterKey",
+                table: "AppProviderConfigurations",
+                column: "AdapterKey",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AppProviderConfigurations_IsActive",
+                table: "AppProviderConfigurations",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AppProviderConfigurations_IsDeleted",
+                table: "AppProviderConfigurations",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AppProviderConfigurations_IsDeleted_IsActive",
+                table: "AppProviderConfigurations",
+                columns: new[] { "IsDeleted", "IsActive" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_BillingReferences_InvoiceId",
@@ -1725,6 +2033,16 @@ namespace AegisEInvoicing.Persistence.Migrations
                 column: "IsDeleted");
 
             migrationBuilder.CreateIndex(
+                name: "IX_InputVatScheduleItems_ReceivedInvoiceId",
+                table: "InputVatScheduleItems",
+                column: "ReceivedInvoiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InputVatScheduleItems_ScheduleId",
+                table: "InputVatScheduleItems",
+                column: "ScheduleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_IntegrationLogs_CorrelationId",
                 table: "IntegrationLogs",
                 column: "CorrelationId");
@@ -1793,6 +2111,53 @@ namespace AegisEInvoicing.Persistence.Migrations
                 name: "IX_InvoiceApprovalHistories_IsDeleted",
                 table: "InvoiceApprovalHistories",
                 column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceBroadcasts_BusinessId",
+                table: "InvoiceBroadcasts",
+                column: "BusinessId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceBroadcasts_BusinessId_Status",
+                table: "InvoiceBroadcasts",
+                columns: new[] { "BusinessId", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceBroadcasts_IsDeleted",
+                table: "InvoiceBroadcasts",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceBroadcasts_Status",
+                table: "InvoiceBroadcasts",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceBroadcastVendors_BroadcastId_VendorId",
+                table: "InvoiceBroadcastVendors",
+                columns: new[] { "InvoiceBroadcastId", "VendorId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceBroadcastVendors_InvoiceId",
+                table: "InvoiceBroadcastVendors",
+                column: "InvoiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceBroadcastVendors_IsDeleted",
+                table: "InvoiceBroadcastVendors",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceBroadcastVendors_Token",
+                table: "InvoiceBroadcastVendors",
+                column: "Token",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceBroadcastVendors_VendorId",
+                table: "InvoiceBroadcastVendors",
+                column: "VendorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InvoiceItems_BusinessItemId",
@@ -2026,6 +2391,11 @@ namespace AegisEInvoicing.Persistence.Migrations
                 column: "TIN");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PlatformRoles_BusinessId",
+                table: "PlatformRoles",
+                column: "BusinessId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PlatformRoles_Category",
                 table: "PlatformRoles",
                 column: "Category");
@@ -2063,8 +2433,7 @@ namespace AegisEInvoicing.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_PlatformRoles_Name",
                 table: "PlatformRoles",
-                column: "Name",
-                unique: true);
+                column: "Name");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PlatformRoles_SortOrder",
@@ -2114,6 +2483,11 @@ namespace AegisEInvoicing.Persistence.Migrations
                 column: "BusinessId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ReceivedInvoices_InputVatScheduleId",
+                table: "ReceivedInvoices",
+                column: "InputVatScheduleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ReceivedInvoices_IsReconciled",
                 table: "ReceivedInvoices",
                 column: "IsReconciled");
@@ -2127,6 +2501,11 @@ namespace AegisEInvoicing.Persistence.Migrations
                 name: "IX_ReceivedInvoices_PaymentStatus",
                 table: "ReceivedInvoices",
                 column: "PaymentStatus");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReceivedInvoices_WhtScheduleId",
+                table: "ReceivedInvoices",
+                column: "WhtScheduleId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_CreatedAt",
@@ -2442,6 +2821,60 @@ namespace AegisEInvoicing.Persistence.Migrations
                 columns: new[] { "BusinessId", "Year", "Month" },
                 unique: true);
 
+            migrationBuilder.CreateIndex(
+                name: "IX_VendorGroups_BusinessId",
+                table: "VendorGroups",
+                column: "BusinessId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_VendorGroups_BusinessId_Name",
+                table: "VendorGroups",
+                columns: new[] { "BusinessId", "Name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_VendorGroups_IsDeleted",
+                table: "VendorGroups",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Vendors_BusinessId",
+                table: "Vendors",
+                column: "BusinessId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Vendors_BusinessId_Email",
+                table: "Vendors",
+                columns: new[] { "BusinessId", "Email" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Vendors_IsDeleted",
+                table: "Vendors",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Vendors_VendorGroupId",
+                table: "Vendors",
+                column: "VendorGroupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WhtScheduleItems_Schedule_ReceivedInvoice",
+                table: "WhtScheduleItems",
+                columns: new[] { "ScheduleId", "ReceivedInvoiceId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WhtScheduleItems_ScheduleId",
+                table: "WhtScheduleItems",
+                column: "ScheduleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WhtSchedules_Business_Period",
+                table: "WhtSchedules",
+                columns: new[] { "BusinessId", "Year", "Month" },
+                unique: true);
+
             migrationBuilder.AddForeignKey(
                 name: "FK_AdditionalDocumentReferences_Invoices_InvoiceId",
                 table: "AdditionalDocumentReferences",
@@ -2532,6 +2965,9 @@ namespace AegisEInvoicing.Persistence.Migrations
                 name: "ApiUsageTrackings");
 
             migrationBuilder.DropTable(
+                name: "AppProviderConfigurations");
+
+            migrationBuilder.DropTable(
                 name: "BillingReferences");
 
             migrationBuilder.DropTable(
@@ -2542,6 +2978,9 @@ namespace AegisEInvoicing.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "BusinessItemPriceHistories");
+
+            migrationBuilder.DropTable(
+                name: "BusinessItemTaxCategories");
 
             migrationBuilder.DropTable(
                 name: "BusinessOnboardings");
@@ -2556,10 +2995,16 @@ namespace AegisEInvoicing.Persistence.Migrations
                 name: "FlowRules");
 
             migrationBuilder.DropTable(
+                name: "InputVatScheduleItems");
+
+            migrationBuilder.DropTable(
                 name: "IntegrationLogs");
 
             migrationBuilder.DropTable(
                 name: "InvoiceApprovalHistories");
+
+            migrationBuilder.DropTable(
+                name: "InvoiceBroadcastVendors");
 
             migrationBuilder.DropTable(
                 name: "InvoiceItems");
@@ -2607,7 +3052,16 @@ namespace AegisEInvoicing.Persistence.Migrations
                 name: "VatScheduleItems");
 
             migrationBuilder.DropTable(
+                name: "WhtScheduleItems");
+
+            migrationBuilder.DropTable(
                 name: "FIRSApiConfigurations");
+
+            migrationBuilder.DropTable(
+                name: "InvoiceBroadcasts");
+
+            migrationBuilder.DropTable(
+                name: "Vendors");
 
             migrationBuilder.DropTable(
                 name: "BusinessItems");
@@ -2620,6 +3074,12 @@ namespace AegisEInvoicing.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "PlatformRoles");
+
+            migrationBuilder.DropTable(
+                name: "WhtSchedules");
+
+            migrationBuilder.DropTable(
+                name: "VendorGroups");
 
             migrationBuilder.DropTable(
                 name: "ItemCategories");

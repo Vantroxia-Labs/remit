@@ -83,6 +83,7 @@ public class UpdateInvoicePaymentStatusCommandHandler : IRequestHandler<UpdateIn
         {
             PaymentStatus.Paid => "PAID",
             PaymentStatus.Rejected => "REJECTED",
+            PaymentStatus.Cancelled => "CANCELLED",
             _ => "PENDING"
         };
     }

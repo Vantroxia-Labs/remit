@@ -54,7 +54,7 @@ public class UpdateReceivedInvoicePaymentStatusCommandHandler
 
         if (status != "PAID" && status != "REJECTED")
             return UpdateReceivedInvoicePaymentStatusResult.BadRequest(
-                "Only PAID or REJECTED statuses are allowed for received invoices.");
+                "Only PAID or REJECTED statuses are allowed for received invoices as the buyer.");
 
         if (status == "PAID" && string.IsNullOrWhiteSpace(request.Reference))
             return UpdateReceivedInvoicePaymentStatusResult.BadRequest(
