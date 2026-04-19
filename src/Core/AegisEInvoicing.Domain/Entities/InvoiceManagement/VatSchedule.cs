@@ -8,7 +8,7 @@ namespace AegisEInvoicing.Domain.Entities.InvoiceManagement;
 /// A point-in-time monthly output-VAT schedule for a business.
 /// One schedule is generated per calendar month; it captures all transmitted
 /// invoices that were not already included in any previous schedule.
-/// The due filing date is always the 14th of the following month.
+/// The due filing date is always the 21st of the following month.
 /// </summary>
 public class VatSchedule : AuditableAggregateRoot
 {

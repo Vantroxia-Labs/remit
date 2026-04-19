@@ -256,6 +256,11 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AdapterKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("BaseUrl")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -308,22 +313,17 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("AdapterKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("AdapterKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AppProviderConfigurations_AdapterKey");
 
                     b.HasIndex("IsActive")
                         .HasDatabaseName("IX_AppProviderConfigurations_IsActive");
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_AppProviderConfigurations_IsDeleted");
-
-                    b.HasIndex("AdapterKey")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AppProviderConfigurations_AdapterKey");
 
                     b.HasIndex("IsDeleted", "IsActive")
                         .HasDatabaseName("IX_AppProviderConfigurations_IsDeleted_IsActive");
@@ -1032,9 +1032,6 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.Property<Guid?>("BusinessId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset?>("CerberusCreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1069,6 +1066,9 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("SFTPGoCreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("SftpInvoiceTransmissionEnabled")
                         .ValueGeneratedOnAdd()
@@ -1595,6 +1595,9 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.Property<DateOnly?>("DueDate")
                         .HasColumnType("date");
 
+                    b.Property<int>("EnvironmentMode")
+                        .HasColumnType("integer");
+
                     b.Property<string>("FIRSSubmissionId")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -1620,10 +1623,6 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
-
-                    b.Property<int>("EnvironmentMode")
-                        .HasColumnType("integer")
-                        .HasDefaultValue(2);
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()

@@ -84,7 +84,7 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
             .SelectMany(i => i.InvoiceLine.Select(line => new InvoiceLineProjection(
                 i.CreatedAt,
                 line.Quantity,
-                line.BusinessItem.UnitPrice,
+                line.BusinessItem!.UnitPrice,
                 line.DiscountFee != null ? (decimal?)line.DiscountFee.Amount : null,
                 line.AdditionalFee != null ? (decimal?)line.AdditionalFee.Amount : null,
                 0,
@@ -149,7 +149,7 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
             .SelectMany(i => i.InvoiceLine.Select(line => new InvoiceLineProjection(
                 i.CreatedAt,
                 line.Quantity,
-                line.BusinessItem.UnitPrice,
+                line.BusinessItem!.UnitPrice,
                 line.DiscountFee != null ? (decimal?)line.DiscountFee.Amount : null,
                 line.AdditionalFee != null ? (decimal?)line.AdditionalFee.Amount : null,
                 0,

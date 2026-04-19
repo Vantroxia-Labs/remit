@@ -33,7 +33,7 @@ public class ExportInvoicesQueryHandler(
                     .ThenInclude(p => p.Address)
                 .Include(i => i.InvoiceLine)
                     .ThenInclude(il => il.BusinessItem)
-                        .ThenInclude(bi => bi.ItemCategory)
+                        .ThenInclude(bi => bi!.ItemCategory)
                 .Where(i => i.BusinessId == _currentUser.BusinessId);
 
             // Apply filters
@@ -333,14 +333,14 @@ public class ExportInvoicesQueryHandler(
         if (item != null)
         {
             var businessItem = item.BusinessItem;
-            worksheet.Cells[row, 26].Value = businessItem.Name;
-            worksheet.Cells[row, 27].Value = businessItem.ItemDescription;
-            worksheet.Cells[row, 28].Value = businessItem.ItemCategory?.Name ?? "";
-            worksheet.Cells[row, 29].Value = businessItem.ServiceCode.Code;
-            worksheet.Cells[row, 30].Value = businessItem.ServiceCode.Name;
-            worksheet.Cells[row, 31].Value = businessItem.ItemType.ToString();
+            worksheet.Cells[row, 26].Value = businessItem!.Name;
+            worksheet.Cells[row, 27].Value = businessItem!.ItemDescription;
+            worksheet.Cells[row, 28].Value = businessItem!.ItemCategory?.Name ?? "";
+            worksheet.Cells[row, 29].Value = businessItem!.ServiceCode!.Code;
+            worksheet.Cells[row, 30].Value = businessItem!.ServiceCode!.Name;
+            worksheet.Cells[row, 31].Value = businessItem!.ItemType.ToString();
             worksheet.Cells[row, 32].Value = "";
-            worksheet.Cells[row, 33].Value = businessItem.UnitPrice;
+            worksheet.Cells[row, 33].Value = businessItem!.UnitPrice;
             worksheet.Cells[row, 34].Value = item.Quantity;
             worksheet.Cells[row, 35].Value = item.DiscountFee?.Amount ?? 0;
             worksheet.Cells[row, 36].Value = item.DiscountFee?.Code.ToString() ?? "";

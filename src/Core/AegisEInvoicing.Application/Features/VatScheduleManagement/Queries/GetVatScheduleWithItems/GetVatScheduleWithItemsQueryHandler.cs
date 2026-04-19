@@ -26,6 +26,7 @@ public class GetVatScheduleWithItemsQueryHandler(
         var schedule = await context.VatSchedules
             .AsNoTracking()
             .Include(s => s.Items)
+            .Include(s => s.InputItems)
             .FirstOrDefaultAsync(s => s.Id == request.ScheduleId, cancellationToken);
 
         if (schedule is null)
@@ -50,6 +51,10 @@ public class GetVatScheduleWithItemsQueryHandler(
             TotalInvoiceCount = schedule.TotalInvoiceCount,
             TotalTaxableAmount = schedule.TotalTaxableAmount,
             TotalVatAmount = schedule.TotalVatAmount,
+            TotalInputInvoiceCount = schedule.TotalInputInvoiceCount,
+            TotalInputTaxableAmount = schedule.TotalInputTaxableAmount,
+            TotalInputVatAmount = schedule.TotalInputVatAmount,
+            NetVatPayable = schedule.NetVatPayable,
             Items = schedule.Items.Select(i => new VatScheduleItemDto
             {
                 Id = i.Id,
@@ -63,6 +68,18 @@ public class GetVatScheduleWithItemsQueryHandler(
                 VatAmount = i.VatAmount,
                 TotalAmount = i.TotalAmount,
                 PaymentStatus = i.PaymentStatus.ToString(),
+            }).ToList(),
+            InputItems = schedule.InputItems.Select(i => new InputVatScheduleItemDto
+            {
+                Id = i.Id,
+                ReceivedInvoiceId = i.ReceivedInvoiceId,
+                Irn = i.Irn,
+                SupplierName = i.SupplierName,
+                SupplierTin = i.SupplierTin,
+                IssueDate = i.IssueDate,
+                TaxableAmount = i.TaxableAmount,
+                VatAmount = i.VatAmount,
+                TotalAmount = i.TotalAmount,
             }).ToList(),
         };
     }

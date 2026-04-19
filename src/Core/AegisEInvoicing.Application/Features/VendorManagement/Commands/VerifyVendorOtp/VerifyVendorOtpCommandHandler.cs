@@ -1,5 +1,5 @@
 using AegisEInvoicing.Application.Features.VendorManagement.DTOs;
-using AegisEInvoicing.Application.Interfaces;
+using AegisEInvoicing.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

@@ -19,3 +19,5 @@ public class UpdateInvoiceRequest
 }
 
 public record UpdateInvoicePaymentStatusRequest(PaymentStatus PaymentStatus, string? Reference);
+
+public record UpdateReceivedInvoicePaymentStatusRequest(string PaymentStatus, string? Reference);

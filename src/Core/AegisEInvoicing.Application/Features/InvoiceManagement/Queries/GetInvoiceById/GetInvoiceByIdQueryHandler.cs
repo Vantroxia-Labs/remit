@@ -32,7 +32,7 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                 .AsNoTracking()
                 .Include(i => i.InvoiceLine)
                     .ThenInclude(il => il.BusinessItem)
-                        .ThenInclude(bi => bi.ItemCategory)
+                        .ThenInclude(bi => bi!.ItemCategory)
                 .Include(i => i.Business)
                 .Include(i => i.Party)
                 .Include(i => i.CreatedByUser)

@@ -11,7 +11,7 @@ public record CreateInvoiceBroadcastCommand(
     bool RequiresApproval,
     string Currency,
     string? Note,
-    /// <summary>Target specific vendors. If null AND VendorGroupId is set, targets all vendors in that group.</summary>
+    // Target specific vendors. If null AND VendorGroupId is set, targets all vendors in that group.
     List<Guid>? VendorIds = null,
-    /// <summary>Target all vendors in this group (ignored if VendorIds is specified).</summary>
+    // Target all vendors in this group (ignored if VendorIds is specified).
     Guid? VendorGroupId = null) : IRequest<InvoiceBroadcastResult>, ITransactionalCommand;

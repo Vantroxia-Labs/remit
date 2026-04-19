@@ -2,7 +2,7 @@ using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.SignInvoic
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.ValidateInvoice;
 using AegisEInvoicing.Application.Features.VendorManagement.Commands.SaveVendorDraft;
 using AegisEInvoicing.Application.Features.VendorManagement.DTOs;
-using AegisEInvoicing.Application.Interfaces;
+using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.NotificationService.Interfaces;
 using AegisEInvoicing.NotificationService.Models;
@@ -67,10 +67,12 @@ public class SubmitVendorInvoiceCommandHandler(
             try
             {
                 var business = broadcast.Business;
-                await _emailService.SendEmailAsync(new EmailMessage(
-                    business.ContactEmail,
-                    $"Invoice Submission Pending Approval – {broadcast.Title}",
-                    $"<p>Vendor <strong>{bv.Vendor.BusinessName}</strong> has submitted an invoice for broadcast <strong>{broadcast.Title}</strong> that requires your approval.</p>"));
+                await _emailService.SendEmailAsync(new EmailMessage
+                {
+                    To = business.ContactEmail,
+                    Subject = $"Invoice Submission Pending Approval – {broadcast.Title}",
+                    HtmlBody = $"<p>Vendor <strong>{bv.Vendor.BusinessName}</strong> has submitted an invoice for broadcast <strong>{broadcast.Title}</strong> that requires your approval.</p>"
+                });
             }
             catch (Exception ex)
             {

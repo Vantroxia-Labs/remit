@@ -106,10 +106,12 @@ public class NrsWindowWarningService : BackgroundService
                     .Replace("{submittedAt}", submittedAt)
                     .Replace("{deadline}", deadline);
 
-                await emailService.SendEmailAsync(new EmailMessage(
-                    bv.InvoiceBroadcast.Business.ContactEmail,
-                    $"NRS Window Warning – Invoice {irn} approaching 48-hour limit",
-                    body));
+                await emailService.SendEmailAsync(new EmailMessage
+                {
+                    To = bv.InvoiceBroadcast.Business.ContactEmail,
+                    Subject = $"NRS Window Warning – Invoice {irn} approaching 48-hour limit",
+                    HtmlBody = body
+                });
 
                 _logger.LogInformation("Sent NRS window warning for invoice {InvoiceId} to {Email}",
                     bv.InvoiceId, bv.InvoiceBroadcast.Business.ContactEmail);

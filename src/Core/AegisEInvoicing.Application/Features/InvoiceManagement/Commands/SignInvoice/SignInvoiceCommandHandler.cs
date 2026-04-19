@@ -35,7 +35,7 @@ public class SignInvoiceCommandHandler(
     public async Task<SignInvoiceResult> Handle(SignInvoiceCommand request, CancellationToken cancellationToken)
     {
         var startTime = DateTime.UtcNow;
-        
+
         try
         {
             var businessId = ResolveBusinessId(request.BusinessId);
@@ -51,7 +51,7 @@ public class SignInvoiceCommandHandler(
                .Include(i => i.Party)
                .Include(i => i.InvoiceLine)
                .ThenInclude(il => il.BusinessItem)
-               .ThenInclude(il => il.ItemCategory)
+               .ThenInclude(il => il!.ItemCategory)
                .Include(i => i.InvoiceApprovalHistory)
                .Include(i => i.BillingReferences)
                .Include(i => i.AdditionalDocumentReferences)
@@ -126,7 +126,7 @@ public class SignInvoiceCommandHandler(
             };
 
             var statusBefore = invoice.InvoiceStatus.ToString();
-            
+
             var apiCallStart = DateTime.UtcNow;
             var response = await _interswitchHttpClient.SignInvoiceAsync(signingRequest, cancellationToken);
             var apiCallDuration = DateTime.UtcNow - apiCallStart;
@@ -187,7 +187,7 @@ public class SignInvoiceCommandHandler(
                 }
 
                 _logger.LogInformation("Invoice {InvoiceId} successfully Signed by FIRS", invoice.Id);
-                
+
                 // Track successful signing
                 var duration = DateTime.UtcNow - startTime;
                 _telemetryService?.TrackInvoiceSigned(invoice.Id, true, duration);
@@ -198,18 +198,18 @@ public class SignInvoiceCommandHandler(
                     invoice.Id, response?.Code);
 
                 // Extract error message - prioritize public_message
-                var errorMessage = response?.Error?.PublicMessage ?? 
-                                  response?.Error?.Details ?? 
+                var errorMessage = response?.Error?.PublicMessage ??
+                                  response?.Error?.Details ??
                                   "Invoice signing failed";
 
                 invoice.SetFIRSSubmissionResponseMessage(errorMessage);
                 invoice.UpdateStatus(InvoiceStatus.SIGNINGFAILED);
                 var invoiceApprovalHistory = InvoiceApprovalHistory.Create(
-                    invoice.Id, 
-                    InvoiceStatus.SIGNINGFAILED, 
+                    invoice.Id,
+                    InvoiceStatus.SIGNINGFAILED,
                     errorMessage);
                 _context.InvoiceApprovalHistories.Add(invoiceApprovalHistory);
-                
+
                 if (invoice.InvoiceSource == InvoiceSource.SFTP)
                 {
                     User? currentUser = null;
@@ -233,8 +233,9 @@ public class SignInvoiceCommandHandler(
                         InvoiceStatus.SIGNINGFAILED.ToString(),
                         _currentUser.UserId,
                         null,
-                        System.Text.Json.JsonSerializer.Serialize(new { 
-                            ErrorCode = response?.Code, 
+                        System.Text.Json.JsonSerializer.Serialize(new
+                        {
+                            ErrorCode = response?.Code,
                             ErrorMessage = errorMessage,
                             ErrorId = response?.Error?.Id,
                             Handler = response?.Error?.Handler
@@ -262,14 +263,14 @@ public class SignInvoiceCommandHandler(
         catch (InterswitchIntegrationException interswitchEx)
         {
             var duration = DateTime.UtcNow - startTime;
-            
-            _logger.LogError(interswitchEx, 
-                "Interswitch API error while signing invoice {InvoiceId}: StatusCode={StatusCode}", 
+
+            _logger.LogError(interswitchEx,
+                "Interswitch API error while signing invoice {InvoiceId}: StatusCode={StatusCode}",
                 request.InvoiceId, interswitchEx.StatusCode);
 
             // Extract error message from Interswitch response body
-            var errorMessage = ExtractInterswitchErrorMessage(interswitchEx.ResponseBody) 
-                ?? interswitchEx.Message 
+            var errorMessage = ExtractInterswitchErrorMessage(interswitchEx.ResponseBody)
+                ?? interswitchEx.Message
                 ?? ResponseMessages.INVOICE_SIGNING_FAILED;
 
             // Track failed signing due to Interswitch error
@@ -285,8 +286,8 @@ public class SignInvoiceCommandHandler(
         catch (Exception ex)
         {
             var duration = DateTime.UtcNow - startTime;
-            
-            _logger.LogError(ex, "Failed to Sign Invoice {InvoiceId}: {ExceptionMessage}", 
+
+            _logger.LogError(ex, "Failed to Sign Invoice {InvoiceId}: {ExceptionMessage}",
                 request.InvoiceId, ex.Message);
 
             // Try to extract Interswitch error details from exception
@@ -310,7 +311,7 @@ public class SignInvoiceCommandHandler(
         try
         {
             using var doc = System.Text.Json.JsonDocument.Parse(responseBody);
-            
+
             // Try to get error.public_message (highest priority)
             if (doc.RootElement.TryGetProperty("error", out var errorElement))
             {
@@ -320,7 +321,7 @@ public class SignInvoiceCommandHandler(
                     if (!string.IsNullOrWhiteSpace(message))
                         return message;
                 }
-                
+
                 // Fallback to error.details
                 if (errorElement.TryGetProperty("details", out var details))
                 {
@@ -370,7 +371,7 @@ public class SignInvoiceCommandHandler(
                     {
                         var jsonContent = exceptionMessage.Substring(jsonStart, jsonEnd - jsonStart + 1);
                         using var doc = System.Text.Json.JsonDocument.Parse(jsonContent);
-                        
+
                         // Try to get error.public_message
                         if (doc.RootElement.TryGetProperty("error", out var errorElement))
                         {
@@ -401,7 +402,7 @@ public class SignInvoiceCommandHandler(
         }
 
         // Return exception message if it's meaningful (not too technical)
-        if (!string.IsNullOrWhiteSpace(exceptionMessage) && 
+        if (!string.IsNullOrWhiteSpace(exceptionMessage) &&
             exceptionMessage.Length < 200 &&
             !exceptionMessage.Contains("Exception", StringComparison.OrdinalIgnoreCase))
         {

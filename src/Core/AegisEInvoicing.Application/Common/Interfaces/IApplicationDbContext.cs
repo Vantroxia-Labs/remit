@@ -51,6 +51,8 @@ public interface IApplicationDbContext
     DbSet<VatSchedule> VatSchedules { get; }
     DbSet<VatScheduleItem> VatScheduleItems { get; }
     DbSet<InputVatScheduleItem> InputVatScheduleItems { get; }
+    DbSet<WhtSchedule> WhtSchedules { get; }
+    DbSet<WhtScheduleItem> WhtScheduleItems { get; }
 
     // Vendor Management
     DbSet<VendorGroup> VendorGroups { get; }

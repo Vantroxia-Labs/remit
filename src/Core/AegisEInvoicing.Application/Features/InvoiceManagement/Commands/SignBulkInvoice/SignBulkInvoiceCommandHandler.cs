@@ -63,7 +63,7 @@ public class SignBulkInvoiceCommandHandler(
             .Include(i => i.Party)
             .Include(i => i.InvoiceLine)
                 .ThenInclude(il => il.BusinessItem)
-                .ThenInclude(bi => bi.ItemCategory)
+                .ThenInclude(bi => bi!.ItemCategory)
             .Include(i => i.BillingReferences)
              .Include(i => i.AdditionalDocumentReferences)
                .Include(i => i.DispatchDocumentReference)
@@ -182,7 +182,7 @@ public class SignBulkInvoiceCommandHandler(
             invoice.Id, invoice.Irn?.Value, invoice.BusinessId);
 
         var signingRequest = BuildSigningRequest(invoice, firsBusinessId);
-        var response = await _interswitchHttpClient.SignInvoiceAsync(signingRequest,cancellationToken);
+        var response = await _interswitchHttpClient.SignInvoiceAsync(signingRequest, cancellationToken);
 
         var identifier = invoice.Irn?.Value ?? invoice.Id.ToString();
 
@@ -242,7 +242,7 @@ public class SignBulkInvoiceCommandHandler(
             InvoiceLine = invoice.InvoiceLine.ToList().ToSigningInvoiceLine(invoice.Currency.Code)
         };
 
-    private static bool IsSigningSuccessful(dynamic response) =>((int)response.Code == 200);
+    private static bool IsSigningSuccessful(dynamic response) => ((int)response.Code == 200);
 
     private async Task MarkInvoicesAsFailed(IEnumerable<Invoice> invoices, string message, SigningStatistics stats, CancellationToken cancellationToken)
     {

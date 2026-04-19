@@ -1,5 +1,5 @@
 using AegisEInvoicing.Application.Features.VendorManagement.DTOs;
-using AegisEInvoicing.Application.Interfaces;
+using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Enums;

@@ -11,6 +11,7 @@ using AegisEInvoicing.Application.Features.VendorManagement.Queries.GetBroadcast
 using AegisEInvoicing.Application.Features.VendorManagement.Queries.GetBroadcastSubmissions;
 using AegisEInvoicing.Domain.Constants;
 using AegisEInvoicing.Domain.Enums;
+using AegisEInvoicing.Portal.API.Attributes;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

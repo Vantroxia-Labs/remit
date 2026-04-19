@@ -1,5 +1,4 @@
 using AegisEInvoicing.Application.Common.Interfaces;
-using MailKit.Search;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

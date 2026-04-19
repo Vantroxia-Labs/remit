@@ -1,5 +1,5 @@
 using AegisEInvoicing.Application.Features.VendorManagement.DTOs;
-using AegisEInvoicing.Application.Interfaces;
+using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.NotificationService.Interfaces;
 using AegisEInvoicing.NotificationService.Models;
 using MediatR;
@@ -28,7 +28,7 @@ public class RequestVendorOtpCommandHandler(
         if (bv is null)
             return new VendorPortalCommandResult(false, "Invalid or expired link.");
 
-        if (!bv.InvoiceBroadcast.IsActive || bv.InvoiceBroadcast.DueDate < DateOnly.FromDateTime(DateTime.UtcNow))
+        if (bv.InvoiceBroadcast.Status != AegisEInvoicing.Domain.Enums.BroadcastStatus.Active || bv.InvoiceBroadcast.DueDate < DateOnly.FromDateTime(DateTime.UtcNow))
             return new VendorPortalCommandResult(false, "This broadcast is no longer active.");
 
         var otp = Random.Shared.Next(100000, 999999).ToString();
@@ -47,10 +47,12 @@ public class RequestVendorOtpCommandHandler(
                 .Replace("{broadcastTitle}", bv.InvoiceBroadcast.Title)
                 .Replace("{otp}", otp);
 
-            await _emailService.SendEmailAsync(new EmailMessage(
-                bv.Vendor.Email,
-                "Your Invoice Submission OTP",
-                body));
+            await _emailService.SendEmailAsync(new EmailMessage
+            {
+                To = bv.Vendor.Email,
+                Subject = "Your Invoice Submission OTP",
+                HtmlBody = body
+            });
         }
         catch (Exception ex)
         {

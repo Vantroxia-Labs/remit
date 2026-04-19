@@ -13,6 +13,7 @@ using AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Queries.GetAllInvoices;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Queries.GetInvoiceById;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Queries.GetInvoiceIrns;
+using AegisEInvoicing.Application.Features.ReceivedInvoiceManagement.Commands.UpdateReceivedInvoicePaymentStatus;
 using AegisEInvoicing.Application.Features.ReceivedInvoiceManagement.DTOs;
 using AegisEInvoicing.Application.Features.ReceivedInvoiceManagement.Queries.GetReceivedInvoiceById;
 using AegisEInvoicing.Application.Features.ReceivedInvoiceManagement.Queries.GetReceivedInvoices;
@@ -479,6 +480,31 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
             _logger.LogError(ex, "Error updating invoice payment status with ID: {InvoiceId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError,
                 Error("An error occurred while updating the invoice payment status"));
+        }
+    }
+
+    /// <summary>
+    /// Update a received invoice payment status (buyer action: PAID or REJECTED)
+    /// </summary>
+    [HttpPatch("received-invoices/update-payment-status/{id}")]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    public async Task<IActionResult> UpdateReceivedInvoicePaymentStatus(
+        [FromRoute] Guid id,
+        [FromBody] UpdateReceivedInvoicePaymentStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var command = new UpdateReceivedInvoicePaymentStatusCommand(id, request.PaymentStatus, request.Reference);
+            var result = await _mediator.Send(command, cancellationToken);
+
+            return GenericResponse(result.Message, result.IsSuccess, result.StatusCodes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating received invoice payment status with ID: {InvoiceId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Error("An error occurred while updating the received invoice payment status"));
         }
     }
 

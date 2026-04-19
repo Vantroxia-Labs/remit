@@ -73,7 +73,7 @@ public class GetDashboardAnalyticsQueryHandler : IRequestHandler<GetDashboardAna
                 RejectedInvoices = g.Count(i => i.InvoiceStatus == Domain.Enums.InvoiceStatus.REJECTED),
                 PaidInvoices = g.Count(i => i.PaymentStatus == PaymentStatus.Paid),
                 TotalAmount = g.SelectMany(i => i.InvoiceLine)
-                               .Sum(il => (decimal)(il.Quantity * il.BusinessItem.UnitPrice))
+                               .Sum(il => (decimal)(il.Quantity * il.BusinessItem!.UnitPrice))
             })
             .FirstOrDefaultAsync(cancellationToken);
 

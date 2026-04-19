@@ -1,5 +1,5 @@
 using AegisEInvoicing.Application.Features.VendorManagement.DTOs;
-using AegisEInvoicing.Application.Interfaces;
+using AegisEInvoicing.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -30,7 +30,7 @@ public class GetVendorPortalFormQueryHandler(
         }
 
         var broadcast = bv.InvoiceBroadcast;
-        bool isClosed = !broadcast.IsActive || broadcast.DueDate < DateOnly.FromDateTime(DateTime.UtcNow);
+        bool isClosed = broadcast.Status != AegisEInvoicing.Domain.Enums.BroadcastStatus.Active || broadcast.DueDate < DateOnly.FromDateTime(DateTime.UtcNow);
 
         // Mask email: show first 2 chars + *** + @domain
         var email = bv.Vendor.Email;

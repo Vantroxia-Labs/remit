@@ -27,7 +27,7 @@ public class VatScheduleItem : Entity
     /// <summary>Sum of taxable line amounts (pre-VAT, post-discount).</summary>
     public decimal TaxableAmount { get; private set; }
 
-    /// <summary>Total VAT (7.5%) on this invoice.</summary>
+    /// <summary>Total VAT on this invoice (rate depends on the applied tax category).</summary>
     public decimal VatAmount { get; private set; }
 
     public decimal TotalAmount => TaxableAmount + VatAmount;

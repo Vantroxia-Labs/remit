@@ -47,7 +47,7 @@ public class ValidateInvoiceByIrnCommandHandler(
                 .Include(i => i.Party)
                 .Include(i => i.InvoiceLine)
                 .ThenInclude(il => il.BusinessItem)
-                .ThenInclude(il => il.ItemCategory)
+                .ThenInclude(il => il!.ItemCategory)
                 .Include(i => i.BillingReferences)
                 .Where(i => i.Irn == IRN.CreateFromString(request.Irn)
                          && (i.InvoiceStatus == InvoiceStatus.APPROVED || i.InvoiceStatus == InvoiceStatus.VALIDATIONFAILED)

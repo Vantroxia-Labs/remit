@@ -70,7 +70,7 @@ public static class FirsInvoiceValidationExtensions
 
         foreach (var item in invoiceItems!)
         {
-            var totalAmount = item.Quantity * item.BusinessItem.UnitPrice;
+            var totalAmount = item.Quantity * item.BusinessItem!.UnitPrice;
             if (item.DiscountFee is not null && item.DiscountFee.Amount > 0)
             {
                 switch (item.DiscountFee.Code)
@@ -220,7 +220,7 @@ public static class FirsInvoiceValidationExtensions
 
         foreach (var item in invoiceItems!)
         {
-            var totalAmount = item.Quantity * item.BusinessItem.UnitPrice;
+            var totalAmount = item.Quantity * item.BusinessItem!.UnitPrice;
             var discountAmount = 0.0m;
             if (item.DiscountFee != null)
             {
@@ -316,20 +316,20 @@ public static class FirsInvoiceValidationExtensions
         {
             var invoiceLine = new InvoiceLine
             {
-                HsnCode = item.BusinessItem.ItemId,
-                ProductCategory = item.BusinessItem.ItemCategory.Name,
+                HsnCode = item.BusinessItem!.ItemId,
+                ProductCategory = item.BusinessItem!.ItemCategory!.Name,
                 InvoicedQuantity = item.Quantity,
                 Item = new Item
                 {
-                    Name = item.BusinessItem.Name,
-                    Description = item.BusinessItem.ItemDescription
+                    Name = item.BusinessItem!.Name,
+                    Description = item.BusinessItem!.ItemDescription
                 },
-                LineExtensionAmount = item.Quantity * item.BusinessItem.UnitPrice,
+                LineExtensionAmount = item.Quantity * item.BusinessItem!.UnitPrice,
                 Price = new Price
                 {
                     BaseQuantity = 1,
                     PriceUnit = $"{currency} Per 1",
-                    PriceAmount = item.BusinessItem.UnitPrice
+                    PriceAmount = item.BusinessItem!.UnitPrice
                 }
             };
 
@@ -339,13 +339,13 @@ public static class FirsInvoiceValidationExtensions
                 {
                     invoiceLine.DiscountRate = item.DiscountFee.Amount;
                     // Calculate discount amount based on percentage
-                    invoiceLine.DiscountAmount = (item.Quantity * item.BusinessItem.UnitPrice) * (item.DiscountFee.Amount / 100);
+                    invoiceLine.DiscountAmount = (item.Quantity * item.BusinessItem!.UnitPrice) * (item.DiscountFee.Amount / 100);
                 }
                 else
                 {
                     invoiceLine.DiscountAmount = item.DiscountFee.Amount;
                     // Calculate discount rate based on fixed amount
-                    invoiceLine.DiscountRate = (item.DiscountFee.Amount / (item.Quantity * item.BusinessItem.UnitPrice)) * 100;
+                    invoiceLine.DiscountRate = (item.DiscountFee.Amount / (item.Quantity * item.BusinessItem!.UnitPrice)) * 100;
                 }
             }
             invioceLines.Add(invoiceLine);
@@ -359,7 +359,7 @@ public static class FirsInvoiceValidationExtensions
         decimal totalAmount = 0;
         foreach (var item in invoiceItems!)
         {
-            var invoiceItemTotal = item.Quantity * item.BusinessItem.UnitPrice;
+            var invoiceItemTotal = item.Quantity * item.BusinessItem!.UnitPrice;
             var discountAmount = 0.0m;
             if (item.DiscountFee != null)
             {
@@ -380,7 +380,7 @@ public static class FirsInvoiceValidationExtensions
         decimal totalTaxAmount = 0;
         foreach (var item in invoiceItems!)
         {
-            var invoiceItemTotal = item.Quantity * item.BusinessItem.UnitPrice;
+            var invoiceItemTotal = item.Quantity * item.BusinessItem!.UnitPrice;
             var discountAmount = 0.0m;
             if (item.DiscountFee != null)
             {
@@ -391,7 +391,7 @@ public static class FirsInvoiceValidationExtensions
             }
             var actualItemTotal = invoiceItemTotal - discountAmount;
 
-            totalTaxAmount += item.BusinessItem.TaxCategories.Sum(tc => tc.CalculateTax(actualItemTotal));
+            totalTaxAmount += item.BusinessItem!.TaxCategories.Sum(tc => tc.CalculateTax(actualItemTotal));
         }
         return totalTaxAmount;
     }

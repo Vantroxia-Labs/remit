@@ -176,6 +176,11 @@ public class ReceivedInvoice : AuditableAggregateRoot
     public string? BuyerReference { get; private set; }
 
     /// <summary>
+    /// Payment reference (e.g., bank transfer ref, receipt number)
+    /// </summary>
+    public string? PaymentReference { get; private set; }
+
+    /// <summary>
     /// Accounting cost
     /// </summary>
     public string? AccountingCost { get; private set; }
@@ -211,6 +216,12 @@ public class ReceivedInvoice : AuditableAggregateRoot
     public Guid? InputVatScheduleId { get; private set; }
 
     /// <summary>
+    /// Set when this invoice is included in a WHT schedule.
+    /// Prevents double-counting across schedule generations.
+    /// </summary>
+    public Guid? WhtScheduleId { get; private set; }
+
+    /// <summary>
     /// Indicates whether this invoice has been reconciled/processed
     /// </summary>
     public bool IsReconciled { get; private set; }
@@ -244,7 +255,7 @@ public class ReceivedInvoice : AuditableAggregateRoot
         string entryStatus,
         string supplierPartyName,
         TIN supplierTIN,
-        string customerPartyName,        
+        string customerPartyName,
         TIN customerTIN,
         decimal lineExtensionAmount,
         decimal taxExclusiveAmount,
@@ -426,6 +437,11 @@ public class ReceivedInvoice : AuditableAggregateRoot
         InputVatScheduleId = scheduleId;
     }
 
+    public void AssignToWhtSchedule(Guid scheduleId)
+    {
+        WhtScheduleId = scheduleId;
+    }
+
     /// <summary>
     /// Associates this invoice with a business
     /// </summary>
@@ -470,7 +486,7 @@ public class ReceivedInvoice : AuditableAggregateRoot
     }
 
     /// <summary>
-    /// Updates payment information
+    /// Updates payment information from sync
     /// </summary>
     public void UpdatePaymentInfo(string paymentStatus, decimal? paidAmount, Guid updatedBy)
     {
@@ -481,6 +497,19 @@ public class ReceivedInvoice : AuditableAggregateRoot
         PaidAmount = paidAmount;
         UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    /// Updates payment status with optional reference (for manual buyer action)
+    /// </summary>
+    public void UpdatePaymentStatus(string paymentStatus, string? paymentReference = null)
+    {
+        if (string.IsNullOrWhiteSpace(paymentStatus))
+            throw new BadRequestException("Payment status cannot be empty", nameof(paymentStatus));
+
+        PaymentStatus = paymentStatus;
+        if (!string.IsNullOrWhiteSpace(paymentReference))
+            PaymentReference = paymentReference;
     }
 
     #endregion

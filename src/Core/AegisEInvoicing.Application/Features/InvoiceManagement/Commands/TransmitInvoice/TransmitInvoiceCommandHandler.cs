@@ -26,7 +26,7 @@ public class TransmitInvoiceCommandHandler(
     public async Task<TransmitInvoiceResult> Handle(TransmitInvoiceCommand request, CancellationToken cancellationToken)
     {
         var startTime = DateTime.UtcNow;
-        
+
         try
         {
             var businessId = ResolveBusinessId(request.BusinessId);
@@ -42,7 +42,7 @@ public class TransmitInvoiceCommandHandler(
                .Include(i => i.Party)
                .Include(i => i.InvoiceLine)
                .ThenInclude(il => il.BusinessItem)
-               .ThenInclude(il => il.ItemCategory)
+               .ThenInclude(il => il!.ItemCategory)
                .Include(i => i.InvoiceApprovalHistory)
                .Where(i => i.Id == request.InvoiceId
                            && i.BusinessId == businessId.Value)
@@ -64,7 +64,7 @@ public class TransmitInvoiceCommandHandler(
             (int code, string message) result;
 
             // Check historical status
-            if (invoice.InvoiceApprovalHistory.Any(h 
+            if (invoice.InvoiceApprovalHistory.Any(h
                 => h.InvoiceId == invoice.Id
                    && validatedStatuses.Contains(h.InvoiceStatus)))
                 return TransmitInvoiceResult.BadRequest(ResponseMessages.INVOICE_ALREADY_TRANSMITTED);
@@ -180,12 +180,12 @@ public class TransmitInvoiceCommandHandler(
         catch (Exception ex)
         {
             var duration = DateTime.UtcNow - startTime;
-            
+
             _logger.LogError(ex, "Failed to transmit invoice {InvoiceId}", request.InvoiceId);
-            
+
             // Track failed transmission due to exception
             _telemetryService?.TrackInvoiceTransmitted(request.InvoiceId, false, duration, ex.Message);
-            
+
             return TransmitInvoiceResult.Failure(ResponseMessages.INVOICE_TRANSMISSION_FAILED);
         }
     }

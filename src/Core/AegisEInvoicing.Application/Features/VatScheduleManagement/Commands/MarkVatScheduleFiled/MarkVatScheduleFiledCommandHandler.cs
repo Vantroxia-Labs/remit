@@ -47,6 +47,10 @@ public class MarkVatScheduleFiledCommandHandler(
             TotalInvoiceCount = schedule.TotalInvoiceCount,
             TotalTaxableAmount = schedule.TotalTaxableAmount,
             TotalVatAmount = schedule.TotalVatAmount,
+            TotalInputInvoiceCount = schedule.TotalInputInvoiceCount,
+            TotalInputTaxableAmount = schedule.TotalInputTaxableAmount,
+            TotalInputVatAmount = schedule.TotalInputVatAmount,
+            NetVatPayable = schedule.NetVatPayable,
         };
     }
 }

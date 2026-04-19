@@ -42,12 +42,12 @@ namespace AegisEInvoicing.Portal.API.Controllers
             return Ok(result);
         }
 
-        [HttpPut("{id}/mark-filed")]
+        [HttpPatch("{id}/mark-filed")]
         public async Task<IActionResult> MarkAsFiled(Guid id)
         {
             var command = new MarkVatScheduleFiledCommand(id);
-            await _mediator.Send(command);
-            return NoContent();
+            var result = await _mediator.Send(command);
+            return Ok(result);
         }
 
         [HttpGet("{id}/export")]

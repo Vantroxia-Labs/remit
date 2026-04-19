@@ -1,5 +1,4 @@
 using Amazon.SimpleEmail;
-using AegisEInvoicing.NotificationService.Configurations;
 using AegisEInvoicing.NotificationService.Extensions;
 using AegisEInvoicing.NotificationService.Interfaces;
 using AegisEInvoicing.NotificationService.Models;
@@ -66,47 +65,17 @@ public static class DependencyInjection
         return services;
     }
 
-    public static IServiceCollection AddMailKitEmailService(this IServiceCollection services,
-       IConfiguration configuration)
-    {
-        services.Configure<MailKitConfiguration>(options =>
-        {
-            var section = configuration.GetSection("MailKit");
-            options.SmtpServer = section["SmtpServer"] ?? "";
-            options.SmtpPort = int.Parse(section["SmtpPort"] ?? "587");
-            options.Username = section["Username"] ?? "";
-            options.Password = section["Password"] ?? "";
-            options.UseSsl = bool.Parse(section["UseSsl"] ?? "true");
-            options.DefaultFromEmail = section["DefaultFromEmail"] ?? "";
-            options.DefaultFromName = section["DefaultFromName"] ?? "";
-        });
-        services.AddScoped<ISmtpConnectionManager, SmtpConnectionPool>();
-        services.AddScoped<IEmailService, MailKitEmailService>();
-        services.AddHealthChecks()
-            .AddCheck<EmailServiceHealthCheck>("email_service");
-
-        return services;
-    }
-
-    /// <summary>
-    /// Adds Email Service based on configuration
-    /// </summary>
     public static IServiceCollection AddEmailService(
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var emailProvider = configuration["EmailSettings:Provider"]?.ToLower() ?? "ses";
+        var emailProvider = configuration["EmailSettings:Provider"]?.ToLower() ?? "azure";
 
         switch (emailProvider)
         {
             case "azure":
             case "azurecommunication":
                 services.AddAzureCommunicationEmailService(configuration);
-                break;
-
-            case "mailkit":
-            case "smtp":
-                services.AddMailKitEmailService(configuration);
                 break;
 
             case "aws":
@@ -119,11 +88,8 @@ public static class DependencyInjection
                 break;
 
             default:
-                // Default to AWS SES if invalid provider specified
-                var defaultConnectionString = configuration["EmailSettings:AwsConnectionString"];
-                if (string.IsNullOrWhiteSpace(defaultConnectionString))
-                    throw new InvalidOperationException("AWS SES connection string is not configured");
-                services.AddAwsSesEmailService(defaultConnectionString);
+                // Default to Azure Communication Services
+                services.AddAzureCommunicationEmailService(configuration);
                 break;
         }
 

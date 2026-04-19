@@ -153,7 +153,7 @@ public static class FirsInvoiceSigningExtensions
 
         foreach (var item in invoiceItems!)
         {
-            var totalAmount = item.Quantity * item.BusinessItem.UnitPrice;
+            var totalAmount = item.Quantity * item.BusinessItem!.UnitPrice;
             if (item.DiscountFee is not null && item.DiscountFee.Amount > 0)
             {
                 switch (item.DiscountFee.Code)
@@ -223,7 +223,7 @@ public static class FirsInvoiceSigningExtensions
         foreach (var item in invoiceItems!)
         {
 
-            var totalAmount = item.Quantity * item.BusinessItem.UnitPrice;
+            var totalAmount = item.Quantity * item.BusinessItem!.UnitPrice;
             var discountAmount = 0.0m;
             if (item.DiscountFee != null)
             {
@@ -235,9 +235,9 @@ public static class FirsInvoiceSigningExtensions
 
             var taxableAmount = totalAmount - discountAmount;
 
-            if (item.BusinessItem.TaxCategories.Count > 0)
+            if (item.BusinessItem!.TaxCategories.Count > 0)
             {
-                foreach (var tc in item.BusinessItem.TaxCategories)
+                foreach (var tc in item.BusinessItem!.TaxCategories)
                 {
                     var taxSubTotal = new TaxSubtotal
                     {
@@ -319,8 +319,8 @@ public static class FirsInvoiceSigningExtensions
         {
             var invoiceLine = new InvoiceLine
             {
-                HsnCode = item.BusinessItem.ServiceCode.Code,
-                ProductCategory = item.BusinessItem.ItemCategory.Name,
+                HsnCode = item.BusinessItem!.ServiceCode!.Code,
+                ProductCategory = item.BusinessItem!.ItemCategory!.Name,
                 //DiscountRate = item.DiscountFee!.Amount,
                 //DiscountAmount
                 //FeeRate
@@ -328,15 +328,15 @@ public static class FirsInvoiceSigningExtensions
                 InvoicedQuantity = item.Quantity,
                 Item = new Item
                 {
-                    Name = item.BusinessItem.Name,
-                    Description = item.BusinessItem.ItemDescription
+                    Name = item.BusinessItem!.Name,
+                    Description = item.BusinessItem!.ItemDescription
                 },
-                LineExtensionAmount = item.Quantity * item.BusinessItem.UnitPrice,
+                LineExtensionAmount = item.Quantity * item.BusinessItem!.UnitPrice,
                 Price = new Price
                 {
                     BaseQuantity = 1,
                     PriceUnit = $"{currency} per 1",
-                    PriceAmount = item.BusinessItem.UnitPrice
+                    PriceAmount = item.BusinessItem!.UnitPrice
                 }
             };
 
@@ -347,7 +347,7 @@ public static class FirsInvoiceSigningExtensions
                     invoiceLine.DiscountRate = item.DiscountFee.Amount;
 
                     // Calculate DiscountAmount
-                    var invoiceItemTotal = item.Quantity * item.BusinessItem.UnitPrice;
+                    var invoiceItemTotal = item.Quantity * item.BusinessItem!.UnitPrice;
                     invoiceLine.DiscountAmount = invoiceItemTotal * (item.DiscountFee.Amount / 100);
                 }
                 else
@@ -355,7 +355,7 @@ public static class FirsInvoiceSigningExtensions
                     invoiceLine.DiscountAmount = item.DiscountFee.Amount;
 
                     // Calculate DiscountRate
-                    var invoiceItemTotal = item.Quantity * item.BusinessItem.UnitPrice;
+                    var invoiceItemTotal = item.Quantity * item.BusinessItem!.UnitPrice;
                     invoiceLine.DiscountRate = (item.DiscountFee.Amount / invoiceItemTotal) * 100;
                 }
             }
@@ -371,7 +371,7 @@ public static class FirsInvoiceSigningExtensions
         decimal totalAmount = 0;
         foreach (var item in invoiceItems!)
         {
-            var invoiceItemTotal = item.Quantity * item.BusinessItem.UnitPrice;
+            var invoiceItemTotal = item.Quantity * item.BusinessItem!.UnitPrice;
             var discountAmount = 0.0m;
             if (item.DiscountFee != null)
             {
@@ -392,7 +392,7 @@ public static class FirsInvoiceSigningExtensions
         decimal totalTaxAmount = 0;
         foreach (var item in invoiceItems!)
         {
-            var invoiceItemTotal = item.Quantity * item.BusinessItem.UnitPrice;
+            var invoiceItemTotal = item.Quantity * item.BusinessItem!.UnitPrice;
             var discountAmount = 0.0m;
             if (item.DiscountFee != null)
             {
@@ -403,7 +403,7 @@ public static class FirsInvoiceSigningExtensions
             }
             var actualItemTotal = invoiceItemTotal - discountAmount;
 
-            totalTaxAmount += item.BusinessItem.TaxCategories.Sum(tc => tc.CalculateTax(actualItemTotal));
+            totalTaxAmount += item.BusinessItem!.TaxCategories.Sum(tc => tc.CalculateTax(actualItemTotal));
         }
         return totalTaxAmount;
     }

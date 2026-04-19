@@ -70,6 +70,8 @@ public sealed class ApplicationDbContext(
     public DbSet<VatSchedule> VatSchedules => Set<VatSchedule>();
     public DbSet<VatScheduleItem> VatScheduleItems => Set<VatScheduleItem>();
     public DbSet<InputVatScheduleItem> InputVatScheduleItems => Set<InputVatScheduleItem>();
+    public DbSet<WhtSchedule> WhtSchedules => Set<WhtSchedule>();
+    public DbSet<WhtScheduleItem> WhtScheduleItems => Set<WhtScheduleItem>();
 
     // Vendor Management
     public DbSet<VendorGroup> VendorGroups => Set<VendorGroup>();

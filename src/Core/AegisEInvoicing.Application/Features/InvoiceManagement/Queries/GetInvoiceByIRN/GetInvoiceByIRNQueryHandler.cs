@@ -56,7 +56,7 @@ public class GetInvoiceByIRNQueryHandler : IRequestHandler<GetInvoiceByIRNQuery,
                 .AsNoTracking()
                 .Include(i => i.InvoiceLine)
                     .ThenInclude(il => il.BusinessItem)
-                        .ThenInclude(bi => bi.ItemCategory)
+                        .ThenInclude(bi => bi!.ItemCategory)
                 .Include(i => i.Business)
                 .Include(i => i.Party)
                 .Include(i => i.CreatedByUser)
@@ -119,15 +119,15 @@ public class GetInvoiceByIRNQueryHandler : IRequestHandler<GetInvoiceByIRNQuery,
                 {
                     Id = item.Id,
                     InvoiceId = item.InvoiceId,
-                    ItemCode = item.BusinessItem.ItemId,
-                    ServiceCode = item.BusinessItem.ServiceCode,
-                    Category = item.BusinessItem.ItemCategory.Name,
-                    ItemDescription = item.BusinessItem.ItemDescription,
+                    ItemCode = item.BusinessItem!.ItemId,
+                    ServiceCode = item.BusinessItem!.ServiceCode,
+                    Category = item.BusinessItem!.ItemCategory!.Name,
+                    ItemDescription = item.BusinessItem!.ItemDescription,
                     DiscountFee = item.DiscountFee,
                     AdditionalFee = item.AdditionalFee,
-                    UnitPrice = item.BusinessItem.UnitPrice,
+                    UnitPrice = item.BusinessItem!.UnitPrice,
                     Quantity = item.Quantity,
-                    TotalPrice = item.Quantity * item.BusinessItem.UnitPrice
+                    TotalPrice = item.Quantity * item.BusinessItem!.UnitPrice
                 }).ToList(),
                 Party = new PartyDto
                 {

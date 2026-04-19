@@ -68,10 +68,12 @@ public class DismissBroadcastSubmissionsCommandHandler(
                             .Replace("{tenantName}", bv.InvoiceBroadcast.Business.Name)
                             .Replace("{invoiceCode}", bv.Invoice.InvoiceCode ?? bv.Invoice.Id.ToString());
 
-                        await _emailService.SendEmailAsync(new EmailMessage(
-                            bv.Vendor.Email,
-                            $"Invoice Not Selected – {bv.InvoiceBroadcast.Title}",
-                            body), cancellationToken);
+                        await _emailService.SendEmailAsync(new EmailMessage
+                        {
+                            To = bv.Vendor.Email,
+                            Subject = $"Invoice Not Selected – {bv.InvoiceBroadcast.Title}",
+                            HtmlBody = body
+                        }, cancellationToken);
                     }
                     catch (Exception ex)
                     {

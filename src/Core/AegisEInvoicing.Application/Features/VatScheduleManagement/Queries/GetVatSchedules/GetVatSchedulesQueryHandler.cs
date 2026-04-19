@@ -45,7 +45,10 @@ public class GetVatSchedulesQueryHandler(
                 TotalInvoiceCount = s.TotalInvoiceCount,
                 TotalTaxableAmount = s.TotalTaxableAmount,
                 TotalVatAmount = s.TotalVatAmount,
-                Items = new List<VatScheduleItemDto>(), // items loaded separately via GetVatScheduleWithItems
+                TotalInputInvoiceCount = s.TotalInputInvoiceCount,
+                TotalInputTaxableAmount = s.TotalInputTaxableAmount,
+                TotalInputVatAmount = s.TotalInputVatAmount,
+                NetVatPayable = s.TotalVatAmount - s.TotalInputVatAmount,
             })
             .ToListAsync(cancellationToken);
 

@@ -165,10 +165,12 @@ public class MarkBroadcastSubmissionsRejectedCommandHandler(
                             .Replace("{tenantName}", bv.InvoiceBroadcast.Business.Name)
                             .Replace("{invoiceCode}", invoice.InvoiceCode ?? invoice.Id.ToString());
 
-                        await _emailService.SendEmailAsync(new EmailMessage(
-                            bv.Vendor.Email,
-                            $"Invoice Rejected – {bv.InvoiceBroadcast.Title}",
-                            body), cancellationToken);
+                        await _emailService.SendEmailAsync(new EmailMessage
+                        {
+                            To = bv.Vendor.Email,
+                            Subject = $"Invoice Rejected – {bv.InvoiceBroadcast.Title}",
+                            HtmlBody = body
+                        }, cancellationToken);
                     }
                     catch (Exception ex)
                     {

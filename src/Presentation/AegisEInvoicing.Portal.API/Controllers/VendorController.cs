@@ -10,6 +10,7 @@ using AegisEInvoicing.Application.Features.VendorManagement.Queries.GetVendorGro
 using AegisEInvoicing.Application.Features.VendorManagement.Queries.GetVendorGroupList;
 using AegisEInvoicing.Application.Features.VendorManagement.Queries.GetVendorList;
 using AegisEInvoicing.Domain.Constants;
+using AegisEInvoicing.Portal.API.Attributes;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
