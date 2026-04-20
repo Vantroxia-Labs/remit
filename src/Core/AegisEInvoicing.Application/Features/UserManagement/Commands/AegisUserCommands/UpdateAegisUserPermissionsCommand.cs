@@ -56,7 +56,7 @@ public class UpdateAegisUserPermissionsCommandHandler(
             // No restrictions — remove custom role so user falls back to full AegisAdmin access
             if (existingCustomRole != null)
             {
-                existingCustomRole.SoftDelete(currentUser.UserId.Value);
+                existingCustomRole.MarkAsDeleted(currentUser.UserId.Value);
                 await context.SaveChangesAsync(cancellationToken);
             }
             return UpdateAegisUserPermissionsResult.Success("Permissions reset to full AegisAdmin access");

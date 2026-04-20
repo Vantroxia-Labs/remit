@@ -3,8 +3,7 @@ using AegisEInvoicing.Portal.API.Attributes;
 using AegisEInvoicing.Portal.API.Models;
 using AegisEInvoicing.Application.Features.UserManagement.Commands.AegisUserCommands;
 using AegisEInvoicing.Application.Features.UserManagement.Queries.GetAegisUserById;
-using AegisEInvoicing.Application.Features.UserManagement.Queries.GetAegisUsers;
-using AegisEInvoicing.Domain.Entities.UserManagement;
+using AegisEInvoicing.Application.Features.UserManagement.Queries.GetAegisUsers;using AegisEInvoicing.Domain.Entities.UserManagement;
 using AegisEInvoicing.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -331,6 +330,34 @@ public class AegisUserManagementController : BaseApiController
 
         return Success(result, "Aegis user retrieved successfully");
     }
+
+    /// <summary>
+    /// Updates the permission set for an Aegis staff user (platform administrators only)
+    /// Passing an empty list removes all permission restrictions (full AegisAdmin access)
+    /// </summary>
+    /// <param name="userId">Aegis user ID to update</param>
+    /// <param name="request">New permissions list</param>
+    /// <returns>Update result</returns>
+    [HttpPut("users/{userId}/permissions")]
+    [RequireAegisAdmin]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateAegisUserPermissions([FromRoute] Guid userId, [FromBody] UpdateAegisUserPermissionsRequest request)
+    {
+        var command = new UpdateAegisUserPermissionsCommand(userId, request.Permissions ?? []);
+        var result = await Mediator.Send(command);
+
+        if (!result.IsSuccess)
+        {
+            var statusCode = result.Message.Contains("admin") || result.Message.Contains("Only Aegis")
+                ? StatusCodes.Status403Forbidden
+                : StatusCodes.Status400BadRequest;
+            return Error(result.Message, statusCode);
+        }
+
+        return Success<object?>(null, result.Message);
+    }
 }
 
 // Request/Response models for Aegis User Management
@@ -360,6 +387,7 @@ public record UpdateAegisUserProfileRequest(
 
 public record ResetAegisUserPasswordRequest(string NewPassword);
 
+public record UpdateAegisUserPermissionsRequest(List<string>? Permissions = null);
 
 public record CreateAegisUserResponse(
     Guid UserId,
