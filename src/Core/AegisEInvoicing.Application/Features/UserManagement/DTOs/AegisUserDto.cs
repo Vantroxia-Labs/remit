@@ -24,7 +24,8 @@ public record AegisUserDto(
     DateTimeOffset? LastAegisActivityAt,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
-    string CreatedByName);
+    string CreatedByName,
+    IReadOnlyList<string> Permissions);
 
 /// <summary>
 /// Summary DTO for Aegis users list view

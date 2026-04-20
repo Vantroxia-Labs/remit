@@ -24,7 +24,8 @@ public record CreateAegisUserCommand(
     AegisRole AegisRole,
     string? PhoneNumber,
     string? AegisEmployeeId,
-    string? AegisDepartment) : IRequest<CreateAegisUserResult>, ITransactionalCommand;
+    string? AegisDepartment,
+    List<string>? Permissions = null) : IRequest<CreateAegisUserResult>, ITransactionalCommand;
 
 public record CreateAegisUserResult(
     bool IsSuccess,
@@ -112,6 +113,35 @@ public class CreateAegisUserCommandHandler(
             // Step 8: Save Aegis user
             await _context.Users.AddAsync(AegisUser, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Step 9: If specific permissions were selected, create a custom platform role
+            // with those permissions and assign it (overrides the default AegisAdmin full-access role)
+            if (request.Permissions != null && request.Permissions.Count > 0)
+            {
+                var validPermissions = request.Permissions
+                    .Where(p => PermissionConstants.AegisAdminAssignablePermissions.Contains(p))
+                    .Distinct()
+                    .ToList();
+
+                if (validPermissions.Count > 0)
+                {
+                    var customRole = Domain.Entities.UserManagement.PlatformRole.Create(
+                        name: $"AegisStaff_{AegisUser.Id:N}",
+                        description: $"Custom permissions for Aegis staff member {request.Email}",
+                        category: "AegisStaff",
+                        sortOrder: 99,
+                        createdBy: _currentUser.UserId.Value);
+
+                    foreach (var permission in validPermissions)
+                        customRole.AddPermission(permission);
+
+                    await _context.PlatformRoles.AddAsync(customRole, cancellationToken);
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                    AegisUser.AssignRole(customRole.Id, _currentUser.UserId.Value);
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+            }
 
             try
             {

@@ -219,4 +219,35 @@ public static class PermissionConstants
         // Read-only access
         ViewInvoices, ViewBusiness
     ];
+
+    /// <summary>
+    /// Permissions an AegisAdmin can assign to new Aegis staff members.
+    /// The full AegisAdmin role always retains platform.full_access.
+    /// These are the granular permissions available for restricted Aegis staff.
+    /// </summary>
+    public static readonly string[] AegisAdminAssignablePermissions = [
+        // Aegis user management
+        CreateAegisUsers, ViewAegisUsers, UpdateAegisUserProfiles, UpdateAegisUserRoles,
+        DeleteAegisUsers, ActivateAegisUsers, DeactivateAegisUsers, ResetAegisUserPasswords,
+
+        // Business management
+        ViewBusiness, UpdateBusiness, ManageBusinessSettings, ManageBranches, ManageCertificates,
+
+        // Client user management
+        CreateUsers, ViewUsers, UpdateUsers, DeleteUsers,
+        ActivateUsers, DeactivateUsers, ResetPasswords,
+
+        // Role management
+        CreateRoles, ViewRoles, UpdateRoles, DeleteRoles, AssignRoles, RevokeRoles,
+
+        // Invoice management
+        CreateInvoices, ViewInvoices, UpdateInvoices, DeleteInvoices,
+        SubmitInvoices, ApproveInvoices, RejectInvoices,
+
+        // Reporting
+        ViewAuditLogs, ViewIntegrationLogs, ManageIntegrations,
+
+        // Tenant management
+        ManageTenant, ViewTenantSettings, UpdateTenantSettings,
+    ];
 }

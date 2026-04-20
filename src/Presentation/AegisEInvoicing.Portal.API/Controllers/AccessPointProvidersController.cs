@@ -23,7 +23,7 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// Provider CRUD is restricted to AegisAdmin; business-level switching is available to ClientAdmin.
 /// </summary>
 [ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/[controller]")][Authorize]
+[Route("api/v{version:apiVersion}/access-point-providers")][Authorize]
 public class AccessPointProvidersController(
     ILogger<AccessPointProvidersController> logger,
     IEnumerable<IAccessPointProviderClient> adapters) : BaseApiController
@@ -42,7 +42,71 @@ public class AccessPointProvidersController(
         return Success(result, "Access point providers");
     }
 
-    [HttpPost]    public async Task<IActionResult> GetBusinessAppSettings(Guid businessId)
+    [HttpGet("{id:guid}")]
+    [RequireRole(RoleConstants.AegisAdmin)]
+    public async Task<IActionResult> GetAccessPointProviderById(Guid id)
+    {
+        var result = await Mediator.Send(new GetAccessPointProviderByIdQuery(id));
+        if (result is null)
+            return Error("Access point provider not found", StatusCodes.Status404NotFound);
+        return Success(result, "Access point provider retrieved");
+    }
+
+    [HttpPost]
+    [RequireRole(RoleConstants.AegisAdmin)]
+    public async Task<IActionResult> CreateAccessPointProvider([FromBody] AccessPointProviderRequest request)
+    {
+        var command = new CreateAccessPointProvidersCommand(
+            request.Name,
+            request.Description,
+            request.AdapterKey,
+            request.BaseUrl,
+            request.CredentialsJson,
+            request.SandboxBaseUrl,
+            request.SandboxCredentialsJson);
+
+        var result = await Mediator.Send(command);
+
+        if (!result.IsSuccess)
+            return Error(result.Message, StatusCodes.Status400BadRequest);
+
+        return Created($"/api/v1/access-point-providers/{result.Id}", new { isSuccess = true, message = result.Message, id = result.Id });
+    }
+
+    [HttpPatch("{configurationId:guid}")]
+    [RequireRole(RoleConstants.AegisAdmin)]
+    public async Task<IActionResult> UpdateAccessPointProvider(Guid configurationId, [FromBody] UpdateAccessPointProviderRequest request)
+    {
+        var command = new UpdateAccessPointProvidersCommand(
+            configurationId,
+            request.Name,
+            request.Description,
+            request.BaseUrl,
+            request.CredentialsJson,
+            request.SandboxBaseUrl,
+            request.SandboxCredentialsJson);
+
+        var result = await Mediator.Send(command);
+
+        if (!result.IsSuccess)
+            return Error(result.Message, StatusCodes.Status400BadRequest);
+
+        return Success(new { isSuccess = true, message = result.Message }, result.Message);
+    }
+
+    [HttpDelete("{configurationId:guid}")]
+    [RequireRole(RoleConstants.AegisAdmin)]
+    public async Task<IActionResult> DeleteAccessPointProvider(Guid configurationId)
+    {
+        var result = await Mediator.Send(new DeleteAccessPointProvidersCommand(configurationId));
+
+        if (!result.IsSuccess)
+            return Error(result.Message, StatusCodes.Status400BadRequest);
+
+        return Success(new { isSuccess = true, message = result.Message }, result.Message);
+    }
+
+    [HttpGet("businesses/{businessId:guid}/settings")]    public async Task<IActionResult> GetBusinessAppSettings(Guid businessId)
     {
         var result = await Mediator.Send(new GetBusinessAppSettingsQuery(businessId));
 

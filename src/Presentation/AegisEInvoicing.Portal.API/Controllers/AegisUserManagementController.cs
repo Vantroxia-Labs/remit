@@ -42,7 +42,8 @@ public class AegisUserManagementController : BaseApiController
             request.AegisRole,
             request.PhoneNumber,
             request.AegisEmployeeId,
-            request.AegisDepartment);
+            request.AegisDepartment,
+            request.Permissions);
 
         var result = await Mediator.Send(command);
 
@@ -341,7 +342,8 @@ public record CreateAegisUserRequest(
     AegisRole AegisRole,
     string? PhoneNumber,
     string? AegisEmployeeId,
-    string? AegisDepartment);
+    string? AegisDepartment,
+    List<string>? Permissions = null);
 
 public record DeactivateAegisUserRequest(string Reason);
 
