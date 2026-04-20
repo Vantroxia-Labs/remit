@@ -11,6 +11,13 @@ namespace AegisEInvoicing.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql(@"
+                CREATE COLLATION IF NOT EXISTS case_insensitive (
+                    provider = icu,
+                    locale = 'und-u-ks-level2',
+                    deterministic = false
+                );");
+
             migrationBuilder.CreateTable(
                 name: "AppProviderConfigurations",
                 columns: table => new
@@ -3098,6 +3105,8 @@ namespace AegisEInvoicing.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "Branches");
+
+            migrationBuilder.Sql("DROP COLLATION IF EXISTS case_insensitive;");
         }
     }
 }

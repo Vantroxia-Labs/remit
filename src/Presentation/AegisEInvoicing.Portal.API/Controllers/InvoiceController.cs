@@ -6,11 +6,14 @@ using AegisEInvoicing.Application.Common.Models.InvoiceData;
 using AegisEInvoicing.Application.Extensions;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.CreateInvoice;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.DeleteInvoice;
+using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.DeleteInvoiceDraft;
+using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.SaveInvoiceDraft;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.UpdateInvoice;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.UpdateInvoicePaymentStatus;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.UploadInvoices;
 using AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Queries.GetAllInvoices;
+using AegisEInvoicing.Application.Features.InvoiceManagement.Queries.GetInvoiceDrafts;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Queries.GetInvoiceById;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Queries.GetInvoiceIrns;
 using AegisEInvoicing.Application.Features.ReceivedInvoiceManagement.Commands.UpdateReceivedInvoicePaymentStatus;
@@ -575,6 +578,90 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
             && !string.IsNullOrWhiteSpace(invoice.Party.Name)
             && invoice.InvoiceItems?.Count > 0;
     }
+
+    // ─── Invoice Drafts ──────────────────────────────────────────────────────
+
+    /// <summary>List all invoice drafts for the current business.</summary>
+    [HttpGet("drafts")]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    public async Task<IActionResult> GetInvoiceDrafts(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _mediator.Send(new GetInvoiceDraftsQuery(), cancellationToken);
+            return Ok(Success(result, "Drafts retrieved successfully"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving invoice drafts");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Error("An error occurred while retrieving drafts"));
+        }
+    }
+
+    /// <summary>Create or update an invoice draft.</summary>
+    [HttpPost("drafts")]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    public async Task<IActionResult> SaveInvoiceDraft(
+        [FromBody] SaveInvoiceDraftCommand command,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _mediator.Send(command, cancellationToken);
+            return GenericResponse(result.Message, result.IsSuccess, result.StatusCodes, result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving invoice draft");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Error("An error occurred while saving the draft"));
+        }
+    }
+
+    /// <summary>Update an existing invoice draft.</summary>
+    [HttpPut("drafts/{id:guid}")]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    public async Task<IActionResult> UpdateInvoiceDraft(
+        [FromRoute] Guid id,
+        [FromBody] SaveInvoiceDraftCommand command,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var updateCommand = command with { DraftId = id };
+            var result = await _mediator.Send(updateCommand, cancellationToken);
+            return GenericResponse(result.Message, result.IsSuccess, result.StatusCodes, result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating invoice draft {DraftId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Error("An error occurred while updating the draft"));
+        }
+    }
+
+    /// <summary>Delete (soft-delete) an invoice draft.</summary>
+    [HttpDelete("drafts/{id:guid}")]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
+    public async Task<IActionResult> DeleteInvoiceDraft(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _mediator.Send(new DeleteInvoiceDraftCommand(id), cancellationToken);
+            return GenericResponse(result.Message, result.IsSuccess, result.StatusCodes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting invoice draft {DraftId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Error("An error occurred while deleting the draft"));
+        }
+    }
+
+    // ─── Private helpers ─────────────────────────────────────────────────────
 
     private static bool IsExcelFile(IFormFile file)
     {

@@ -52,7 +52,9 @@ public class AccessPointProvidersController(
         return Success(result, "Business APP settings");
     }
 
-    [HttpPatch("businesses/{businessId:guid}/provider")]    public async Task<IActionResult> SetBusinessAppProvider(
+    [HttpPatch("businesses/{businessId:guid}/provider")]
+    [RequirePermission(PermissionConstants.ManageBusinessSettings)]
+    public async Task<IActionResult> SetBusinessAppProvider(
         Guid businessId,
         [FromBody] SetBusinessAppProviderRequest request)
     {
@@ -68,7 +70,9 @@ public class AccessPointProvidersController(
         return Success(result, result.Message);
     }
 
-    [HttpPatch("businesses/{businessId:guid}/environment")]    public async Task<IActionResult> SetBusinessEnvironmentMode(
+    [HttpPatch("businesses/{businessId:guid}/environment")]
+    [RequirePermission(PermissionConstants.ManageBusinessSettings)]
+    public async Task<IActionResult> SetBusinessEnvironmentMode(
         Guid businessId,
         [FromBody] SetBusinessEnvironmentModeRequest request)
     {

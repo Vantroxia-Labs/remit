@@ -53,9 +53,12 @@ public static class UserSeedData
         businessManagerRole.AddPermission("users.update");
         businessManagerRole.AddPermission("businesses.read");
         businessManagerRole.AddPermission("businesses.update");
+        businessManagerRole.AddPermission(PermissionConstants.ManageBusinessSettings);
         businessManagerRole.AddPermission("invoices.read");
         businessManagerRole.AddPermission("invoices.create");
         businessManagerRole.AddPermission("invoices.update");
+        businessManagerRole.AddPermission("invoices.submit");
+        businessManagerRole.AddPermission("invoices.approve");
         businessManagerRole.AddPermission("reports.read");
         businessManagerRole.AddPermission("users.view");
         businessManagerRole.AddPermission("users.create");

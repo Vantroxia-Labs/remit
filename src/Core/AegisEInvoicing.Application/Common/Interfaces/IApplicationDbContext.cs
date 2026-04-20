@@ -18,6 +18,7 @@ public interface IApplicationDbContext
     DbSet<IntegrationLog> IntegrationLogs { get; }
     DbSet<Business> Businesses { get; }
     DbSet<Invoice> Invoices { get; }
+    DbSet<InvoiceDraft> InvoiceDrafts { get; }
     DbSet<InvoiceItem> InvoiceItems { get; }
     DbSet<Branch> Branches { get; }
     DbSet<FlowRule> FlowRules { get; }

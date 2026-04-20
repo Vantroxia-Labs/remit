@@ -30,6 +30,7 @@ public sealed class ApplicationDbContext(
     public DbSet<IntegrationLog> IntegrationLogs => Set<IntegrationLog>();
     public DbSet<Business> Businesses => Set<Business>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<InvoiceDraft> InvoiceDrafts => Set<InvoiceDraft>();
     public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
     public DbSet<InvoiceApprovalHistory> InvoiceApprovalHistories => Set<InvoiceApprovalHistory>();
     public DbSet<InvoiceBillingReference> BillingReferences => Set<InvoiceBillingReference>();

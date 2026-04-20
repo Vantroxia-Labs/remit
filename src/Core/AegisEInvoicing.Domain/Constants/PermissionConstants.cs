@@ -73,10 +73,10 @@ public static class PermissionConstants
 
     /// <summary>
     /// Permissions a ClientAdmin is allowed to include when building custom business roles.
-    /// Deliberately excludes: environment-mode toggle (business.manage_settings),
-    /// certificates (business.manage_certificates), tenant management, system integrations,
-    /// and Aegis platform user management.
-    /// </summary>
+    /// Deliberately excludes: certificates (business.manage_certificates), tenant management,
+    /// system integrations, and Aegis platform user management.
+    /// business.manage_settings IS included so ClientAdmin can delegate app/env switching.
+    ///</summary>
     public static readonly string[] ClientAdminAssignablePermissions = [
         // Invoice operations
         CreateInvoices, ViewInvoices, UpdateInvoices, DeleteInvoices,
@@ -92,8 +92,8 @@ public static class PermissionConstants
         CreateUsers, ViewUsers, UpdateUsers, DeleteUsers,
         ActivateUsers, DeactivateUsers, ResetPasswords,
 
-        // Business info (read/update only — no settings/certs/env toggle)
-        ViewBusiness, UpdateBusiness, ManageBranches,
+        // Business info and settings (no certs/env — those stay platform-only)
+        ViewBusiness, UpdateBusiness, ManageBranches, ManageBusinessSettings,
 
         // Reporting / audit (read-only system access)
         ViewAuditLogs, ViewIntegrationLogs,
