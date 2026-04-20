@@ -23,7 +23,6 @@ public class GenerateVatScheduleCommandHandler(
         InvoiceStatus.SIGNED,
         InvoiceStatus.TRANSMITTED,
         InvoiceStatus.ACKNOWLEDGED,
-        InvoiceStatus.COMPLETELYTRANSMITTED,
     ];
 
     private static readonly HashSet<string> VatCategoryIds =

@@ -14,7 +14,6 @@ public class GetVatRemittanceReportQueryHandler(
     [
         InvoiceStatus.TRANSMITTED,
         InvoiceStatus.ACKNOWLEDGED,
-        InvoiceStatus.COMPLETELYTRANSMITTED,
     ];
 
     public async Task<VatRemittanceReportDto> Handle(GetVatRemittanceReportQuery request, CancellationToken cancellationToken)

@@ -30,6 +30,7 @@
     <Compile Include="Features\BusinessManagement\Handlers\UpdateSubscriptionCommandHandler.cs" />
     <Compile Include="Features\BusinessManagement\Handlers\AddUserToBusinessCommandHandler.cs" />
     <Compile Include="Features\BusinessManagement\Handlers\GetBusinessUsersQueryHandler.cs" />
+    <Compile Include="Features\BusinessManagement\Handlers\GetDashboardStatsQueryHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Common\Interfaces\IInvoiceValidationService.cs" />

@@ -51,6 +51,7 @@ public class LoginCommandHandler(
     {
         return await _context.Users
             .Include(u => u.RoleAssignments)
+                .ThenInclude(ra => ra.PlatformRole)
             .Include(u => u.Business!)
                 .ThenInclude(b => b.Subscription)
                 .ThenInclude(s => s!.PlatformSubscription)
@@ -139,8 +140,8 @@ public class LoginCommandHandler(
         // Generate Session ID upfront
         var sessionId = Guid.CreateVersion7();
 
-        // Get user roles and permissions
-        var (roles, permissions) = await GetUserRolesAndPermissionsAsync(user.Id, cancellationToken);
+        // Get user roles and permissions from already-loaded navigation properties (no extra DB round-trip)
+        var (roles, permissions) = GetUserRolesAndPermissions(user);
 
         // Generate encrypted access token (entire JWT is AES encrypted)
         // Pass sessionId to bind token to session
@@ -194,14 +195,12 @@ public class LoginCommandHandler(
             terminatedSessions); // Pass terminated session count for user notification
     }
 
-    private async Task<(List<string> roles, List<string> permissions)> GetUserRolesAndPermissionsAsync(Guid userId, CancellationToken cancellationToken)
+    private static (List<string> roles, List<string> permissions) GetUserRolesAndPermissions(User user)
     {
-        var activeRoles = await _context.UserRoleAssignments
-            .Where(ura => ura.UserId == userId && ura.IsActive)
-            .Include(ura => ura.PlatformRole)
-            .Select(ura => ura.PlatformRole)
-            .Where(r => r.IsActive)
-            .ToListAsync(cancellationToken);
+        var activeRoles = user.RoleAssignments
+            .Where(ra => ra.IsActive && ra.PlatformRole?.IsActive == true)
+            .Select(ra => ra.PlatformRole!)
+            .ToList();
 
         var roles = activeRoles.Select(r => r.Name).ToList();
         var permissions = activeRoles.SelectMany(r => r.Permissions).Distinct().ToList();

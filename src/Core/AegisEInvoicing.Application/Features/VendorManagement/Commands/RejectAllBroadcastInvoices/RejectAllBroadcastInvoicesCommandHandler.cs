@@ -72,7 +72,7 @@ public class RejectAllBroadcastInvoicesCommandHandler(
                 // Only call NRS for invoices that went through the no-approval path
                 var wentToNrs = invoice.InvoiceStatus == InvoiceStatus.SIGNED
                     || invoice.InvoiceStatus == InvoiceStatus.TRANSMITTED
-                    || invoice.InvoiceStatus == InvoiceStatus.COMPLETELYTRANSMITTED;
+                    || invoice.InvoiceStatus == InvoiceStatus.ACKNOWLEDGED;
 
                 if (wentToNrs && invoice.Irn is not null)
                 {

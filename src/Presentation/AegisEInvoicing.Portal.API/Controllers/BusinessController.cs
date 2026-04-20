@@ -178,7 +178,7 @@ public partial class BusinessController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Update result with subscription status</returns>
     /// <returns></returns>
-    [HttpGet("business")]    [RequireRole(RoleConstants.AegisAdmin)]
+    [HttpGet]    [RequireRole(RoleConstants.AegisAdmin)]
     public async Task<IActionResult> GetBusinesses([FromQuery] GetBusinessesQuery request, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("KMPG fetch businesses to EInvoice Integrator platform");

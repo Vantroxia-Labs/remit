@@ -28,11 +28,12 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 public class AuthenticationController : BaseApiController
 {
     /// <summary>
-    /// Self-service business registration — initiates Paystack payment
+    /// Self-service business registration ï¿½ initiates Paystack payment
     /// </summary>
     [HttpPost("register")]
     [EnableRateLimiting("Authentication")]
-    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<RegisterBusinessResponse>), StatusCodes.Status200OK)]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<RegisterBusinessResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegisterBusinessRequest request)
     {
@@ -64,7 +65,8 @@ public class AuthenticationController : BaseApiController
     /// <returns>JWT access and refresh tokens with user information and expiration</returns>
     [HttpPost("login")]
     [EnableRateLimiting("Authentication")] // Rate limit: 5 attempts per IP per 5 minutes
-    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status423Locked)]
@@ -109,7 +111,8 @@ public class AuthenticationController : BaseApiController
     /// <returns>New JWT access and refresh tokens with updated expiration</returns>
     [HttpPost("refresh")]
     [EnableRateLimiting("Authentication")] // Rate limit: 5 attempts per IP per 5 minutes
-    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponse>), StatusCodes.Status200OK)]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
@@ -171,7 +174,8 @@ public class AuthenticationController : BaseApiController
     /// <returns></returns>
     [HttpPost("forgot-password-request-otp")]
     [EnableRateLimiting("Authentication")] // Rate limit: 5 attempts per IP per 5 minutes
-    [AllowAnonymous]    public async Task<IActionResult> SendForgotPasswordOTP([FromBody] SendForgotPasswordOTP request)
+    [AllowAnonymous]
+    public async Task<IActionResult> SendForgotPasswordOTP([FromBody] SendForgotPasswordOTP request)
     {
         var command = new SendForgotPasswordOTPCommand(request.PhoneNo_Email.Trim());
         var result = await Mediator.Send(command);
@@ -189,7 +193,8 @@ public class AuthenticationController : BaseApiController
     /// </summary>
     [HttpPost("send-action-otp")]
     [Authorize]
-    [EnableRateLimiting("Authentication")]    public async Task<IActionResult> SendActionOtp()
+    [EnableRateLimiting("Authentication")]
+    public async Task<IActionResult> SendActionOtp()
     {
         var result = await Mediator.Send(new SendActionOtpCommand());
 
@@ -208,7 +213,8 @@ public class AuthenticationController : BaseApiController
     /// <returns></returns>
     [HttpPost("forgot-password")]
     [EnableRateLimiting("Authentication")] // Rate limit: 5 attempts per IP per 5 minutes
-    [AllowAnonymous]    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPassword request)
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPassword request)
     {
         var command = new ForgotPasswordCommand(request.Otp.Trim(), request.Password.Trim(), request.PhoneNo_Email.Trim());
         var result = await Mediator.Send(command);
@@ -241,7 +247,8 @@ public class AuthenticationController : BaseApiController
     /// </summary>
     /// <returns>Token claims including user info, roles, and permissions</returns>
     [HttpGet("token-claims")]
-    [Authorize]    [ProducesResponseType(typeof(ApiResponse<TokenClaimsDto>), StatusCodes.Status200OK)]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<TokenClaimsDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public IActionResult GetTokenClaims()
     {
@@ -256,7 +263,8 @@ public class AuthenticationController : BaseApiController
             BranchId = Guid.TryParse(User.FindFirst("branchId")?.Value, out var brid) ? brid : null,
             IsAegisUser = bool.TryParse(User.FindFirst("isAegisUser")?.Value, out var isAegis) && isAegis,
             AegisRole = User.FindFirst("AegisRole")?.Value,
-            SubscriptionTier = User.FindFirst("SubscriptionTier")?.Value
+            SubscriptionTier = User.FindFirst("SubscriptionTier")?.Value,
+            MustChangePassword = bool.TryParse(User.FindFirst("mustChangePassword")?.Value, out var mcp) && mcp
         };
 
         return Success(claims, "Token claims retrieved successfully");
@@ -312,20 +320,11 @@ public class AuthenticationController : BaseApiController
 
         var cookieOptions = new CookieOptions
         {
-            // CRITICAL: No Expires attribute - makes this a SESSION cookie
-            // Cookie will be deleted when browser is closed
-            // This addresses the VAPT finding about persistent cookies
-
-            HttpOnly = true,  // Prevents client-side JavaScript from accessing the cookie (XSS protection)
-            Secure = true,    // Cookie only sent over HTTPS (prevents man-in-the-middle attacks)
-            SameSite = SameSiteMode.Strict, // Prevents CSRF - cookie not sent on cross-site requests
-
-            // MaxAge controls how long the cookie is valid WHILE the browser session is active
-            // This is different from Expires - the cookie is still session-based
-            // After 7 days OR browser close (whichever comes first), token is invalid
-            MaxAge = TimeSpan.FromDays(7), // Token lifetime while browser is open
-
-            IsEssential = true // Required for authentication flow
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None, // Required for cross-origin (frontend/backend on different origins)
+            MaxAge = TimeSpan.FromDays(7),
+            IsEssential = true
         };
 
         Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
@@ -346,7 +345,8 @@ public class AuthenticationController : BaseApiController
     /// Exposed at /auth/change-password for frontend compatibility.
     /// </summary>
     [HttpPost("change-password")]
-    [Authorize]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestModel request)
