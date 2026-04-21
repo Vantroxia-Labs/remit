@@ -5,6 +5,7 @@ using AegisEInvoicing.NotificationService.Models;
 using AegisEInvoicing.NotificationService.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AegisEInvoicing.NotificationService;
@@ -69,6 +70,15 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // EMAIL_SEND_ENABLED=false  → skip sending (dev default); true → use real provider
+        var sendEnabled = !bool.TryParse(configuration["EmailSettings:SendEnabled"], out var enabled) || enabled;
+
+        if (!sendEnabled)
+        {
+            services.AddScoped<IEmailService, _SkipEmailService>();
+            return services;
+        }
+
         var emailProvider = configuration["EmailSettings:Provider"]?.ToLower() ?? "azure";
 
         switch (emailProvider)
@@ -88,7 +98,6 @@ public static class DependencyInjection
                 break;
 
             default:
-                // Default to Azure Communication Services
                 services.AddAzureCommunicationEmailService(configuration);
                 break;
         }
@@ -96,4 +105,24 @@ public static class DependencyInjection
         return services;
     }
 
+}
+
+/// <summary>
+/// Inline stub — used when EmailSettings:SendEnabled is false.
+/// Defined here, not in a separate file. Logs only, nothing is dispatched.
+/// </summary>
+internal sealed class _SkipEmailService(ILogger<_SkipEmailService> logger) : IEmailService
+{
+    public Task<EmailResult> SendEmailAsync(EmailMessage message, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("[EMAIL DISABLED] To: {To} | Subject: {Subject}", message.To, message.Subject);
+        return Task.FromResult(EmailResult.Success("skipped"));
+    }
+
+    public Task<EmailResult> SendBulkEmailAsync(List<EmailMessage> messages, CancellationToken cancellationToken = default)
+    {
+        foreach (var m in messages)
+            logger.LogInformation("[EMAIL DISABLED] To: {To} | Subject: {Subject}", m.To, m.Subject);
+        return Task.FromResult(EmailResult.Success("skipped"));
+    }
 }

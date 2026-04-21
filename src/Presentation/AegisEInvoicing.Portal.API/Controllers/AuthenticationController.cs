@@ -43,7 +43,7 @@ public class AuthenticationController : BaseApiController
             request.AdminEmail,
             request.AdminPhone,
             request.BusinessName,
-            request.PlatformSubscriptionId,
+            request.PlatformSubscriptionIds,
             request.BillingCycle,
             request.Tin);
 
@@ -425,7 +425,7 @@ public record RegisterBusinessRequest(
     string AdminEmail,
     string AdminPhone,
     string BusinessName,
-    Guid PlatformSubscriptionId,
+    IReadOnlyList<Guid> PlatformSubscriptionIds,
     BillingCycle BillingCycle,
     string? Tin = null);
 

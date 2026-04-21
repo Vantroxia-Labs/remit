@@ -41,25 +41,27 @@ public class RegisterBusinessCommandHandler(
             if (existingPending)
                 return new RegisterBusinessResult(false, "A pending registration already exists for this email. Please complete your payment or wait 24 hours for it to expire.");
 
-            // Validate the chosen plan
-            var plan = await _context.PlatformSubscriptions
+            if (request.PlatformSubscriptionIds == null || request.PlatformSubscriptionIds.Count == 0)
+                return new RegisterBusinessResult(false, "At least one subscription plan must be selected.");
+
+            // Validate all chosen plans exist
+            var planIds = request.PlatformSubscriptionIds.Distinct().ToList();
+            var plans = await _context.PlatformSubscriptions
                 .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == request.PlatformSubscriptionId && !p.IsDeleted, cancellationToken);
+                .Where(p => planIds.Contains(p.Id) && !p.IsDeleted)
+                .ToListAsync(cancellationToken);
 
-            if (plan is null)
-                return new RegisterBusinessResult(false, "The selected subscription plan is not valid.");
+            if (plans.Count != planIds.Count)
+                return new RegisterBusinessResult(false, "One or more selected subscription plans are not valid.");
 
-            // Calculate amount in kobo (Paystack expects amount in smallest currency unit)
-            var amountNaira = request.BillingCycle == BillingCycle.Annual
-                ? plan.AnnualPrice
-                : plan.MonthlyPrice;
-
+            // Total amount = sum of all selected plans
+            var amountNaira = plans.Sum(p => request.BillingCycle == BillingCycle.Annual ? p.AnnualPrice : p.MonthlyPrice);
             var amountKobo = (long)(amountNaira * 100);
 
             // Generate a unique payment reference
             var reference = _paystackService.GenerateReference("AEGIS-REG");
 
-            // Create pending registration record
+            // Create pending registration record (stores all plan IDs)
             var pendingReg = PendingBusinessRegistration.Create(
                 adminFirstName: request.AdminFirstName,
                 adminLastName: request.AdminLastName,
@@ -67,7 +69,7 @@ public class RegisterBusinessCommandHandler(
                 adminPhone: request.AdminPhone,
                 businessName: request.BusinessName,
                 tin: request.Tin,
-                platformSubscriptionId: request.PlatformSubscriptionId,
+                platformSubscriptionIds: planIds,
                 billingCycle: request.BillingCycle,
                 paystackReference: reference);
 
@@ -76,6 +78,8 @@ public class RegisterBusinessCommandHandler(
 
             var callbackUrl = _configuration["Paystack:CallbackUrl"]
                 ?? $"{_configuration["App:BaseUrl"]}/payment/callback";
+
+            var planNames = string.Join(", ", plans.Select(p => p.PlanName));
 
             // Initialize Paystack payment
             var paymentRequest = new InitializeTransactionRequest
@@ -88,14 +92,14 @@ public class RegisterBusinessCommandHandler(
                 Metadata = new PaystackMetadata
                 {
                     PendingRegistrationId = pendingReg.Id.ToString(),
-                    PlanId = plan.Id.ToString(),
+                    PlanId = plans[0].Id.ToString(),
                     BillingCycle = request.BillingCycle.ToString(),
                     BusinessName = request.BusinessName,
                     AdminEmail = request.AdminEmail,
                     CustomFields =
                     [
                         new() { DisplayName = "Business Name", VariableName = "business_name", Value = request.BusinessName },
-                        new() { DisplayName = "Plan", VariableName = "plan_name", Value = plan.PlanName },
+                        new() { DisplayName = "Plans", VariableName = "plan_name", Value = planNames },
                         new() { DisplayName = "Billing Cycle", VariableName = "billing_cycle", Value = request.BillingCycle.ToString() }
                     ]
                 }

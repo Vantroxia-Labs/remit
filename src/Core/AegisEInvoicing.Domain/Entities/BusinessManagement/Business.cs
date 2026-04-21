@@ -39,6 +39,17 @@ public class Business : AuditableAggregateRoot
     //Subscription Management
     public Guid? SubscriptionId { get; private set; }
 
+    /// <summary>
+    /// Payment reference recorded when an Aegis admin creates a business on behalf of a client (audit trail).
+    /// Null for self-service registrations (Paystack handles payment tracking).
+    /// </summary>
+    public string? AdminPaymentReference { get; private set; }
+
+    /// <summary>
+    /// Amount paid (₦) recorded when an Aegis admin creates a business. Null for self-service registrations.
+    /// </summary>
+    public decimal? AdminPaymentAmountNaira { get; private set; }
+
     public Guid? BusinessFIRSApiConfigurationId { get; private set; }
 
     //FlowRule
@@ -49,7 +60,7 @@ public class Business : AuditableAggregateRoot
     public string ServiceId { get; private set; } = null!; // FIRS-assigned 8-character ID for IRN generation    
     public string? OAuth2Token { get; private set; }
     public DateTimeOffset? TokenExpiresAt { get; private set; }
-    
+
     // API Access
     public string? ApiKey { get; private set; } // API key for SaaS API access
     public DateTimeOffset? ApiKeyGeneratedAt { get; private set; }
@@ -62,7 +73,7 @@ public class Business : AuditableAggregateRoot
     public BusinessFIRSApiConfiguration? BusinessFIRSApiConfiguration { get; private set; }
 
     public string? PublicKey { get; private set; }
-    public string? Certificate {  get; private set; }
+    public string? Certificate { get; private set; }
 
     // APP (Access Point Provider) switching
     /// <summary>
@@ -300,7 +311,7 @@ public class Business : AuditableAggregateRoot
     public bool HasActiveSubscription()
     {
         return SubscriptionId.HasValue && (Subscription?.IsActive() ?? false);
-    }    
+    }
 
     public void AssignSubscription(Guid subscriptionId, Guid assignedBy)
     {
@@ -309,6 +320,14 @@ public class Business : AuditableAggregateRoot
 
         SubscriptionId = subscriptionId;
         UpdatedBy = assignedBy;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetAdminPayment(string paymentReference, decimal amountNaira, Guid updatedBy)
+    {
+        AdminPaymentReference = paymentReference;
+        AdminPaymentAmountNaira = amountNaira;
+        UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

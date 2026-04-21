@@ -55,6 +55,7 @@ public static class PermissionConstants
     public const string DeleteItems = "items.delete";
 
     // Business Management Permissions
+    public const string CreateBusiness = "business.create";
     public const string ViewBusiness = "business.view";
     public const string UpdateBusiness = "business.update";
     public const string ManageBusinessSettings = "business.manage_settings";
@@ -126,7 +127,7 @@ public static class PermissionConstants
         CreateItems, ViewItems, UpdateItems, DeleteItems,
         
         // Business Management
-        ViewBusiness, UpdateBusiness, ManageBusinessSettings,
+        CreateBusiness, ViewBusiness, UpdateBusiness, ManageBusinessSettings,
         ManageBranches, ManageCertificates,
         
         // Tenant Management
@@ -231,7 +232,7 @@ public static class PermissionConstants
         DeleteAegisUsers, ActivateAegisUsers, DeactivateAegisUsers, ResetAegisUserPasswords,
 
         // Business management
-        ViewBusiness, UpdateBusiness, ManageBusinessSettings, ManageBranches, ManageCertificates,
+        CreateBusiness, ViewBusiness, UpdateBusiness, ManageBusinessSettings, ManageBranches, ManageCertificates,
 
         // Client user management
         CreateUsers, ViewUsers, UpdateUsers, DeleteUsers,
