@@ -240,10 +240,6 @@ public static class PermissionConstants
         // Role management
         CreateRoles, ViewRoles, UpdateRoles, DeleteRoles, AssignRoles, RevokeRoles,
 
-        // Invoice management
-        CreateInvoices, ViewInvoices, UpdateInvoices, DeleteInvoices,
-        SubmitInvoices, ApproveInvoices, RejectInvoices,
-
         // Reporting
         ViewAuditLogs, ViewIntegrationLogs, ManageIntegrations,
 

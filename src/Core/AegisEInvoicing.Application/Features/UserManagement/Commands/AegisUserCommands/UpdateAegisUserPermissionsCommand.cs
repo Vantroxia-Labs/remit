@@ -51,7 +51,11 @@ public class UpdateAegisUserPermissionsCommandHandler(
         var existingCustomRole = await context.PlatformRoles
             .FirstOrDefaultAsync(r => r.Name == customRoleName && !r.IsDeleted, cancellationToken);
 
-        if (validPermissions.Count == 0)
+        var allAssignable = PermissionConstants.AegisAdminAssignablePermissions;
+        var isFullAccess = validPermissions.Count == 0
+            || allAssignable.All(p => validPermissions.Contains(p, StringComparer.OrdinalIgnoreCase));
+
+        if (isFullAccess)
         {
             // No restrictions — remove custom role so user falls back to full AegisAdmin access
             if (existingCustomRole != null)
@@ -93,8 +97,6 @@ public class UpdateAegisUserPermissionsCommandHandler(
                 customRole.AddPermission(p);
 
             await context.PlatformRoles.AddAsync(customRole, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-
             user.AssignRole(customRole.Id, currentUser.UserId.Value);
             await context.SaveChangesAsync(cancellationToken);
         }

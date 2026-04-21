@@ -23,21 +23,7 @@ public static class UserSeedData
             category: "Administrative",
             sortOrder: 1,
             createdBy: createdBy,
-            permissions: new[]
-            {
-                "platform.full_access",
-                "users.create",
-                "users.read",
-                "users.update",
-                "users.delete",
-                "roles.manage",
-                "system.configure",
-                "businesses.manage",
-                "invoices.manage",
-                "reports.full_access",
-                "integrations.manage",
-                "users.view"
-            }
+            permissions: PermissionConstants.PlatformAdminPermissions
         );
         roles.Add(superAdminRole);
 

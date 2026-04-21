@@ -88,7 +88,9 @@ public class GetAegisUserByIdQueryHandler : IRequestHandler<GetAegisUserByIdQuer
         var customRole = await _context.PlatformRoles
             .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Name == customRoleName && !r.IsDeleted, cancellationToken);
-        IReadOnlyList<string> permissions = customRole?.Permissions.ToList() ?? [];
+        // No custom role = full access, so return all assignable permissions as selected
+        IReadOnlyList<string> permissions = customRole?.Permissions.ToList()
+            ?? PermissionConstants.AegisAdminAssignablePermissions.ToList();
 
         return new AegisUserDto(
             AegisUser.Id,
