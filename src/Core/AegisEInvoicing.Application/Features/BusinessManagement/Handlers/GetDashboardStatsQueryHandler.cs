@@ -25,20 +25,20 @@ public class GetDashboardStatsQueryHandler(
             // ── Business & Subscription queries ─────────────────────────────
             var businesses = await context.Businesses
                 .AsNoTracking()
-                .Include(b => b.Subscription)
-                    .ThenInclude(s => s != null ? s.PlatformSubscription : null)
+                .Include(b => b.Subscriptions)
+                    .ThenInclude(s => s.PlatformSubscription)
                 .Where(b => !b.IsDeleted)
                 .ToListAsync(cancellationToken);
 
             var expiredSubscriptions = businesses.Count(b =>
-                b.Subscription != null && b.Subscription.EndDate < now);
+                b.Subscriptions.Any(s => s.EndDate < now));
 
             var portalBusinesses = businesses.Count(b =>
-                b.Subscription?.PlatformSubscription?.Tier == SubscriptionTier.SaaS);
+                b.Subscriptions.Any(s => s.PlatformSubscription?.Tier == SubscriptionTier.SaaS));
             var sftpBusinesses = businesses.Count(b =>
-                b.Subscription?.PlatformSubscription?.Tier == SubscriptionTier.SFTP);
+                b.Subscriptions.Any(s => s.PlatformSubscription?.Tier == SubscriptionTier.SFTP));
             var apiBusinesses = businesses.Count(b =>
-                b.Subscription?.PlatformSubscription?.Tier == SubscriptionTier.ApiOnly);
+                b.Subscriptions.Any(s => s.PlatformSubscription?.Tier == SubscriptionTier.ApiOnly));
             var onPremBusinesses = businesses.Count(b =>
                 b.DeploymentMode == DeploymentMode.OnPremise);
 

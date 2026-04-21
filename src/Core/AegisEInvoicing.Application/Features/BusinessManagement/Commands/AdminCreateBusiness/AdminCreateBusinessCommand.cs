@@ -18,7 +18,8 @@ public record AdminCreateBusinessCommand(
     BillingCycle BillingCycle,
     string PaymentReference,
     decimal PaymentAmountNaira,
-    string? Tin = null) : IRequest<AdminCreateBusinessResult>;
+    string? Tin = null,
+    string? Industry = null) : IRequest<AdminCreateBusinessResult>;
 
 public record AdminCreateBusinessResult(
     bool IsSuccess,

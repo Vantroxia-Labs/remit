@@ -336,14 +336,15 @@ public class AegisAdminController(
             request.BillingCycle,
             request.PaymentReference,
             request.PaymentAmountNaira,
-            request.Tin);
+            request.Tin,
+            request.Industry);
 
         var result = await _mediator.Send(command, cancellationToken);
 
         if (!result.IsSuccess)
         {
             _logger.LogWarning("Failed to create business {BusinessName}: {Message}", request.BusinessName, result.Message);
-            return BadRequest(Error(result.Message));
+            return Error(result.Message);
         }
 
         _logger.LogInformation("Business {BusinessId} created by Aegis admin", result.BusinessId);
@@ -362,7 +363,8 @@ public record AdminCreateBusinessRequest(
     BillingCycle BillingCycle,
     string PaymentReference,
     decimal PaymentAmountNaira,
-    string? Tin = null);
+    string? Tin = null,
+    string? Industry = null);
 
 public class AdminCreateBusinessResponse
 {

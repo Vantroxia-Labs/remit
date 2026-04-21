@@ -28,7 +28,7 @@ public class UpdateBusinessCommandHandler(
             if (getBusiness is null)
                 return new UpdateBusinessResult(false, $"Business does not exists.");
 
-            getBusiness.Update(request.Description, request.InvoicePrefix, request.ContactEmail, request.RegisteredAddress, tempAdminId, request.ContactPhone);
+            getBusiness.Update(request.Description, request.InvoicePrefix, request.ContactEmail, request.RegisteredAddress, tempAdminId, request.ContactPhone, request.Industry);
 
             _context.Businesses.Update(getBusiness);
             await _context.SaveChangesAsync(cancellationToken);

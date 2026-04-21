@@ -94,22 +94,23 @@ public class SubscriptionValidationMiddleware(
                 {
                     var user = await dbContext.Users
                         .Include(u => u.Business)
-                        .ThenInclude(b => b!.Subscription)
+                        .ThenInclude(b => b!.Subscriptions)
                         .FirstOrDefaultAsync(u => u.Id == userId.Value);
 
                     if (user?.Business != null)
                     {
-                        var subscription = user.Business.Subscription;
-                        
+                        var subscription = user.Business.Subscriptions.FirstOrDefault(s => s.IsActive())
+                                           ?? user.Business.Subscriptions.OrderByDescending(s => s.EndDate).FirstOrDefault();
+
                         if (subscription == null || !subscription.IsActive())
                         {
-                            _logger.LogWarning("Subscription validation failed for user {UserId} on business {BusinessId}", 
+                            _logger.LogWarning("Subscription validation failed for user {UserId} on business {BusinessId}",
                                 userId, user.Business.Id);
-                            
+
                             // Allow grace period for expired subscriptions
                             if (subscription?.IsGracePeriod() == true)
                             {
-                                context.Response.Headers.Append("X-Subscription-Warning", 
+                                context.Response.Headers.Append("X-Subscription-Warning",
                                     $"Subscription expired. Grace period ends in {7 - subscription.DaysOverdue()} days");
                             }
                             else

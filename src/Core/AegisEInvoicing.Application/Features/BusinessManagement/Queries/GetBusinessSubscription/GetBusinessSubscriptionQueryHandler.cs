@@ -32,20 +32,23 @@ public class GetBusinessSubscriptionQueryHandler : IRequestHandler<GetBusinessSu
             query = query.Where(b => b.Id == request.BusinessId.Value);
         }
 
-        var businessSubscription = await query
-            .Include(b => b.Subscription!)
+        var business = await query
+            .Include(b => b.Subscriptions)
             .ThenInclude(s => s.PlatformSubscription)
-            .Select(sub => sub.Subscription)
             .SingleOrDefaultAsync(cancellationToken);
 
-        return businessSubscription is null
-            ? throw new NotFoundException("Business Not Found")
-            : new BusinessSubscriptionDto(
-            businessSubscription.PlatformSubscription.PlanName,
-            businessSubscription.PlatformSubscription.MonthlyPrice,
-            businessSubscription.Status,
-            businessSubscription.StartDate,
-            businessSubscription.EndDate,
-            businessSubscription.NextBillingDate);
+        if (business is null)
+            throw new NotFoundException("Business Not Found");
+
+        var primarySub = business.GetPrimarySubscription()
+            ?? throw new NotFoundException("Business has no subscription");
+
+        return new BusinessSubscriptionDto(
+            primarySub.PlatformSubscription.PlanName,
+            primarySub.PlatformSubscription.MonthlyPrice,
+            primarySub.Status,
+            primarySub.StartDate,
+            primarySub.EndDate,
+            primarySub.NextBillingDate);
     }
 }

@@ -71,7 +71,7 @@ public class AdminCreateBusinessCommandHandler(
                     createdBy: SystemUserId,
                     contactPhone: request.AdminPhone,
                     serviceId: "TBD",
-                    industry: "TBD",
+                    industry: request.Industry ?? "Other",
                     firsBusinessId: Guid.Empty);
 
                 // Record payment details for audit
@@ -113,8 +113,7 @@ public class AdminCreateBusinessCommandHandler(
                     ? startDate.AddYears(1)
                     : startDate.AddMonths(1);
 
-                // Create one Subscription per selected plan
-                Subscription? primarySubscription = null;
+                // Create one Subscription record per selected plan
                 foreach (var plan in plans)
                 {
                     var subscription = Subscription.Create(
@@ -127,12 +126,7 @@ public class AdminCreateBusinessCommandHandler(
                     subscription.UpdateBilling(startDate, endDate);
                     await context.Subscriptions.AddAsync(subscription, cancellationToken);
                     await context.SaveChangesAsync(cancellationToken);
-
-                    primarySubscription ??= subscription;
                 }
-
-                business.AssignSubscription(primarySubscription!.Id, SystemUserId);
-                await context.SaveChangesAsync(cancellationToken);
 
                 string? apiKey = null;
                 try { apiKey = await apiKeyAuthenticationService.GenerateApiKeyAsync(business.Id); }

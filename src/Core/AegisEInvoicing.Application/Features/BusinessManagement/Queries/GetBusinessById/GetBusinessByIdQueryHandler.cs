@@ -47,7 +47,7 @@ public class GetBusinessByIdQueryHandler : IRequestHandler<GetBusinessByIdQuery,
         }
         
         var business = await query
-                .Include(b => b.Subscription!)
+                .Include(b => b.Subscriptions)
                 .ThenInclude(s => s.PlatformSubscription)
                 .Include(b => b.Users)
                 .SingleOrDefaultAsync(cancellationToken);
@@ -75,12 +75,14 @@ public class GetBusinessByIdQueryHandler : IRequestHandler<GetBusinessByIdQuery,
                ContactPhone = business.ContactPhone,
                Status = business.Status,
                CreatedAt = business.CreatedAt,
-               SubscriptionInfo = new BusinessSubscriptionDto(business.Subscription!.PlatformSubscription.PlanName,
-                                                              business.Subscription!.PlatformSubscription.MonthlyPrice,
-                                                              business.Subscription!.Status,
-                                                              business.Subscription!.StartDate,
-                                                              business.Subscription!.EndDate,
-                                                              business.Subscription!.NextBillingDate),
+               SubscriptionInfo = business.GetPrimarySubscription() is { } ps
+                                      ? new BusinessSubscriptionDto(ps.PlatformSubscription.PlanName,
+                                                                    ps.PlatformSubscription.MonthlyPrice,
+                                                                    ps.Status,
+                                                                    ps.StartDate,
+                                                                    ps.EndDate,
+                                                                    ps.NextBillingDate)
+                                      : null,
                UserCount = business.Users.Count
            };
     }

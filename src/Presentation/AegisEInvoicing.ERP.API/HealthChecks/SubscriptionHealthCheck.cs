@@ -69,7 +69,7 @@ public class SubscriptionHealthCheck(
             if (systemConfig.DeploymentMode == DeploymentMode.Cloud)
             {
                 var activeBusinesses = await dbContext.Businesses
-                    .Include(b => b.Subscription)
+                    .Include(b => b.Subscriptions)
                     .Where(b => b.Status == AegisEInvoicing.Domain.Enums.BusinessStatus.Active)
                     .ToListAsync(cancellationToken);
 
@@ -80,15 +80,12 @@ public class SubscriptionHealthCheck(
 
                 foreach (var business in activeBusinesses)
                 {
-                    if (business.Subscription == null)
+                    var primary = business.GetPrimarySubscription();
+                    if (primary == null || primary.IsExpired())
                     {
                         expiredSubscriptions++;
                     }
-                    else if (business.Subscription.IsExpired())
-                    {
-                        expiredSubscriptions++;
-                    }
-                    else if (business.Subscription.DaysUntilExpiry() <= 7)
+                    else if (primary.DaysUntilExpiry() <= 7)
                     {
                         expiringSubscriptions++;
                     }

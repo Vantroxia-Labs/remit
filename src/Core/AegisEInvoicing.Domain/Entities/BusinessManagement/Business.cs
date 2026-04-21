@@ -37,7 +37,8 @@ public class Business : AuditableAggregateRoot
     public Guid? AdminUserId { get; private set; }
 
     //Subscription Management
-    public Guid? SubscriptionId { get; private set; }
+    private readonly List<Subscription> _subscriptions = [];
+    public IReadOnlyCollection<Subscription> Subscriptions => _subscriptions.AsReadOnly();
 
     /// <summary>
     /// Payment reference recorded when an Aegis admin creates a business on behalf of a client (audit trail).
@@ -67,9 +68,8 @@ public class Business : AuditableAggregateRoot
     public DateTimeOffset? ApiKeyLastUsedAt { get; private set; }
     public bool IsApiKeyActive { get; private set; } = false;
 
-    // Navigation properties  
+    // Navigation properties
     public User? AdminUser { get; private set; }
-    public Subscription? Subscription { get; private set; }
     public BusinessFIRSApiConfiguration? BusinessFIRSApiConfiguration { get; private set; }
 
     public string? PublicKey { get; private set; }
@@ -176,7 +176,8 @@ public class Business : AuditableAggregateRoot
         string contactEmail,
         Address address,
         Guid updatedBy,
-        string? contactPhone = null)
+        string? contactPhone = null,
+        string? industry = null)
     {
         ValidateInputs(string.Empty, description, invoicePrefix, BusinessRegistrationNumber, contactEmail, true);
 
@@ -185,6 +186,8 @@ public class Business : AuditableAggregateRoot
         ContactEmail = contactEmail;
         RegisteredAddress = address;
         ContactPhone = contactPhone ?? "";
+        if (!string.IsNullOrWhiteSpace(industry))
+            Industry = industry;
         UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.Now;
     }
@@ -310,33 +313,16 @@ public class Business : AuditableAggregateRoot
 
     public bool HasActiveSubscription()
     {
-        return SubscriptionId.HasValue && (Subscription?.IsActive() ?? false);
+        return _subscriptions.Any(s => s.IsActive());
     }
 
-    public void AssignSubscription(Guid subscriptionId, Guid assignedBy)
-    {
-        if (SubscriptionId.HasValue)
-            throw new InvalidOperationException("Business already has a subscription assigned");
-
-        SubscriptionId = subscriptionId;
-        UpdatedBy = assignedBy;
-        UpdatedAt = DateTimeOffset.UtcNow;
-    }
+    public Subscription? GetPrimarySubscription() =>
+        _subscriptions.FirstOrDefault(s => s.IsActive()) ?? _subscriptions.OrderByDescending(s => s.EndDate).FirstOrDefault();
 
     public void SetAdminPayment(string paymentReference, decimal amountNaira, Guid updatedBy)
     {
         AdminPaymentReference = paymentReference;
         AdminPaymentAmountNaira = amountNaira;
-        UpdatedBy = updatedBy;
-        UpdatedAt = DateTimeOffset.UtcNow;
-    }
-
-    public void UpdateSubscription(Guid newSubscriptionId, Guid updatedBy)
-    {
-        if (!SubscriptionId.HasValue)
-            throw new InvalidOperationException("Business does not have a subscription to update. Use AssignSubscription instead.");
-
-        SubscriptionId = newSubscriptionId;
         UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.UtcNow;
     }

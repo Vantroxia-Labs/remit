@@ -117,7 +117,6 @@ public class ActivateRegistrationCommandHandler(
                     : startDate.AddMonths(1);
 
                 // Create one Subscription record per selected plan
-                Subscription? primarySubscription = null;
                 foreach (var plan in plans)
                 {
                     var subscription = Subscription.Create(
@@ -130,12 +129,7 @@ public class ActivateRegistrationCommandHandler(
                     subscription.UpdateBilling(startDate, endDate);
                     await context.Subscriptions.AddAsync(subscription, cancellationToken);
                     await context.SaveChangesAsync(cancellationToken);
-
-                    primarySubscription ??= subscription;
                 }
-
-                business.AssignSubscription(primarySubscription!.Id, SystemUserId);
-                await context.SaveChangesAsync(cancellationToken);
 
                 string? apiKey = null;
                 try { apiKey = await apiKeyAuthenticationService.GenerateApiKeyAsync(business.Id); }

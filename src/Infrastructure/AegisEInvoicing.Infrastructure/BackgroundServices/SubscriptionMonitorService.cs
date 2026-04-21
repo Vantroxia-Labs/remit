@@ -83,41 +83,40 @@ public class SubscriptionMonitorService(
                 if (systemConfig.DeploymentMode == DeploymentMode.Cloud)
                 {
                     var businesses = await context.Businesses
-                        .Include(b => b.Subscription)
+                        .Include(b => b.Subscriptions)
                         .Where(b => b.Status == Domain.Enums.BusinessStatus.Active)
                         .ToListAsync(stoppingToken);
 
                     foreach (var business in businesses)
                     {
-                        if (business.Subscription == null)
+                        if (!business.Subscriptions.Any())
                         {
                             _logger.LogWarning("Business {BusinessId} has no subscription", business.Id);
                             await SuspendBusinessAsync(context, business, "No active subscription", stoppingToken);
                             continue;
                         }
 
-                        // Check if subscription has expired
-                        if (business.Subscription.IsExpired())
+                        // Business is OK if at least one subscription is still active/in grace period
+                        if (business.Subscriptions.All(s => s.IsExpired()))
                         {
-                            // Check grace period (7 days)
-                            if (!business.Subscription.IsGracePeriod())
+                            if (!business.Subscriptions.Any(s => s.IsGracePeriod()))
                             {
-                                _logger.LogWarning("Business {BusinessId} subscription has expired beyond grace period", business.Id);
+                                _logger.LogWarning("Business {BusinessId} all subscriptions expired beyond grace period", business.Id);
                                 await SuspendBusinessAsync(context, business, "Subscription expired", stoppingToken);
                             }
                             else
                             {
-                                var daysOverdue = business.Subscription.DaysOverdue();
-                                _logger.LogWarning("Business {BusinessId} is in grace period. Days overdue: {Days}", 
+                                var daysOverdue = business.Subscriptions.Max(s => s.DaysOverdue());
+                                _logger.LogWarning("Business {BusinessId} is in grace period. Days overdue: {Days}",
                                     business.Id, daysOverdue);
                             }
                         }
 
-                        // Check if subscription is expiring soon
-                        var daysUntilExpiry = business.Subscription.DaysUntilExpiry();
+                        // Warn if any subscription is expiring soon
+                        var daysUntilExpiry = business.Subscriptions.Min(s => s.DaysUntilExpiry());
                         if (daysUntilExpiry <= 7 && daysUntilExpiry > 0)
                         {
-                            _logger.LogInformation("Business {BusinessId} subscription expiring in {Days} days", 
+                            _logger.LogInformation("Business {BusinessId} subscription expiring in {Days} days",
                                 business.Id, daysUntilExpiry);
                         }
                     }

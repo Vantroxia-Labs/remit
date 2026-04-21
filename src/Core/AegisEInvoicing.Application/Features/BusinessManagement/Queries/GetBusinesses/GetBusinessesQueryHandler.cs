@@ -23,7 +23,7 @@ public class GetBusinessesQueryHandler : IRequestHandler<GetBusinessesQuery, Pag
         var query = _context.Businesses
             .AsNoTracking()
             .Include(b => b.AdminUser)
-            .Include(b => b.Subscription)
+            .Include(b => b.Subscriptions)
             .AsQueryable();
 
         // Apply security filters based on current user context

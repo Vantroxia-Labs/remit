@@ -53,8 +53,8 @@ public class LoginCommandHandler(
             .Include(u => u.RoleAssignments)
                 .ThenInclude(ra => ra.PlatformRole)
             .Include(u => u.Business!)
-                .ThenInclude(b => b.Subscription)
-                .ThenInclude(s => s!.PlatformSubscription)
+                .ThenInclude(b => b.Subscriptions)
+                .ThenInclude(s => s.PlatformSubscription)
             .SingleOrDefaultAsync(u => u.Email == email, cancellationToken);
     }
 
@@ -95,7 +95,7 @@ public class LoginCommandHandler(
     private static ValidationResult ValidateBusinessSubscription(User user)
     {
         if (user.BusinessId.HasValue &&
-            user.Business?.Subscription?.Status != SubscriptionStatus.Active)
+            user.Business?.Subscriptions.Any(s => s.Status == SubscriptionStatus.Active) != true)
         {
             return ValidationResult.Invalid(LoginResult.Locked("Account is inactive"));
         }
@@ -178,7 +178,7 @@ public class LoginCommandHandler(
             BranchId = user.BranchId,
             IsAegisUser = user.IsAegisUser,
             AegisRole = user.AegisRole?.ToString(),
-            SubscriptionTier = user.Business?.Subscription?.PlatformSubscription?.Tier.ToString(),
+            SubscriptionTier = user.Business?.GetPrimarySubscription()?.PlatformSubscription?.Tier.ToString(),
             DeploymentMode = user.Business?.DeploymentMode.ToString()
         };
 

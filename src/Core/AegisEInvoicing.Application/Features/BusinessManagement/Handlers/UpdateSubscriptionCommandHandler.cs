@@ -1,5 +1,6 @@
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands;
+using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -29,11 +30,10 @@ public class UpdateSubscriptionCommandHandler : IRequestHandler<UpdateSubscripti
             var currentUserId = _currentUserService.UserId
                 ?? throw new InvalidOperationException("Current user ID is not available");
 
-            var business = await _context.Businesses
-                .Include(b => b.Subscription)
-                .FirstOrDefaultAsync(b => b.Id == request.BusinessId, cancellationToken);
+            var businessExists = await _context.Businesses
+                .AnyAsync(b => b.Id == request.BusinessId, cancellationToken);
 
-            if (business == null)
+            if (!businessExists)
             {
                 return new UpdateSubscriptionResult
                 {
@@ -42,11 +42,11 @@ public class UpdateSubscriptionCommandHandler : IRequestHandler<UpdateSubscripti
                 };
             }
 
-            // Verify the new subscription exists
-            var newSubscription = await _context.PlatformSubscriptions
+            // Verify the new platform plan exists
+            var newPlan = await _context.PlatformSubscriptions
                 .FirstOrDefaultAsync(s => s.Id == request.PlatformSubscriptionId, cancellationToken);
 
-            if (newSubscription == null)
+            if (newPlan == null)
             {
                 return new UpdateSubscriptionResult
                 {
@@ -55,15 +55,27 @@ public class UpdateSubscriptionCommandHandler : IRequestHandler<UpdateSubscripti
                 };
             }
 
-            // Update the business subscription
-            if (business.SubscriptionId.HasValue)
+            // Cancel all existing active subscriptions for this business
+            var existing = await _context.Subscriptions
+                .Where(s => s.BusinessId == request.BusinessId && !s.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            foreach (var sub in existing.Where(s => s.Status != SubscriptionStatus.Cancelled))
             {
-                business.UpdateSubscription(request.PlatformSubscriptionId, currentUserId);
+                sub.Cancel(currentUserId, "Switching subscription plan");
+                _context.Subscriptions.Update(sub);
             }
-            else
-            {
-                business.AssignSubscription(request.PlatformSubscriptionId, currentUserId);
-            }
+
+            // Create a new subscription for the chosen plan
+            var now = DateTimeOffset.UtcNow;
+            var newSubscription = Subscription.Create(
+                businessId: request.BusinessId,
+                platformSubscriptionId: newPlan.Id,
+                startDate: now,
+                endDate: now.AddMonths(1),
+                createdBy: currentUserId);
+            newSubscription.UpdateBilling(now, now.AddMonths(1));
+            await _context.Subscriptions.AddAsync(newSubscription, cancellationToken);
 
             await _context.SaveChangesAsync(cancellationToken);
 
