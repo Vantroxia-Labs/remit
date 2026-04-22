@@ -80,7 +80,7 @@ public partial class BusinessController(
         var command = new UpdateBusinessCommand(
             businessId,
             address,
-            request.InvoicePrefix,
+            request.InvoicePrefix ?? string.Empty,
             request.Industry,
             request.ContactEmail,
             request.ContactPhone,
@@ -446,7 +446,7 @@ public partial class BusinessController(
         var command = new UpdateBusinessCommand(
             _currentUserService.BusinessId.Value,
             address,
-            request.InvoicePrefix,
+            request.InvoicePrefix ?? string.Empty,
             request.Industry,
             request.ContactEmail,
             request.ContactPhone,

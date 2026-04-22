@@ -327,6 +327,7 @@ public class PaymentMeansRequest
 /// Request model for updating invoice payment status
 /// </summary>
 /// <param name="PaymentStatus">New payment status for the invoice</param>
+/// <param name="Reference">Optional payment reference</param>
 public record UpdateInvoicePaymentStatusRequest(
     [Required(ErrorMessage = "Payment status is required")]
     PaymentStatus PaymentStatus,

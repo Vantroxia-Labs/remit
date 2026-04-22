@@ -11,8 +11,7 @@ namespace AegisEInvoicing.Portal.API.Models.Business.Request
         [Required]
         public string Industry { get; set; } = string.Empty;
 
-        [Required]
-        public string InvoicePrefix { get; set; } = string.Empty;
+        public string? InvoicePrefix { get; set; }
 
         [Required]
         [EmailAddress]

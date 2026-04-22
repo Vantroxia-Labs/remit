@@ -154,7 +154,7 @@ public class AegisAdminController(
             request.RegisteredAddress.Country,
             request.RegisteredAddress.PostalCode);
 
-        var command = new UpdateBusinessCommand(businessId, address, request.InvoicePrefix, request.Industry, request.ContactEmail, request.ContactPhone, request.Description);
+        var command = new UpdateBusinessCommand(businessId, address, request.InvoicePrefix ?? string.Empty, request.Industry, request.ContactEmail, request.ContactPhone, request.Description);
 
         var result = await _mediator.Send(command, cancellationToken);
 

@@ -42,7 +42,7 @@ public class GetPlatformRolesQueryHandler : IRequestHandler<GetPlatformRolesQuer
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
             var searchTerm = request.SearchTerm.ToLower();
-            query = query.Where(pr => 
+            query = query.Where(pr =>
                 pr.Name.ToLower().Contains(searchTerm) ||
                 pr.Description.ToLower().Contains(searchTerm));
         }
@@ -64,7 +64,7 @@ public class GetPlatformRolesQueryHandler : IRequestHandler<GetPlatformRolesQuer
                 pr.IsSystemRole,
                 pr.IsActive,
                 pr.Permissions.ToList(),
-                _context.UserRoleAssignments.Count(ura => ura.PlatformRoleId == pr.Id && ura.IsActive && !ura.IsExpired()),
+                _context.UserRoleAssignments.Count(ura => ura.PlatformRoleId == pr.Id && ura.IsActive && !(ura.ExpiresAt.HasValue && ura.ExpiresAt <= DateTimeOffset.UtcNow)),
                 pr.CreatedAt,
                 pr.UpdatedAt))
             .ToListAsync(cancellationToken);

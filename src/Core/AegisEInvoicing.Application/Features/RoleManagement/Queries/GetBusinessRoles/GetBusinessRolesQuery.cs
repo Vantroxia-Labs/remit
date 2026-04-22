@@ -43,7 +43,7 @@ public class GetBusinessRolesQueryHandler(
                 r.IsSystemRole,
                 r.IsActive,
                 r.Permissions.ToList(),
-                context.UserRoleAssignments.Count(a => a.PlatformRoleId == r.Id && a.IsActive && !a.IsExpired()),
+                context.UserRoleAssignments.Count(a => a.PlatformRoleId == r.Id && a.IsActive && !(a.ExpiresAt.HasValue && a.ExpiresAt <= DateTimeOffset.UtcNow)),
                 r.CreatedAt,
                 r.UpdatedAt))
             .ToListAsync(cancellationToken);

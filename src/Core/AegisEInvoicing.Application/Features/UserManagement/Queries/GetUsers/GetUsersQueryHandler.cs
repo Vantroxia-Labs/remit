@@ -58,7 +58,7 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PaginatedList
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
             var searchTerm = request.SearchTerm.ToLower();
-            query = query.Where(u => 
+            query = query.Where(u =>
                 u.FirstName.ToLower().Contains(searchTerm) ||
                 u.LastName.ToLower().Contains(searchTerm) ||
                 u.Email.ToLower().Contains(searchTerm));
@@ -101,7 +101,7 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PaginatedList
                 u.FailedLoginAttempts,
                 u.LockedOutUntil,
                 u.RoleAssignments
-                    .Where(ura => ura.IsActive && !ura.IsExpired())
+                    .Where(ura => ura.IsActive && !(ura.ExpiresAt.HasValue && ura.ExpiresAt <= DateTimeOffset.UtcNow))
                     .Select(ura => new UserRoleDto(
                         ura.Id,
                         ura.PlatformRoleId,

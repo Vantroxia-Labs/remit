@@ -29,9 +29,13 @@ public class UpdateBusinessCommandHandler(
             if (getBusiness is null)
                 return new UpdateBusinessResult(false, $"Business does not exists.");
 
+            var effectiveInvoicePrefix = string.IsNullOrWhiteSpace(request.InvoicePrefix)
+                ? getBusiness.InvoicePrefix
+                : request.InvoicePrefix;
+
             getBusiness.Update(
                 request.Description,
-                request.InvoicePrefix,
+                effectiveInvoicePrefix,
                 request.ContactEmail,
                 request.RegisteredAddress,
                 tempAdminId,
