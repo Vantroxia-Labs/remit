@@ -1,6 +1,5 @@
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Constants;
-using AegisEInvoicing.Interswitch.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,18 +12,18 @@ public class UpdateReceivedInvoicePaymentStatusCommandHandler
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly ILogger<UpdateReceivedInvoicePaymentStatusCommandHandler> _logger;
-    private readonly IInterswitchHttpClient _interswitchHttpClient;
+    private readonly IAppProviderRouter _appProviderRouter;
 
     public UpdateReceivedInvoicePaymentStatusCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUserService,
         ILogger<UpdateReceivedInvoicePaymentStatusCommandHandler> logger,
-        IInterswitchHttpClient interswitchHttpClient)
+        IAppProviderRouter appProviderRouter)
     {
         _context = context;
         _currentUser = currentUserService;
         _logger = logger;
-        _interswitchHttpClient = interswitchHttpClient;
+        _appProviderRouter = appProviderRouter;
     }
 
     public async Task<UpdateReceivedInvoicePaymentStatusResult> Handle(
@@ -60,13 +59,12 @@ public class UpdateReceivedInvoicePaymentStatusCommandHandler
             return UpdateReceivedInvoicePaymentStatusResult.BadRequest(
                 "A payment reference is required when marking an invoice as Paid.");
 
-        var updateResult = await _interswitchHttpClient.UpdateStatusAsync(
-            new Interswitch.Models.Requests.UpdateStatus.UpdateStatusRequest
-            {
-                PaymentStatus = status,
-                Reference = request.Reference,
-                IRN = receivedInvoice.Irn.Value
-            }, cancellationToken);
+        var provider = await _appProviderRouter.GetProviderAsync(businessId, cancellationToken);
+        var updateResult = await provider.UpdateStatusAsync(
+            receivedInvoice.Irn.Value,
+            status,
+            request.Reference,
+            cancellationToken);
 
         if (!updateResult.IsSuccess)
             return UpdateReceivedInvoicePaymentStatusResult.Failure(

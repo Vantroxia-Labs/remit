@@ -67,7 +67,6 @@
     <EmbeddedResource Include="Templates\Email\**\*.html" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Integrations\AegisEInvoicing.Interswitch\AegisEInvoicing.Interswitch.csproj" />
     <ProjectReference Include="..\..\Integrations\AegisEInvoicing.NotificationService\AegisEInvoicing.NotificationService.csproj" />
     <ProjectReference Include="..\..\Integrations\AegisEInvoicing.Paystack\AegisEInvoicing.Paystack.csproj" />
     <ProjectReference Include="..\AegisEInvoicing.Domain\AegisEInvoicing.Domain.csproj" />

@@ -4,12 +4,14 @@ using AegisEInvoicing.Application.Features.VatScheduleManagement.Queries.GetVatS
 using AegisEInvoicing.Application.Features.VatScheduleManagement.Queries.GetVatScheduleWithItems;
 using AegisEInvoicing.Application.Features.VatScheduleManagement.VatScheduleExport;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AegisEInvoicing.Portal.API.Controllers
 {
     [ApiController]
-    [Route("api/vat-schedule")]
+    [Route("api/v{version:apiVersion}/vat-schedule")]
+    [Authorize]
     public class VatScheduleController : ControllerBase
     {
         private readonly IMediator _mediator;

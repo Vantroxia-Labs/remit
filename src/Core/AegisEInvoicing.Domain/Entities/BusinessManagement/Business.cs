@@ -86,9 +86,9 @@ public class Business : AuditableAggregateRoot
     /// <summary>
     /// Whether this business operates in Sandbox or Production mode.
     /// Determines which credential set (sandbox/production) is loaded from AppProviderConfiguration.
-    /// Defaults to Production.
+    /// Defaults to Sandbox.
     /// </summary>
-    public AppEnvironmentMode AppEnvironmentMode { get; private set; } = AppEnvironmentMode.Production;
+    public AppEnvironmentMode AppEnvironmentMode { get; private set; } = AppEnvironmentMode.Sandbox;
 
     // Licensing (On-Premise Deployments)
     public DeploymentMode DeploymentMode { get; private set; } = DeploymentMode.Cloud; // Default to Cloud (Aegis-hosted)

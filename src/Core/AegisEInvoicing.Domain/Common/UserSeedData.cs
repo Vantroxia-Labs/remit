@@ -27,7 +27,7 @@ public static class UserSeedData
         );
         roles.Add(superAdminRole);
 
-        // Merchant Admin Role - Business-focused permissions
+        // Merchant Admin Role - Full business-level permissions
         var businessManagerRole = PlatformRole.Create(
             name: "ClientAdmin",
             description: "Manages business operations and user accounts within organizations",
@@ -35,19 +35,8 @@ public static class UserSeedData
             sortOrder: 2,
             createdBy: createdBy
         );
-        businessManagerRole.AddPermission("users.read");
-        businessManagerRole.AddPermission("users.update");
-        businessManagerRole.AddPermission("businesses.read");
-        businessManagerRole.AddPermission("businesses.update");
-        businessManagerRole.AddPermission(PermissionConstants.ManageBusinessSettings);
-        businessManagerRole.AddPermission("invoices.read");
-        businessManagerRole.AddPermission("invoices.create");
-        businessManagerRole.AddPermission("invoices.update");
-        businessManagerRole.AddPermission("invoices.submit");
-        businessManagerRole.AddPermission("invoices.approve");
-        businessManagerRole.AddPermission("reports.read");
-        businessManagerRole.AddPermission("users.view");
-        businessManagerRole.AddPermission("users.create");
+        foreach (var permission in PermissionConstants.ClientAdminAssignablePermissions)
+            businessManagerRole.AddPermission(permission);
         roles.Add(businessManagerRole);
 
         // Merchant Initiator Role - Business-focused permissions

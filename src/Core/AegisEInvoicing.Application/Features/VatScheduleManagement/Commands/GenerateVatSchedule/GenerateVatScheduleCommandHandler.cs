@@ -4,7 +4,6 @@ using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.Exceptions;
-using AegisEInvoicing.Interswitch.Models.Responses.GetPurchaseInvoices;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -138,10 +137,10 @@ public class GenerateVatScheduleCommandHandler(
             if (string.IsNullOrWhiteSpace(ri.TaxTotalJson))
                 continue;
 
-            List<PurchaseInvoiceTaxTotal>? taxTotals = null;
+            List<AppTaxTotal>? taxTotals = null;
             try
             {
-                taxTotals = JsonSerializer.Deserialize<List<PurchaseInvoiceTaxTotal>>(
+                taxTotals = JsonSerializer.Deserialize<List<AppTaxTotal>>(
                     ri.TaxTotalJson, JsonOpts);
             }
             catch (JsonException ex)
@@ -156,16 +155,14 @@ public class GenerateVatScheduleCommandHandler(
                 continue;
 
             var vatTaxable = taxTotals
-                .SelectMany(t => t.TaxSubtotal)
-                .Where(s => s.TaxCategoryId != null
-                         && VatCategoryIds.Contains(s.TaxCategoryId))
-                .Sum(s => s.TaxableAmount);
+                .Where(t => t.TaxCategoryId != null
+                         && VatCategoryIds.Contains(t.TaxCategoryId))
+                .Sum(t => t.TaxableAmount);
 
             var vatAmount = taxTotals
-                .SelectMany(t => t.TaxSubtotal)
-                .Where(s => s.TaxCategoryId != null
-                         && VatCategoryIds.Contains(s.TaxCategoryId))
-                .Sum(s => s.TaxAmount);
+                .Where(t => t.TaxCategoryId != null
+                         && VatCategoryIds.Contains(t.TaxCategoryId))
+                .Sum(t => t.TaxAmount);
 
             inputItems.Add(InputVatScheduleItem.Create(
                 scheduleId: schedule.Id,

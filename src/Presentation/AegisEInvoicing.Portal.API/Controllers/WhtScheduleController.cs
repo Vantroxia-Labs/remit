@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AegisEInvoicing.Portal.API.Controllers;
 
 [ApiController]
-[Route("api/wht-schedule")]
+[Route("api/v{version:apiVersion}/wht-schedule")]
 [Authorize]
 public class WhtScheduleController(IMediator mediator) : ControllerBase
 {

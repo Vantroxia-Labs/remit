@@ -1,13 +1,9 @@
-﻿using AegisEInvoicing.Application.Common.Extensions;
-using AegisEInvoicing.Application.Common.Interfaces;
+﻿using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Constants;
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.Extensions;
-using AegisEInvoicing.Interswitch;
-using AegisEInvoicing.Interswitch.Interfaces;
-using AegisEInvoicing.Interswitch.Models.Requests.SignInvoice;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -39,16 +35,14 @@ internal class SigningStatistics
 public class SignBulkInvoiceCommandHandler(
  IApplicationDbContext context,
     ICurrentUserService currentUser,
-    IEncryptionService encryptionService,
-    IInterswitchHttpClient interswitchHttpClient,
+    IAppProviderRouter appProviderRouter,
     ILogger<SignBulkInvoiceCommandHandler> logger)
     : IRequestHandler<SignBulkInvoiceCommand, SignBulkInvoiceResult>
 {
     private readonly IApplicationDbContext _context = context;
     private readonly ICurrentUserService _currentUser = currentUser;
     private readonly ILogger<SignBulkInvoiceCommandHandler> _logger = logger;
-    private readonly IEncryptionService _encryptionService = encryptionService;
-    private readonly IInterswitchHttpClient _interswitchHttpClient = interswitchHttpClient;
+    private readonly IAppProviderRouter _appProviderRouter = appProviderRouter;
 
     public async Task<SignBulkInvoiceResult> Handle(SignBulkInvoiceCommand request, CancellationToken cancellationToken)
     {
@@ -107,17 +101,10 @@ public class SignBulkInvoiceCommandHandler(
 
     private async Task ProcessBusinessInvoices(Business business, List<Invoice> invoices, SigningStatistics stats, CancellationToken cancellationToken)
     {
-        // Check if business has FIRS credentials
-        if (string.IsNullOrEmpty(business.FIRSApiKey) || string.IsNullOrEmpty(business.FIRSClientSecret))
-        {
-            await MarkInvoicesAsFailed(invoices, "SIGNING FAILED: FIRS credentials not configured", stats, cancellationToken);
-            return;
-        }
-
         try
         {
-            // Decrypt credentials for this specific business
-            var (apiKey, clientSecret) = await DecryptCredentials(business.FIRSApiKey, business.FIRSClientSecret);
+            // Get configured provider adapter for this business
+            var provider = await _appProviderRouter.GetProviderAsync(business.Id, cancellationToken);
 
             // Process invoices in batches for this business
             var batchSize = 10;
@@ -125,34 +112,22 @@ public class SignBulkInvoiceCommandHandler(
 
             foreach (var batch in batches)
             {
-                await ProcessInvoiceBatch(batch, business, apiKey, clientSecret, stats, cancellationToken);
+                await ProcessInvoiceBatch(batch, provider, stats, cancellationToken);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to decrypt credentials for business {BusinessId}", business.Id);
-            await MarkInvoicesAsFailed(invoices, "SIGNING FAILED: Unable to decrypt FIRS credentials", stats, cancellationToken);
+            _logger.LogError(ex, "Failed to get provider adapter for business {BusinessId}", business.Id);
+            await MarkInvoicesAsFailed(invoices, "SIGNING FAILED: Unable to configure APP provider", stats, cancellationToken);
         }
     }
 
-    private async Task<(string apiKey, string clientSecret)> DecryptCredentials(string encryptedApiKey, string encryptedClientSecret)
-    {
-        var decryptTasks = new[]
-        {
-        _encryptionService.DecryptAsync(encryptedApiKey),
-        _encryptionService.DecryptAsync(encryptedClientSecret)
-    };
-
-        var results = await Task.WhenAll(decryptTasks);
-        return (results[0], results[1]);
-    }
-
-    private async Task ProcessInvoiceBatch(IEnumerable<Invoice> invoices, Business business, string apiKey, string clientSecret, SigningStatistics stats, CancellationToken cancellationToken)
+    private async Task ProcessInvoiceBatch(IEnumerable<Invoice> invoices, IAccessPointProviderClient provider, SigningStatistics stats, CancellationToken cancellationToken)
     {
         try
         {
             var signingTasks = invoices.Select(invoice =>
-                SignSingleInvoice(invoice, business.FIRSBusinessId, apiKey, clientSecret, stats, cancellationToken));
+                SignSingleInvoice(invoice, provider, stats, cancellationToken));
 
             await Task.WhenAll(signingTasks);
             await _context.SaveChangesAsync(cancellationToken);
@@ -160,7 +135,7 @@ public class SignBulkInvoiceCommandHandler(
         catch (Exception ex)
         {
             var invoiceIds = string.Join(",", invoices.Select(i => i.Id));
-            _logger.LogError(ex, "Failed to sign invoice batch for business {BusinessId}: {InvoiceIds}", business.Id, invoiceIds);
+            _logger.LogError(ex, "Failed to sign invoice batch: {InvoiceIds}", invoiceIds);
 
             // Mark failed invoices and record statistics
             foreach (var invoice in invoices)
@@ -176,17 +151,16 @@ public class SignBulkInvoiceCommandHandler(
         }
     }
 
-    private async Task SignSingleInvoice(Invoice invoice, Guid firsBusinessId, string apiKey, string clientSecret, SigningStatistics stats, CancellationToken cancellationToken)
+    private async Task SignSingleInvoice(Invoice invoice, IAccessPointProviderClient provider, SigningStatistics stats, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Signing invoice {InvoiceId} with IRN {IRN} for business {BusinessId}",
             invoice.Id, invoice.Irn?.Value, invoice.BusinessId);
 
-        var signingRequest = BuildSigningRequest(invoice, firsBusinessId);
-        var response = await _interswitchHttpClient.SignInvoiceAsync(signingRequest, cancellationToken);
+        var result = await provider.SignInvoiceAsync(invoice, cancellationToken);
 
         var identifier = invoice.Irn?.Value ?? invoice.Id.ToString();
 
-        if (IsSigningSuccessful(response))
+        if (result.IsSuccess)
         {
             invoice.SetFIRSSubmissionResponseMessage(ResponseMessages.INVOICE_SIGNING_SUCCESSFUL);
             invoice.UpdateStatus(InvoiceStatus.SIGNED);
@@ -199,10 +173,9 @@ public class SignBulkInvoiceCommandHandler(
         }
         else
         {
-            var errorMessage = response?.Error?.PublicMessage ??
-            response?.Error?.Details ??
-            ResponseMessages.INVOICE_SIGNING_FAILED;
-            _logger.LogWarning("Invoice {InvoiceId} signing failed with code: {Code}", invoice.Id, response?.Code ?? 0);
+            var errorMessage = result.ErrorMessage ?? ResponseMessages.INVOICE_SIGNING_FAILED;
+            _logger.LogWarning("Invoice {InvoiceId} signing failed: {ErrorCode} - {ErrorMessage}",
+                invoice.Id, result.ErrorCode, errorMessage);
             invoice.SetFIRSSubmissionResponseMessage(errorMessage);
             invoice.UpdateStatus(InvoiceStatus.SIGNINGFAILED);
             _context.InvoiceApprovalHistories.Add(InvoiceApprovalHistory.Create(invoice.Id, invoice.InvoiceStatus, errorMessage));
@@ -211,38 +184,6 @@ public class SignBulkInvoiceCommandHandler(
             stats.RecordFailure(identifier, errorMessage);
         }
     }
-
-    private static SignInvoiceRequest BuildSigningRequest(Invoice invoice, Guid firsBusinessId) =>
-        new()
-        {
-            BusinessId = firsBusinessId.ToString(),
-            Irn = invoice.Irn?.Value ?? string.Empty,
-            IssueDate = invoice.IssueDate,
-            DueDate = invoice.DueDate,
-            IssueTime = invoice.IssueTime,
-            InvoiceTypeCode = invoice.InvoiceType.Code.ToString(),
-            PaymentStatus = invoice.PaymentStatus.GetDisplayName(),
-            Note = invoice.Note,
-            DocumentCurrencyCode = invoice.Currency.Code,
-            TaxCurrencyCode = invoice.Currency.Code,
-            InvoiceDeliveryPeriod = invoice.DeliveryPeriod.ToSigningInvoiceDeliveryPeriod(),
-            AccountingCustomerParty = invoice.Party.ToSigningAccountingCustomerParty(),
-            AccountingSupplierParty = invoice.Business.ToSigningAccountingSupplierParty(),
-            BillingReference = invoice.BillingReferences.ToList().ToSigningBillingReference(),
-            DocumentReference = invoice.AdditionalDocumentReferences.ToList().ToSigningAddtionalDocumentReference(),
-            DispatchDocumentReference = invoice.DispatchDocumentReference!.ToSigningDispatchDocumentReference(),
-            ReceiptDocumentReference = invoice.ReceiptDocumentReference!.ToSigningReceiptDocumentReference(),
-            OriginatorDocumentReference = invoice.OriginatorDocumentReference!.ToSigningOriginatorDocumentReference(),
-            ContractDocumentReference = invoice.ContractDocumentReference!.ToSigningContractDocumentReference(),
-            PaymentMeans = invoice.PaymentMeans!.ToSigningPaymentMeans(invoice.IssueDate.AddDays(7)),
-            PaymentTermsNote = invoice.PaymentTerms,
-            AllowanceCharge = invoice.InvoiceLine.ToList().ToSigningAllowanceCharge(),
-            TaxTotal = invoice.InvoiceLine.ToList().ToSigningTaxTotal(),
-            LegalMonetaryTotal = invoice.InvoiceLine.ToList().ToSigningLegalMonetaryTotal(),
-            InvoiceLine = invoice.InvoiceLine.ToList().ToSigningInvoiceLine(invoice.Currency.Code)
-        };
-
-    private static bool IsSigningSuccessful(dynamic response) => ((int)response.Code == 200);
 
     private async Task MarkInvoicesAsFailed(IEnumerable<Invoice> invoices, string message, SigningStatistics stats, CancellationToken cancellationToken)
     {

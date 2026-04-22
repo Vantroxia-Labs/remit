@@ -57,6 +57,9 @@ public static class DatabaseExtensions
             // Seed initial data if needed
             var configuration = services.GetRequiredService<IConfiguration>();
             await SeedData(context, logger, configuration);
+
+            // Always reconcile system role permissions (fixes stale seed data on existing DBs)
+            await ReconcileSystemRolePermissions(context, logger);
         }
         catch (Exception ex)
         {
@@ -167,6 +170,41 @@ public static class DatabaseExtensions
         {
             logger.LogError(ex, "An error occurred while seeding initial data");
             throw;
+        }
+    }
+
+    private static async Task ReconcileSystemRolePermissions(ApplicationDbContext context, ILogger logger)
+    {
+        try
+        {
+            // Ensure the platform-wide ClientAdmin role has all expected permissions.
+            // This runs every startup so stale seed data on existing databases is corrected.
+            var clientAdminRole = await context.PlatformRoles
+                .FirstOrDefaultAsync(r => r.Name == RoleConstants.ClientAdmin && r.BusinessId == null);
+
+            if (clientAdminRole == null) return;
+
+            var expectedPermissions = PermissionConstants.ClientAdminAssignablePermissions;
+            bool changed = false;
+
+            foreach (var perm in expectedPermissions)
+            {
+                if (!clientAdminRole.HasPermission(perm))
+                {
+                    clientAdminRole.AddPermission(perm);
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                await context.SaveChangesAsync();
+                logger.LogInformation("Reconciled ClientAdmin role: added missing permissions");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not reconcile system role permissions");
         }
     }
 

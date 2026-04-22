@@ -1,5 +1,5 @@
+using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Constants;
-using AegisEInvoicing.Interswitch.Interfaces;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -8,14 +8,14 @@ namespace AegisEInvoicing.Application.Features.TinValidation;
 
 /// <summary>
 /// Handler for TIN validation query
-/// Validates TIN format and checks MBS enrollment status via Interswitch
+/// Validates TIN format and checks MBS enrollment status via APP provider
 /// </summary>
 public sealed class ValidateTinQueryHandler(
-    IInterswitchHttpClient interswitchClient,
+    IAppProviderRouter appProviderRouter,
     ILogger<ValidateTinQueryHandler> logger)
     : IRequestHandler<ValidateTinQuery, TinValidationResult>
 {
-    private readonly IInterswitchHttpClient _interswitchClient = interswitchClient;
+    private readonly IAppProviderRouter _appProviderRouter = appProviderRouter;
     private readonly ILogger<ValidateTinQueryHandler> _logger = logger;
 
     public async Task<TinValidationResult> Handle(ValidateTinQuery request, CancellationToken cancellationToken)
@@ -36,45 +36,50 @@ public sealed class ValidateTinQueryHandler(
                     ResponseMessages.INVALID_TIN_OR_NOT_ENROLLED);
             }
 
-            // Call Interswitch TIN lookup
-            _logger.LogInformation("Validating TIN: {Tin} (masked)", MaskTin(request.Tin));
+            // Get provider adapter for TIN lookup
+            // Using a default business ID since TIN validation doesn't require specific business context
+            var provider = await _appProviderRouter.GetProviderAsync(Guid.Empty, cancellationToken);
 
-            var lookupResponse = await _interswitchClient.LookupWithTINAsync(
-                new Interswitch.Models.Requests.LookupWithTIN.LookupWithTINRequest
-                {
-                    TIN = request.Tin
-                }, 
-                cancellationToken);
-
-            // Parse the response
-            if (lookupResponse?.Data?.Data == null)
+            if (!provider.SupportsLookupTin)
             {
-                _logger.LogWarning("TIN lookup returned null response for TIN: {Tin}", MaskTin(request.Tin));
-                return TinValidationResult.Error("TIN validation service unavailable");
+                _logger.LogWarning("Provider {Provider} does not support TIN lookup", provider.DisplayName);
+                return TinValidationResult.Error($"TIN validation not supported by current provider ({provider.DisplayName})");
             }
 
-            var lookupData = lookupResponse.Data.Data;
+            // Call provider TIN lookup
+            _logger.LogInformation("Validating TIN: {Tin} (masked) using provider {Provider}",
+                MaskTin(request.Tin), provider.DisplayName);
 
-            // Check if buyer is enrolled (up == true means enrolled)
-            if (lookupData.IsUp)
+            var lookupResult = await provider.LookupTinAsync(request.Tin, cancellationToken);
+
+            // Parse the response
+            if (!lookupResult.IsSuccess)
+            {
+                _logger.LogWarning("TIN lookup failed for TIN: {Tin} - {ErrorMessage}",
+                    MaskTin(request.Tin), lookupResult.ErrorMessage);
+                return TinValidationResult.Error(lookupResult.ErrorMessage ?? "TIN validation service unavailable");
+            }
+
+            // Check if buyer is enrolled (IsUp == true means enrolled)
+            if (lookupResult.IsUp)
             {
                 _logger.LogInformation(
-                    "TIN {Tin} is valid and enrolled. Business: {BusinessRef}", 
-                    MaskTin(request.Tin), 
-                    lookupData.BusinessReference ?? "N/A");
+                    "TIN {Tin} is valid and enrolled. Business: {BusinessRef}",
+                    MaskTin(request.Tin),
+                    lookupResult.BusinessReference ?? "N/A");
 
                 return TinValidationResult.ValidAndEnrolled(
-                    businessName: lookupData.BusinessReference ?? "Unknown",
-                    businessReference: lookupData.BusinessReference,
-                    appReference: lookupData.AppReference,
-                    hasWebhookSetup: lookupData.HasWebhookSetup);
+                    businessName: lookupResult.BusinessReference ?? "Unknown",
+                    businessReference: lookupResult.BusinessReference,
+                    appReference: null,
+                    hasWebhookSetup: false);
             }
             else
             {
                 // up == false means either invalid TIN or not enrolled
                 // We cannot distinguish between these two cases
                 _logger.LogWarning("TIN {Tin} is invalid or not enrolled on MBS portal", MaskTin(request.Tin));
-                
+
                 return TinValidationResult.InvalidOrNotEnrolled(
                     ResponseMessages.INVALID_TIN_OR_NOT_ENROLLED);
             }

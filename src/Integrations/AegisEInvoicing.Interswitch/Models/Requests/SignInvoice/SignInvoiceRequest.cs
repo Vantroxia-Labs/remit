@@ -180,6 +180,12 @@ public class PostalAddress
     [JsonPropertyName("city_name")]
     public string CityName { get; set; } = null!;
 
+    [JsonPropertyName("lga")]
+    public string? Lga { get; set; }
+
+    [JsonPropertyName("state")]
+    public string? State { get; set; }
+
     [JsonPropertyName("postal_zone")]
     public string PostalZone { get; set; } = null!;
 

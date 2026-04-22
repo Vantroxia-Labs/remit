@@ -49,7 +49,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
             request.Address.City,
             request.Address.State,
             request.Address.Country,
-            request.Address.PostalCode);
+            request.Address.PostalCode,
+            request.Address.Lga);
 
         var command = new CreatePartyCommand(
             request.Name,
@@ -139,7 +140,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
                 City = result.Party.Address.City,
                 State = result.Party.Address.State,
                 Country = result.Party.Address.Country,
-                PostalCode = result.Party.Address.PostalCode
+                PostalCode = result.Party.Address.PostalCode,
+                Lga = result.Party.Address.Lga
             },
             CreatedAt = result.Party.CreatedAt,
             UpdatedAt = result.Party.UpdatedAt,
@@ -170,7 +172,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
             request.Address.City,
             request.Address.State,
             request.Address.Country,
-            request.Address.PostalCode);
+            request.Address.PostalCode,
+            request.Address.Lga);
 
         var command = new UpdatePartyCommand(
             id,

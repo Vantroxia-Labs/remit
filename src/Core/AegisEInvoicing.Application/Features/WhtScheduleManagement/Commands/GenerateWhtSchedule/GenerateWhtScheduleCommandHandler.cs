@@ -3,7 +3,6 @@ using AegisEInvoicing.Application.Features.WhtScheduleManagement.DTOs;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.Exceptions;
-using AegisEInvoicing.Interswitch.Models.Responses.GetPurchaseInvoices;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -86,14 +85,13 @@ public class GenerateWhtScheduleCommandHandler(
             {
                 try
                 {
-                    var taxTotals = JsonSerializer.Deserialize<List<PurchaseInvoiceTaxTotal>>(ri.TaxTotalJson, JsonOpts);
-                    var whtSubtotal = taxTotals?
-                        .SelectMany(t => t.TaxSubtotal)
-                        .FirstOrDefault(s => s.TaxCategoryId?
+                    var taxTotals = JsonSerializer.Deserialize<List<AppTaxTotal>>(ri.TaxTotalJson, JsonOpts);
+                    var whtTax = taxTotals?
+                        .FirstOrDefault(t => t.TaxCategoryId?
                             .Equals(WhtCategoryId, StringComparison.OrdinalIgnoreCase) == true);
 
-                    if (whtSubtotal?.Percent.HasValue == true && whtSubtotal.Percent.Value > 0)
-                        whtRate = whtSubtotal.Percent.Value;
+                    if (whtTax?.Percent.HasValue == true && whtTax.Percent.Value > 0)
+                        whtRate = whtTax.Percent.Value;
                 }
                 catch (JsonException ex)
                 {

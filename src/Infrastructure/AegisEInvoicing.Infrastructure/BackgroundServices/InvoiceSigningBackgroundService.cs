@@ -1,12 +1,8 @@
-using AegisEInvoicing.Application.Common.Extensions;
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Constants;
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Enums;
-using AegisEInvoicing.Interswitch;
-using AegisEInvoicing.Interswitch.Interfaces;
-using AegisEInvoicing.Interswitch.Models.Requests.SignInvoice;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -65,8 +61,7 @@ public sealed class InvoiceSigningBackgroundService : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-        var interswitchClient = scope.ServiceProvider.GetRequiredService<IInterswitchHttpClient>();
-        var encryptionService = scope.ServiceProvider.GetRequiredService<IEncryptionService>();
+        var appProviderRouter = scope.ServiceProvider.GetRequiredService<IAppProviderRouter>();
 
         // Get all validated invoices that need signing
         var validatedInvoices = await dbContext.Invoices
@@ -92,7 +87,7 @@ public sealed class InvoiceSigningBackgroundService : BackgroundService
 
         foreach (var businessGroup in invoicesByBusiness)
         {
-            await ProcessBusinessInvoices(businessGroup.Key, businessGroup.ToList(), dbContext, interswitchClient, encryptionService, cancellationToken);
+            await ProcessBusinessInvoices(businessGroup.Key, businessGroup.ToList(), dbContext, appProviderRouter, cancellationToken);
         }
 
         _logger.LogInformation("Completed processing {Count} validated invoices", validatedInvoices.Count);
@@ -102,59 +97,33 @@ public sealed class InvoiceSigningBackgroundService : BackgroundService
         Business business,
         List<Invoice> invoices,
         IApplicationDbContext dbContext,
-        IInterswitchHttpClient firsClient,
-        IEncryptionService encryptionService,
+        IAppProviderRouter appProviderRouter,
         CancellationToken cancellationToken)
     {
-        // Check if business has FIRS credentials
-        if (string.IsNullOrEmpty(business.FIRSApiKey) || string.IsNullOrEmpty(business.FIRSClientSecret))
-        {
-            await MarkInvoicesAsFailed(invoices, "SIGNING FAILED: FIRS credentials not configured", dbContext, cancellationToken);
-            return;
-        }
-
         try
         {
-            // Decrypt credentials once per business
-            var (apiKey, clientSecret) = await DecryptCredentials(business.FIRSApiKey, business.FIRSClientSecret, encryptionService);
+            // Get configured provider adapter for this business
+            var provider = await appProviderRouter.GetProviderAsync(business.Id, cancellationToken);
 
             // Process invoices in smaller concurrent batches
             var batches = invoices.Chunk(ConcurrentBatchSize);
 
             foreach (var batch in batches)
             {
-                await ProcessInvoiceBatch(batch, business.FIRSBusinessId, apiKey, clientSecret, dbContext, firsClient, cancellationToken);
+                await ProcessInvoiceBatch(batch, provider, dbContext, cancellationToken);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to decrypt credentials for business {BusinessId}", business.Id);
-            await MarkInvoicesAsFailed(invoices, "SIGNING FAILED: Unable to decrypt FIRS credentials", dbContext, cancellationToken);
+            _logger.LogError(ex, "Failed to get provider adapter for business {BusinessId}", business.Id);
+            await MarkInvoicesAsFailed(invoices, "SIGNING FAILED: Unable to configure APP provider", dbContext, cancellationToken);
         }
-    }
-
-    private async Task<(string apiKey, string clientSecret)> DecryptCredentials(
-        string encryptedApiKey,
-        string encryptedClientSecret,
-        IEncryptionService encryptionService)
-    {
-        var decryptTasks = new[]
-        {
-            encryptionService.DecryptAsync(encryptedApiKey),
-            encryptionService.DecryptAsync(encryptedClientSecret)
-        };
-
-        var results = await Task.WhenAll(decryptTasks);
-        return (results[0], results[1]);
     }
 
     private async Task ProcessInvoiceBatch(
         IEnumerable<Invoice> invoices,
-        Guid firsBusinessId,
-        string apiKey,
-        string clientSecret,
+        IAccessPointProviderClient provider,
         IApplicationDbContext dbContext,
-        IInterswitchHttpClient firsClient,
         CancellationToken cancellationToken)
     {
         // Use execution strategy to handle retries with transactions
@@ -168,7 +137,7 @@ public sealed class InvoiceSigningBackgroundService : BackgroundService
             {
                 // Process invoices concurrently within the batch
                 var signingTasks = invoices.Select(invoice =>
-                    SignSingleInvoice(invoice, firsBusinessId, apiKey, clientSecret, firsClient, cancellationToken));
+                    SignSingleInvoice(invoice, provider, cancellationToken));
 
                 await Task.WhenAll(signingTasks);
 
@@ -181,14 +150,14 @@ public sealed class InvoiceSigningBackgroundService : BackgroundService
                 await dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
-                _logger.LogInformation("Successfully processed batch of {Count} invoices for business {BusinessId}",
-                    invoices.Count(), firsBusinessId);
+                _logger.LogInformation("Successfully processed batch of {Count} invoices using {Provider}",
+                    invoices.Count(), provider.DisplayName);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync(cancellationToken);
                 var invoiceIds = string.Join(",", invoices.Select(i => i.Id));
-                _logger.LogError(ex, "Failed to process invoice batch for business {BusinessId}: {InvoiceIds}", firsBusinessId, invoiceIds);
+                _logger.LogError(ex, "Failed to process invoice batch for business {BusinessId}: {InvoiceIds}", invoices.FirstOrDefault()?.BusinessId, invoiceIds);
 
                 // Mark all invoices in the batch as failed
                 foreach (var invoice in invoices)
@@ -205,10 +174,7 @@ public sealed class InvoiceSigningBackgroundService : BackgroundService
 
     private async Task SignSingleInvoice(
         Invoice invoice,
-        Guid firsBusinessId,
-        string apiKey,
-        string clientSecret,
-        IInterswitchHttpClient firsClient,
+        IAccessPointProviderClient provider,
         CancellationToken cancellationToken)
     {
         try
@@ -216,10 +182,9 @@ public sealed class InvoiceSigningBackgroundService : BackgroundService
             _logger.LogInformation("Signing invoice {InvoiceId} with IRN {IRN} for business {BusinessId}",
                 invoice.Id, invoice.Irn?.Value, invoice.BusinessId);
 
-            var signingRequest = BuildSigningRequest(invoice, firsBusinessId);
-            var response = await firsClient.SignInvoiceAsync(signingRequest, cancellationToken);
+            var result = await provider.SignInvoiceAsync(invoice, cancellationToken);
 
-            if (IsSigningSuccessful(response))
+            if (result.IsSuccess)
             {
                 invoice.UpdateStatus(InvoiceStatus.SIGNED);
                 invoice.SetFIRSSubmissionId(invoice.Irn?.Value ?? Guid.NewGuid().ToString());
@@ -230,8 +195,9 @@ public sealed class InvoiceSigningBackgroundService : BackgroundService
             }
             else
             {
-                _logger.LogWarning("Invoice {InvoiceId} signing failed with code: {Code}", invoice.Id, response.Code);
-                invoice.SetFIRSSubmissionResponseMessage(response.Error?.PublicMessage ?? "Signing failed");
+                _logger.LogWarning("Invoice {InvoiceId} signing failed: {ErrorCode} - {ErrorMessage}",
+                    invoice.Id, result.ErrorCode, result.ErrorMessage);
+                invoice.SetFIRSSubmissionResponseMessage(result.ErrorMessage ?? "Signing failed");
                 invoice.UpdateStatus(InvoiceStatus.SIGNINGFAILED);
             }
         }
@@ -242,33 +208,6 @@ public sealed class InvoiceSigningBackgroundService : BackgroundService
             invoice.UpdateStatus(InvoiceStatus.SIGNINGFAILED);
         }
     }
-
-    private static SignInvoiceRequest BuildSigningRequest(Invoice invoice, Guid firsBusinessId) =>
-        new()
-        {
-            BusinessId = firsBusinessId.ToString(),
-            Irn = invoice.Irn?.Value ?? string.Empty,
-            IssueDate = invoice.IssueDate,
-            DueDate = invoice.DueDate,
-            IssueTime = invoice.IssueTime,
-            InvoiceTypeCode = invoice.InvoiceType.Code.ToString(),
-            PaymentStatus = invoice.PaymentStatus.GetDisplayName(),
-            Note = invoice.Note,
-            DocumentCurrencyCode = invoice.Currency.Code,
-            TaxCurrencyCode = invoice.Currency.Code,
-            InvoiceDeliveryPeriod = invoice.DeliveryPeriod.ToSigningInvoiceDeliveryPeriod(),
-            AccountingCustomerParty = invoice.Party.ToSigningAccountingCustomerParty(),
-            AccountingSupplierParty = invoice.Business.ToSigningAccountingSupplierParty(),
-            PaymentMeans = invoice.PaymentMeans!.ToSigningPaymentMeans(invoice.IssueDate.AddDays(7)),
-            PaymentTermsNote = invoice.PaymentTerms,
-            AllowanceCharge = invoice.InvoiceLine.ToList().ToSigningAllowanceCharge(),
-            TaxTotal = invoice.InvoiceLine.ToList().ToSigningTaxTotal(),
-            LegalMonetaryTotal = invoice.InvoiceLine.ToList().ToSigningLegalMonetaryTotal(),
-            InvoiceLine = invoice.InvoiceLine.ToList().ToSigningInvoiceLine(invoice.Currency.Code)
-        };
-
-    private static bool IsSigningSuccessful(dynamic response) =>
-        (response.Data!.Data!.Ok ?? false);
 
     private async Task MarkInvoicesAsFailed(
         IEnumerable<Invoice> invoices,

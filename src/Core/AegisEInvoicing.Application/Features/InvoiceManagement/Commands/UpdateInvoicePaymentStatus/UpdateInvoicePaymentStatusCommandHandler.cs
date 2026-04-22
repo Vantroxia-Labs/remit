@@ -1,7 +1,6 @@
 ﻿using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Constants;
 using AegisEInvoicing.FIRSAccessPoint.Models.Enumerators;
-using AegisEInvoicing.Interswitch.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,21 +12,18 @@ public class UpdateInvoicePaymentStatusCommandHandler : IRequestHandler<UpdateIn
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly ILogger<UpdateInvoicePaymentStatusCommandHandler> _logger;
-    private readonly IInterswitchHttpClient _interswitchHttpClient;
-    private readonly IEncryptionService _encryptionService;
+    private readonly IAppProviderRouter _appProviderRouter;
 
     public UpdateInvoicePaymentStatusCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUserService,
         ILogger<UpdateInvoicePaymentStatusCommandHandler> logger,
-        IInterswitchHttpClient interswitchHttpClient,
-        IEncryptionService encryptionService)
+        IAppProviderRouter appProviderRouter)
     {
         _context = context;
         _currentUser = currentUserService;
         _logger = logger;
-        _interswitchHttpClient = interswitchHttpClient;
-        _encryptionService = encryptionService;
+        _appProviderRouter = appProviderRouter;
     }
 
     public async Task<UpdateInvoicePaymentStatusResult> Handle(UpdateInvoicePaymentStatusCommand request, CancellationToken cancellationToken)
@@ -54,13 +50,12 @@ public class UpdateInvoicePaymentStatusCommandHandler : IRequestHandler<UpdateIn
         if (request.PaymentStatus == PaymentStatus.Paid && string.IsNullOrWhiteSpace(request.Reference))
             return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.BadRequest("A payment reference is required when marking an invoice as Paid.");
 
-        var updatePaymentStatus = await _interswitchHttpClient.UpdateStatusAsync(
-            new Interswitch.Models.Requests.UpdateStatus.UpdateStatusRequest
-            {
-                PaymentStatus = FormatPaymentStatus(request.PaymentStatus),
-                Reference = request.Reference,
-                IRN = invoice.Irn.Value
-            }, cancellationToken);
+        var provider = await _appProviderRouter.GetProviderAsync(businessId, cancellationToken);
+        var updatePaymentStatus = await provider.UpdateStatusAsync(
+            invoice.Irn.Value,
+            FormatPaymentStatus(request.PaymentStatus),
+            request.Reference,
+            cancellationToken);
 
         if (updatePaymentStatus.IsSuccess)
             invoice.UpdatePaymentStatus(request.PaymentStatus, request.Reference);

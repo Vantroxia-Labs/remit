@@ -200,7 +200,7 @@ public class BusinessConfiguration : IEntityTypeConfiguration<Business>
         builder.Property(e => e.AppEnvironmentMode)
             .HasConversion<string>()
             .HasMaxLength(50)
-            .HasDefaultValue(AegisEInvoicing.Domain.Enums.AppEnvironmentMode.Production);
+            .HasDefaultValue(AegisEInvoicing.Domain.Enums.AppEnvironmentMode.Sandbox);
 
         // Indexes
         builder.HasIndex(e => e.Name).IsUnique();

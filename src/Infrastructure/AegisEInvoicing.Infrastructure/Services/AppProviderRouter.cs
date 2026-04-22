@@ -45,7 +45,7 @@ public sealed class AppProviderRouter(
             .FirstOrDefaultAsync(cancellationToken);
 
         var adapterKey = business?.ActiveAdapterKey ?? DefaultAdapterKey;
-        var isSandbox  = business?.AppEnvironmentMode == AppEnvironmentMode.Sandbox;
+        var isSandbox = business?.AppEnvironmentMode == AppEnvironmentMode.Sandbox;
 
         // 2. Resolve adapter from registry
         if (!_registry.TryGetValue(adapterKey, out var adapter))
@@ -68,18 +68,15 @@ public sealed class AppProviderRouter(
 
         if (config is null)
         {
-            // No DB entry yet — return the adapter with appsettings-injected (default) credentials
-            logger.LogWarning(
-                "No AppProviderConfiguration found for AdapterKey '{Key}' (BusinessId={BusinessId}). " +
-                "Using appsettings credentials.",
-                adapterKey, businessId);
-
-            return adapter;
+            // No DB entry — APP provider credentials must be configured in the admin panel
+            throw new InvalidOperationException(
+                $"No AppProviderConfiguration found for provider '{adapterKey}'. " +
+                $"Please configure credentials in the admin panel.");
         }
 
         // 4. Decrypt the right credential blob
         var encryptedBlob = isSandbox ? config.EncryptedSandboxCredentials : config.EncryptedCredentials;
-        var baseUrl       = isSandbox ? (config.SandboxBaseUrl ?? config.BaseUrl) : config.BaseUrl;
+        var baseUrl = isSandbox ? (config.SandboxBaseUrl ?? config.BaseUrl) : config.BaseUrl;
 
         var credentialsJson = encryptedBlob is not null
             ? await encryptionService.DecryptAsync(encryptedBlob)

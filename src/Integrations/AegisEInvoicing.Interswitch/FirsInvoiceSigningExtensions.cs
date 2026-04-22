@@ -1,4 +1,4 @@
-﻿using AegisEInvoicing.Domain.Entities.BusinessManagement;
+using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.ValueObjects;
@@ -7,7 +7,7 @@ using DocumentReference = AegisEInvoicing.Interswitch.Models.Requests.SignInvoic
 using PostalAddress = AegisEInvoicing.Interswitch.Models.Requests.SignInvoice.PostalAddress;
 using TaxCategory = AegisEInvoicing.Interswitch.Models.Requests.SignInvoice.TaxCategory;
 
-namespace AegisEInvoicing.Application.Common.Extensions;
+namespace AegisEInvoicing.Interswitch;
 
 public static class FirsInvoiceSigningExtensions
 {
@@ -32,7 +32,9 @@ public static class FirsInvoiceSigningExtensions
                 CityName = party.Address.City,
                 StreetName = party.Address.Street,
                 PostalZone = party.Address.PostalCode,
-                Country = party.Address.Country
+                Country = party.Address.Country,
+                State = party.Address.State,
+                Lga = party.Address.Lga
             },
             Telephone = party.Phone,
             Tin = party.TaxIdentificationNumber.Value
@@ -51,7 +53,9 @@ public static class FirsInvoiceSigningExtensions
                 CityName = business.RegisteredAddress.City,
                 StreetName = business.RegisteredAddress.Street,
                 PostalZone = business.RegisteredAddress.PostalCode,
-                Country = business.RegisteredAddress.Country
+                Country = business.RegisteredAddress.Country,
+                State = business.RegisteredAddress.State,
+                Lga = business.RegisteredAddress.Lga
             },
             Telephone = business.ContactPhone,
             Tin = business.TaxIdentificationNumber.Value

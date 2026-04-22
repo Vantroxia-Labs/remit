@@ -1,13 +1,8 @@
-﻿using AegisEInvoicing.Application.Common.Extensions;
-using AegisEInvoicing.Application.Common.Interfaces;
+﻿using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Constants;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Entities.UserManagement;
 using AegisEInvoicing.Domain.Enums;
-using AegisEInvoicing.Interswitch;
-using AegisEInvoicing.Interswitch.Interfaces;
-using AegisEInvoicing.Interswitch.Models.Requests.SignInvoice;
-using AegisEInvoicing.Interswitch.Exceptions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,8 +12,7 @@ namespace AegisEInvoicing.Application.Features.InvoiceManagement.Commands.SignIn
 public class SignInvoiceCommandHandler(
     IApplicationDbContext context,
     ICurrentUserService currentUser,
-    IEncryptionService encryptionService,
-    IInterswitchHttpClient interswitchHttpClient,
+    IAppProviderRouter appProviderRouter,
     ILogger<SignInvoiceCommandHandler> logger,
     IInvoiceAuditService? auditService = null,
     ITelemetryService? telemetryService = null)
@@ -27,8 +21,7 @@ public class SignInvoiceCommandHandler(
     private readonly IApplicationDbContext _context = context;
     private readonly ICurrentUserService _currentUser = currentUser;
     private readonly ILogger<SignInvoiceCommandHandler> _logger = logger;
-    private readonly IEncryptionService _encryptionService = encryptionService;
-    private readonly IInterswitchHttpClient _interswitchHttpClient = interswitchHttpClient;
+    private readonly IAppProviderRouter _appProviderRouter = appProviderRouter;
     private readonly IInvoiceAuditService? _auditService = auditService;
     private readonly ITelemetryService? _telemetryService = telemetryService;
 
@@ -80,81 +73,40 @@ public class SignInvoiceCommandHandler(
             //if (invoice.InvoiceApprovalHistory.Any(h => validatedStatuses.Contains(h.InvoiceStatus)))
             //    return SignInvoiceResult.BadRequest(ResponseMessages.INVOICE_ALREADY_SIGNED);
 
-            if (string.IsNullOrEmpty(invoice.Business.FIRSApiKey) || string.IsNullOrEmpty(invoice.Business.FIRSClientSecret))
-                return SignInvoiceResult.NotFound(ResponseMessages.BUSINESS_FIRS_CREDENTIALS_NOT_CONFIGURED);
-
-            var decryptedApiKey = await _encryptionService.DecryptAsync(invoice.Business.FIRSApiKey);
-            var decryptedClientSecret = await _encryptionService.DecryptAsync(invoice.Business.FIRSClientSecret);
-
-            var signingRequest = new SignInvoiceRequest
-            {
-                BusinessId = invoice.Business.FIRSBusinessId.ToString(),
-                Irn = invoice.Irn?.Value ?? string.Empty,
-                IssueDate = invoice.IssueDate,
-                DueDate = invoice.DueDate,
-                IssueTime = invoice.IssueTime,
-                InvoiceTypeCode = invoice.InvoiceType.Code.ToString(),
-                InvoiceKind = invoice.InvoiceKind?.GetDisplayName(),
-                PaymentStatus = invoice.PaymentStatus.GetDisplayName(),
-                Note = invoice.Note,
-                // tax_point_date is optional and only required for certain tax scenarios. For simplicity, we will set it to the issue date if the invoice has tax lines, otherwise null.
-                DocumentCurrencyCode = invoice.Currency.Code,
-                TaxCurrencyCode = invoice.Currency.Code,
-                // accounting_cost is optional and only applicable if the invoice has associated costs. For simplicity, we will set it to null.
-                // buyer_reference is optional and only applicable if the invoice has a specific buyer reference. For simplicity, we will set it to null.
-                InvoiceDeliveryPeriod = invoice.DeliveryPeriod.ToSigningInvoiceDeliveryPeriod(),
-                // order_reference is optional and only applicable if the invoice is linked to a specific order. For simplicity, we will set it to null.
-                BillingReference = invoice.BillingReferences.ToList().ToSigningBillingReference(),
-                DispatchDocumentReference = invoice.DispatchDocumentReference!.ToSigningDispatchDocumentReference(),
-                ReceiptDocumentReference = invoice.ReceiptDocumentReference!.ToSigningReceiptDocumentReference(),
-                OriginatorDocumentReference = invoice.OriginatorDocumentReference!.ToSigningOriginatorDocumentReference(),
-                ContractDocumentReference = invoice.ContractDocumentReference!.ToSigningContractDocumentReference(),
-                DocumentReference = invoice.AdditionalDocumentReferences.ToList().ToSigningAddtionalDocumentReference(),
-                AccountingCustomerParty = invoice.Party.ToSigningAccountingCustomerParty(),
-                AccountingSupplierParty = invoice.Business.ToSigningAccountingSupplierParty(),
-                // payee_party is optional and only applicable if the invoice has a different payee party than the supplier. For simplicity, we will set it to null.
-                // bill_party is optional and only applicable if the invoice has a different bill party than the customer. For simplicity, we will set it to null.
-                // ship_party is optional and only applicable if the invoice has a different ship party than the supplier. For simplicity, we will set it to null.
-                // tax_representative_party is optional and only applicable if the invoice has a tax representative. For simplicity, we will set it to null.
-                // actual_delivery_date is optional and only applicable if the invoice has an actual delivery date. For simplicity, we will set it to null.
-                PaymentMeans = invoice.PaymentMeans!.ToSigningPaymentMeans(invoice.IssueDate.AddDays(7)),
-                PaymentTermsNote = invoice.PaymentTerms,
-                AllowanceCharge = invoice.InvoiceLine.ToList().ToSigningAllowanceCharge(),
-                TaxTotal = invoice.InvoiceLine.ToList().ToSigningTaxTotal(),
-                LegalMonetaryTotal = invoice.InvoiceLine.ToList().ToSigningLegalMonetaryTotal(),
-                InvoiceLine = invoice.InvoiceLine.ToList().ToSigningInvoiceLine(invoice.Currency.Code)
-            };
+            // Get the configured provider adapter for this business
+            var provider = await _appProviderRouter.GetProviderAsync(businessId.Value, cancellationToken);
+            var providerName = provider.DisplayName;
 
             var statusBefore = invoice.InvoiceStatus.ToString();
 
             var apiCallStart = DateTime.UtcNow;
-            var response = await _interswitchHttpClient.SignInvoiceAsync(signingRequest, cancellationToken);
+            var result = await provider.SignInvoiceAsync(invoice, cancellationToken);
             var apiCallDuration = DateTime.UtcNow - apiCallStart;
 
-            // Track Interswitch API dependency
+            // Track APP provider API dependency
             _telemetryService?.TrackDependency(
                 "HTTP",
-                "Interswitch",
+                providerName,
                 "SignInvoice",
                 apiCallDuration,
-                response?.Code == 201 || response?.Code == 200,
-                response?.Code,
-                response?.Code == 201 || response?.Code == 200 ? null : response?.Error?.PublicMessage);
+                result.IsSuccess,
+                null, // ErrorCode is string, not compatible with int? status code
+                result.IsSuccess ? null : result.ErrorMessage);
 
             // Log external service interaction
             if (_auditService != null)
             {
                 await _auditService.LogExternalServiceInteractionAsync(
                     invoice.Id,
-                    "Interswitch",
+                    providerName,
                     "SignInvoice",
                     $"IRN: {invoice.Irn?.Value}",
-                    System.Text.Json.JsonSerializer.Serialize(response),
-                    response?.Code == 201 || response?.Code == 200,
+                    result.RawResponse ?? System.Text.Json.JsonSerializer.Serialize(result),
+                    result.IsSuccess,
                     cancellationToken: cancellationToken);
             }
 
-            if (response?.Code == 201 || response?.Code == 200)
+            if (result.IsSuccess)
             {
                 invoice.SetFIRSSubmissionResponseMessage(ResponseMessages.INVOICE_SIGNING_SUCCESSFUL);
                 invoice.UpdateStatus(InvoiceStatus.SIGNED);
@@ -194,13 +146,11 @@ public class SignInvoiceCommandHandler(
             }
             else
             {
-                _logger.LogWarning("Invoice {InvoiceId} Signing failed with code: {Code}",
-                    invoice.Id, response?.Code);
+                _logger.LogWarning("Invoice {InvoiceId} Signing failed with error: {ErrorCode} - {ErrorMessage}",
+                    invoice.Id, result.ErrorCode, result.ErrorMessage);
 
-                // Extract error message - prioritize public_message
-                var errorMessage = response?.Error?.PublicMessage ??
-                                  response?.Error?.Details ??
-                                  "Invoice signing failed";
+                // Extract error message from result
+                var errorMessage = result.ErrorMessage ?? "Invoice signing failed";
 
                 invoice.SetFIRSSubmissionResponseMessage(errorMessage);
                 invoice.UpdateStatus(InvoiceStatus.SIGNINGFAILED);
@@ -235,10 +185,9 @@ public class SignInvoiceCommandHandler(
                         null,
                         System.Text.Json.JsonSerializer.Serialize(new
                         {
-                            ErrorCode = response?.Code,
+                            ErrorCode = result.ErrorCode,
                             ErrorMessage = errorMessage,
-                            ErrorId = response?.Error?.Id,
-                            Handler = response?.Error?.Handler
+                            Provider = providerName
                         }),
                         cancellationToken);
                 }
@@ -250,38 +199,11 @@ public class SignInvoiceCommandHandler(
                 return new SignInvoiceResult
                 {
                     IsSuccess = false,
-                    StatusCodes = response!.Code,
-                    Message = !string.IsNullOrWhiteSpace(response?.Error?.PublicMessage)
-                        ? response.Error.PublicMessage
-                        : !string.IsNullOrWhiteSpace(response?.Error?.Details)
-                            ? response.Error.Details
-                            : "Invoice signing failed"
+                    StatusCodes = 400,
+                    Message = errorMessage
                 };
             }
             return SignInvoiceResult.Successful();
-        }
-        catch (InterswitchIntegrationException interswitchEx)
-        {
-            var duration = DateTime.UtcNow - startTime;
-
-            _logger.LogError(interswitchEx,
-                "Interswitch API error while signing invoice {InvoiceId}: StatusCode={StatusCode}",
-                request.InvoiceId, interswitchEx.StatusCode);
-
-            // Extract error message from Interswitch response body
-            var errorMessage = ExtractInterswitchErrorMessage(interswitchEx.ResponseBody)
-                ?? interswitchEx.Message
-                ?? ResponseMessages.INVOICE_SIGNING_FAILED;
-
-            // Track failed signing due to Interswitch error
-            _telemetryService?.TrackInvoiceSigned(request.InvoiceId, false, duration, errorMessage);
-
-            return new SignInvoiceResult
-            {
-                IsSuccess = false,
-                StatusCodes = interswitchEx.StatusCode ?? 500,
-                Message = errorMessage
-            };
         }
         catch (Exception ex)
         {
@@ -301,56 +223,7 @@ public class SignInvoiceCommandHandler(
     }
 
     /// <summary>
-    /// Extracts error message from Interswitch API response body
-    /// </summary>
-    private string? ExtractInterswitchErrorMessage(string? responseBody)
-    {
-        if (string.IsNullOrWhiteSpace(responseBody))
-            return null;
-
-        try
-        {
-            using var doc = System.Text.Json.JsonDocument.Parse(responseBody);
-
-            // Try to get error.public_message (highest priority)
-            if (doc.RootElement.TryGetProperty("error", out var errorElement))
-            {
-                if (errorElement.TryGetProperty("public_message", out var publicMessage))
-                {
-                    var message = publicMessage.GetString();
-                    if (!string.IsNullOrWhiteSpace(message))
-                        return message;
-                }
-
-                // Fallback to error.details
-                if (errorElement.TryGetProperty("details", out var details))
-                {
-                    var message = details.GetString();
-                    if (!string.IsNullOrWhiteSpace(message))
-                        return message;
-                }
-            }
-
-            // Try to get top-level message
-            if (doc.RootElement.TryGetProperty("message", out var topLevelMessage))
-            {
-                var message = topLevelMessage.GetString();
-                if (!string.IsNullOrWhiteSpace(message) && message != "error has occurred")
-                    return message;
-            }
-        }
-        catch (System.Text.Json.JsonException)
-        {
-            // Not valid JSON, return raw response if it's short enough
-            if (responseBody.Length < 200)
-                return responseBody;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Extracts user-friendly error message from exception (including Interswitch API errors)
+    /// Extracts user-friendly error message from exception
     /// </summary>
     private string ExtractErrorMessageFromException(Exception ex)
     {

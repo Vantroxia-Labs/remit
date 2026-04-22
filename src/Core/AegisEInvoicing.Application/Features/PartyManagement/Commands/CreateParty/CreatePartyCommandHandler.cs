@@ -56,7 +56,8 @@ public class CreatePartyCommandHandler : IRequestHandler<CreatePartyCommand, Par
             request.Address.City,
             request.Address.State,
             request.Address.Country,
-            request.Address.PostalCode ?? string.Empty);
+            request.Address.PostalCode ?? string.Empty,
+            request.Address.Lga);
 
         // Create Party entity
         var party = Party.Create(

@@ -2,8 +2,6 @@ using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Features.VendorManagement.DTOs;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.FIRSAccessPoint.Models.Enumerators;
-using AegisEInvoicing.Interswitch.Interfaces;
-using AegisEInvoicing.Interswitch.Models.Requests.UpdateStatus;
 using AegisEInvoicing.NotificationService.Interfaces;
 using AegisEInvoicing.NotificationService.Models;
 using MediatR;
@@ -15,12 +13,12 @@ namespace AegisEInvoicing.Application.Features.VendorManagement.Commands.MarkBro
 public class MarkBroadcastSubmissionsPaidCommandHandler(
     IApplicationDbContext context,
     ICurrentUserService currentUser,
-    IInterswitchHttpClient interswitchHttpClient,
+    IAppProviderRouter appProviderRouter,
     ILogger<MarkBroadcastSubmissionsPaidCommandHandler> logger) : IRequestHandler<MarkBroadcastSubmissionsPaidCommand, InvoiceBroadcastResult>
 {
     private readonly IApplicationDbContext _context = context;
     private readonly ICurrentUserService _currentUser = currentUser;
-    private readonly IInterswitchHttpClient _interswitchHttpClient = interswitchHttpClient;
+    private readonly IAppProviderRouter _appProviderRouter = appProviderRouter;
     private readonly ILogger<MarkBroadcastSubmissionsPaidCommandHandler> _logger = logger;
 
     public async Task<InvoiceBroadcastResult> Handle(MarkBroadcastSubmissionsPaidCommand request, CancellationToken cancellationToken)
@@ -32,6 +30,8 @@ public class MarkBroadcastSubmissionsPaidCommandHandler(
 
             if (request.InvoiceIds.Count == 0)
                 return new InvoiceBroadcastResult(false, "No invoice IDs provided.");
+
+            var provider = await _appProviderRouter.GetProviderAsync(_currentUser.BusinessId.Value, cancellationToken);
 
             var invoices = await _context.Invoices
                 .Where(i => request.InvoiceIds.Contains(i.Id) && i.BusinessId == _currentUser.BusinessId.Value)
@@ -49,12 +49,11 @@ public class MarkBroadcastSubmissionsPaidCommandHandler(
                 {
                     try
                     {
-                        await _interswitchHttpClient.UpdateStatusAsync(new UpdateStatusRequest
-                        {
-                            PaymentStatus = "PAID",
-                            IRN = invoice.Irn.Value,
-                            Reference = invoice.PaymentReference
-                        }, cancellationToken);
+                        await provider.UpdateStatusAsync(
+                            invoice.Irn.Value,
+                            "PAID",
+                            invoice.PaymentReference,
+                            cancellationToken);
                     }
                     catch (Exception ex)
                     {
@@ -82,13 +81,13 @@ public class MarkBroadcastSubmissionsPaidCommandHandler(
 public class MarkBroadcastSubmissionsRejectedCommandHandler(
     IApplicationDbContext context,
     ICurrentUserService currentUser,
-    IInterswitchHttpClient interswitchHttpClient,
+    IAppProviderRouter appProviderRouter,
     IEmailService emailService,
     ILogger<MarkBroadcastSubmissionsRejectedCommandHandler> logger) : IRequestHandler<MarkBroadcastSubmissionsRejectedCommand, InvoiceBroadcastResult>
 {
     private readonly IApplicationDbContext _context = context;
     private readonly ICurrentUserService _currentUser = currentUser;
-    private readonly IInterswitchHttpClient _interswitchHttpClient = interswitchHttpClient;
+    private readonly IAppProviderRouter _appProviderRouter = appProviderRouter;
     private readonly IEmailService _emailService = emailService;
     private readonly ILogger<MarkBroadcastSubmissionsRejectedCommandHandler> _logger = logger;
 
@@ -101,6 +100,8 @@ public class MarkBroadcastSubmissionsRejectedCommandHandler(
 
             if (request.InvoiceIds.Count == 0)
                 return new InvoiceBroadcastResult(false, "No invoice IDs provided.");
+
+            var provider = await _appProviderRouter.GetProviderAsync(_currentUser.BusinessId.Value, cancellationToken);
 
             var broadcastVendors = await _context.InvoiceBroadcastVendors
                 .Include(bv => bv.Invoice)
@@ -138,12 +139,11 @@ public class MarkBroadcastSubmissionsRejectedCommandHandler(
                 {
                     try
                     {
-                        await _interswitchHttpClient.UpdateStatusAsync(new UpdateStatusRequest
-                        {
-                            PaymentStatus = "REJECTED",
-                            IRN = invoice.Irn.Value,
-                            Reference = invoice.PaymentReference
-                        }, cancellationToken);
+                        await provider.UpdateStatusAsync(
+                            invoice.Irn.Value,
+                            "REJECTED",
+                            invoice.PaymentReference,
+                            cancellationToken);
                     }
                     catch (Exception ex)
                     {
