@@ -79,6 +79,7 @@ public sealed class GetReceivedInvoiceByIdQueryHandler : IRequestHandler<GetRece
                         CountrySubentity = ri.SupplierAddress.State,
                         CountryIdentificationCode = ri.SupplierAddress.Country,
                         PostalZone = ri.SupplierAddress.PostalCode,
+                        Lga = ri.SupplierAddress.Lga,
                         AdditionalStreetName = null
                     } : null,
 
@@ -95,6 +96,7 @@ public sealed class GetReceivedInvoiceByIdQueryHandler : IRequestHandler<GetRece
                         CountrySubentity = ri.CustomerAddress.State,
                         CountryIdentificationCode = ri.CustomerAddress.Country,
                         PostalZone = ri.CustomerAddress.PostalCode,
+                        Lga = ri.CustomerAddress.Lga,
                         AdditionalStreetName = null
                     } : null,
 

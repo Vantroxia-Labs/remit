@@ -92,7 +92,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
         catch (Exception ex)
         {
             _logger.LogInformation(ex, $"Error Message {ex}");
-            return BadRequest();
+            return BadRequest(ex.Message);
         }
     }
 
@@ -247,7 +247,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
             };
 
             var result = await _mediator.Send(query, cancellationToken);
-            return Ok(Success(result, "Invoices retrieved successfully"));
+            return Paginated(result, "Invoices retrieved successfully");
         }
         catch (Exception ex)
         {
@@ -332,7 +332,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
 
             if (result.Success && result.Invoice != null)
             {
-                return Ok(Success(result, "Received invoice retrieved successfully"));
+                return Success(result, "Received invoice retrieved successfully");
             }
 
             return NotFound(Error(result.Message));
@@ -439,7 +439,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
 
             if (result.Success)
             {
-                return Ok(Success(result, "Invoice updated successfully"));
+                return Success(result, "Invoice updated successfully");
             }
 
             if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
@@ -530,7 +530,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
 
             if (result.Success)
             {
-                return Ok(Success(result, "Invoice deleted successfully"));
+                return Success(result, "Invoice deleted successfully");
             }
 
             if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
@@ -589,7 +589,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
         try
         {
             var result = await _mediator.Send(new GetInvoiceDraftsQuery(), cancellationToken);
-            return Ok(Success(result, "Drafts retrieved successfully"));
+            return Success(result, "Drafts retrieved successfully");
         }
         catch (Exception ex)
         {

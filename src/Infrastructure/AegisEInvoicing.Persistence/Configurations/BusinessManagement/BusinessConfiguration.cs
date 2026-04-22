@@ -58,6 +58,11 @@ public class BusinessConfiguration : IEntityTypeConfiguration<Business>
                 .HasColumnName("address_postal_code")
                 .HasMaxLength(20)
                 .IsRequired();
+
+            address.Property(a => a.Lga)
+                .HasColumnName("address_lga")
+                .HasMaxLength(20)
+                .IsRequired(false);
         });
 
         // Configure TIN as owned type

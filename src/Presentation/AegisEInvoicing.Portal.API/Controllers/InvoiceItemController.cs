@@ -81,7 +81,7 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
 
             if (result.Success && result.InvoiceItem != null)
             {
-                return Ok(Success(result, "Invoice item retrieved successfully"));
+                return Success(result, "Invoice item retrieved successfully");
             }
 
             return NotFound(Error(result.Message));
@@ -115,7 +115,7 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
                 _logger.LogInformation("Retrieved {Count} invoice items for Invoice: {InvoiceId}", 
                     result.InvoiceItems.Count, invoiceId);
                     
-                return Ok(Success(result, "Invoice items retrieved successfully"));
+                return Success(result, "Invoice items retrieved successfully");
             }
 
             return NotFound(Error(result.Message));
@@ -149,7 +149,7 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
             if (result.Success)
             {
                 _logger.LogInformation("Invoice item updated successfully with ID: {InvoiceItemId}", id);
-                return Ok(Success(result, "Invoice item updated successfully"));
+                return Success(result, "Invoice item updated successfully");
             }
 
             if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
@@ -186,7 +186,7 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
             if (result.Success)
             {
                 _logger.LogInformation("Invoice item deleted successfully with ID: {InvoiceItemId}", id);
-                return Ok(Success(result, "Invoice item deleted successfully"));
+                return Success(result, "Invoice item deleted successfully");
             }
 
             if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
@@ -306,8 +306,8 @@ public class InvoiceItemController(IMediator mediator, ILogger<InvoiceItemContro
 
             _logger.LogInformation("Bulk deleted {Count} invoice items", deletedCount);
             
-            return Ok(Success(new { DeletedCount = deletedCount }, 
-                $"Successfully deleted {deletedCount} invoice items"));
+            return Success(new { DeletedCount = deletedCount }, 
+                $"Successfully deleted {deletedCount} invoice items");
         }
         catch (Exception ex)
         {

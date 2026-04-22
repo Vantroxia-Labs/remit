@@ -79,4 +79,6 @@ public sealed class AddressDto
     public string CountryIdentificationCode { get; set; } = string.Empty;
     public string? PostalZone { get; set; }
     public string? AdditionalStreetName { get; set; }
+    public string? Lga { get; set; }
+    public string State => CountrySubentity;
 }

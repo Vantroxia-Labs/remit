@@ -75,7 +75,8 @@ public partial class BusinessController(
             request.RegisteredAddress.City,
             request.RegisteredAddress.State,
             request.RegisteredAddress.Country,
-            request.RegisteredAddress.PostalCode);
+            request.RegisteredAddress.PostalCode,
+            request.RegisteredAddress.Lga);
 
         var command = new UpdateBusinessCommand(
             businessId,
@@ -420,8 +421,11 @@ public partial class BusinessController(
                 City = result.RegisteredAddress.City ?? string.Empty,
                 State = result.RegisteredAddress.State ?? string.Empty,
                 Country = result.RegisteredAddress.Country ?? string.Empty,
-                PostalCode = result.RegisteredAddress.PostalCode ?? string.Empty
-            }
+                PostalCode = result.RegisteredAddress.PostalCode ?? string.Empty,
+                Lga = result.RegisteredAddress.Lga
+            },
+            HasNrsCredentials = result.HasNrsCredentials,
+            HasQrCodeConfig = result.HasQrCodeConfig
         };
         return Success(response, "Business profile retrieved successfully");
     }
@@ -441,7 +445,8 @@ public partial class BusinessController(
             request.RegisteredAddress.City,
             request.RegisteredAddress.State,
             request.RegisteredAddress.Country,
-            request.RegisteredAddress.PostalCode);
+            request.RegisteredAddress.PostalCode,
+            request.RegisteredAddress.Lga);
 
         var command = new UpdateBusinessCommand(
             _currentUserService.BusinessId.Value,

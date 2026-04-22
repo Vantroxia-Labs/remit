@@ -456,7 +456,7 @@ public class CreateInvoiceCommandHandler(
             _logger.LogInformation("Invoice created successfully with ID: {InvoiceId}, Status: {Status}",
                 invoice.Id, invoice.InvoiceStatus);
 
-            return CreateInvoiceResult.Created($"{statusMessage} with IRN {invoice.Irn.Value}");
+            return CreateInvoiceResult.Created(invoice.Id, $"{statusMessage} with IRN {invoice.Irn.Value}");
         }
         catch (Exception ex)
         {

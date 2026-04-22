@@ -259,7 +259,7 @@ public partial class InvoiceController
                     "Submission pipeline completed successfully. InvoiceId: {InvoiceId}, Status: {Status}",
                     invoiceId, result.CurrentStatus);
 
-                return Ok(Success(new
+                return Success(new
                 {
                     result.InvoiceId,
                     result.IRN,
@@ -267,7 +267,7 @@ public partial class InvoiceController
                     result.Message,
                     result.Pipeline,
                     ExecutionTime = result.Pipeline.TotalExecutionTime
-                }, result.Message));
+                }, result.Message);
             }
             else
             {

@@ -24,6 +24,8 @@ public class BusinessProfileResponse
     public bool IsActive { get; set; }
     public BusinessAddressResponse? RegisteredAddress { get; set; }
     public bool OnboardingCompleted { get; set; }
+    public bool HasNrsCredentials { get; set; }
+    public bool HasQrCodeConfig { get; set; }
 }
 
 public class BusinessAddressResponse
@@ -33,4 +35,5 @@ public class BusinessAddressResponse
     public string State { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
     public string PostalCode { get; set; } = string.Empty;
+    public string? Lga { get; set; }
 }

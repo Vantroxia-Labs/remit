@@ -72,7 +72,8 @@ public class GetBusinessesQueryHandler : IRequestHandler<GetBusinessesQuery, Pag
                     b.RegisteredAddress.City,
                     b.RegisteredAddress.State,
                     b.RegisteredAddress.Country,
-                    b.RegisteredAddress.PostalCode),
+                    b.RegisteredAddress.PostalCode,
+                    b.RegisteredAddress.Lga),
                 b.Status,
                 b.Users.ToList(),
                 b.CreatedAt))

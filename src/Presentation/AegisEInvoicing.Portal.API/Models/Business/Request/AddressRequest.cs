@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace AegisEInvoicing.Portal.API.Models.BusinessOnboarding.Request;
 
@@ -37,6 +37,12 @@ public class AddressRequest
     /// </summary>
     [StringLength(20, ErrorMessage = "Postal code cannot exceed 20 characters")]
     public string PostalCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// LGA code from FIRS/NRS (e.g. "NG-AB-ANO")
+    /// </summary>
+    [StringLength(20, ErrorMessage = "LGA code cannot exceed 20 characters")]
+    public string? Lga { get; set; }
 }
 
 public class SubscriptionRequest : IValidatableObject

@@ -1,4 +1,4 @@
-﻿namespace AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
+namespace AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
 
 public record AddressDto
 {
@@ -7,4 +7,5 @@ public record AddressDto
     public string State { get; init; } = null!;
     public string PostalCode { get; init; } = null!;
     public string Country { get; init; } = null!;
+    public string? Lga { get; init; }
 }

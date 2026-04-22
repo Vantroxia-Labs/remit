@@ -68,7 +68,8 @@ public class GetBusinessByIdQueryHandler : IRequestHandler<GetBusinessByIdQuery,
                    business.RegisteredAddress.City,
                    business.RegisteredAddress.State,
                    business.RegisteredAddress.Country,
-                   business.RegisteredAddress.PostalCode),
+                   business.RegisteredAddress.PostalCode,
+                   business.RegisteredAddress.Lga),
                BusinessRegistrationNumber = business.BusinessRegistrationNumber,
                TIN = business.TaxIdentificationNumber.Value,
                ContactEmail = business.ContactEmail,
@@ -83,7 +84,9 @@ public class GetBusinessByIdQueryHandler : IRequestHandler<GetBusinessByIdQuery,
                                                                     ps.EndDate,
                                                                     ps.NextBillingDate)
                                       : null,
-               UserCount = business.Users.Count
+               UserCount = business.Users.Count,
+               HasNrsCredentials = !string.IsNullOrEmpty(business.FIRSApiKey) && !string.IsNullOrEmpty(business.FIRSClientSecret),
+               HasQrCodeConfig = !string.IsNullOrEmpty(business.PublicKey) && !string.IsNullOrEmpty(business.Certificate)
            };
     }
 }
