@@ -64,20 +64,6 @@ public class CreateBulkBusinessItemCommandHandler : IRequestHandler<CreateBulkBu
                 throw new UnprocessableEntityException(readFile.ErrorMessage);
             }
 
-            var itemCategories = await _context.ItemCategories.ToListAsync(cancellationToken);
-
-            if (!itemCategories.Any())
-            {
-                _logger.LogWarning("No item categories found in the system");
-                throw new NotFoundException("No item category found. Please ensure item categories are configured before uploading business items.");
-            }
-
-            if (!readFile.Items.Any(i => itemCategories.Any(c => c.Name.ToLower() == i.ItemName.ToLower())))
-            {
-                _logger.LogWarning("No matching item categories found for uploaded items");
-                throw new ConflictException("None of the item categories in the uploaded file match existing categories. Please verify the category names.");
-            }
-
             // Check for duplicates within the uploaded file
             var duplicateNamesInFile = readFile.Items
                 .GroupBy(i => i.Name.Trim(), StringComparer.OrdinalIgnoreCase)

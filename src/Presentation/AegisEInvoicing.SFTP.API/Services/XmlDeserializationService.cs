@@ -470,7 +470,6 @@ public class XmlDeserializationService : IXmlDeserializationService
                 {
                     Name = GetElementValue(itemElement, "Name") ?? "Invoice Item",
                     ItemDescription = GetElementValue(itemElement, "Description") ?? GetElementValue(itemElement, "ItemDescription") ?? "Invoice item description",
-                    ItemCategory = GetElementValue(itemElement, "Category") ?? GetElementValue(itemElement, "ItemCategory") ?? "General",
                     UnitPrice = decimal.TryParse(GetElementValue(itemElement, "UnitPrice"), out var price) ? price : 0,
                     Quantity = int.TryParse(GetElementValue(itemElement, "Quantity"), out var qty) ? qty : 1,
                     ServiceCode = ParseServiceCode(itemElement),

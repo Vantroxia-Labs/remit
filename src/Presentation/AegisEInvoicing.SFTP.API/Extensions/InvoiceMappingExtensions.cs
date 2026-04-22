@@ -120,7 +120,6 @@ namespace AegisEInvoicing.SFTP.API.Extensions
                 {
                     Name = item.Name,
                     ItemDescription = item.ItemDescription,
-                    ItemCategory = item.ItemCategory,
                     ServiceCode = new AegisEInvoicing.Application.Features.InvoiceManagement.Commands.CreateFIRSInvoice.ServiceCodeRequest
                     {
                         Code = item.ServiceCode.Code,

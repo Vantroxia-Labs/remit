@@ -299,12 +299,6 @@ public class CreateInvoiceItemDtoValidator : AbstractValidator<CreateInvoiceItem
             .WithMessage("Item description must not exceed 500 characters")
             .MustBeSafeText(500);
 
-        // VAPT: Validate item category - only alphanumeric
-        RuleFor(x => x.ItemCategory)
-            .NotEmpty()
-            .WithMessage("Item category is required")
-            .MustBeAlphanumeric(100, allowSpecialChars: false);
-
         RuleFor(x => x.ServiceCode)
             .NotNull()
             .WithMessage("Service code is required")

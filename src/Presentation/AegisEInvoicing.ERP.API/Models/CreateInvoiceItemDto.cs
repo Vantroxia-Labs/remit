@@ -29,7 +29,7 @@ public class CreateInvoiceItemDto
     /// </summary>
     /// <example>Electrical Materials</example>
     [Required(ErrorMessage = "Item category is required")]
-    public string ItemCategory { get; set; } = null!;
+
 
     /// <summary>
     /// Service code information (mapped to FIRS service catalog)

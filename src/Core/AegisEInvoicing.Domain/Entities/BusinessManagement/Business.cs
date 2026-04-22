@@ -25,7 +25,6 @@ public class Business : AuditableAggregateRoot
     public string Industry { get; private set; } = null!;
 
     public List<BusinessItem> BusinessItems { get; private set; } = [];
-    public List<ItemCategory> ItemCategories { get; private set; } = [];
     public List<Party> Parties { get; private set; } = [];
     public List<Invoice> Invoices { get; private set; } = [];
 

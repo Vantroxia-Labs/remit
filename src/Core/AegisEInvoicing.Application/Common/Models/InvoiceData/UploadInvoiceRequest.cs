@@ -79,7 +79,6 @@ public class InvoiceItemRequest
     public string Name { get; set; } = null!;
     [StringLength(500, MinimumLength = 10)]
     public string ItemDescription { get; set; } = null!;
-    public string ItemCategory { get; set; } = null!;
     public ServiceCodeRequest ServiceCode { get; set; } = null!;
     public List<TaxCategoryRequest> TaxCategories { get; set; } = [];
     public decimal UnitPrice { get; set; }
