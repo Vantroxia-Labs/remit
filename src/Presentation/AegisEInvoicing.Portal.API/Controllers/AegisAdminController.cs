@@ -337,7 +337,10 @@ public class AegisAdminController(
             request.PaymentReference,
             request.PaymentAmountNaira,
             request.Tin,
-            request.Industry);
+            request.Industry,
+            request.BusinessRegistrationNumber,
+            request.ServiceId,
+            request.NRSBusinessId);
 
         var result = await _mediator.Send(command, cancellationToken);
 
@@ -364,7 +367,10 @@ public record AdminCreateBusinessRequest(
     string PaymentReference,
     decimal PaymentAmountNaira,
     string? Tin = null,
-    string? Industry = null);
+    string? Industry = null,
+    string? BusinessRegistrationNumber = null,
+    string? ServiceId = null,
+    string? NRSBusinessId = null);
 
 public class AdminCreateBusinessResponse
 {

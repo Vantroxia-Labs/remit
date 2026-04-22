@@ -19,7 +19,10 @@ public record AdminCreateBusinessCommand(
     string PaymentReference,
     decimal PaymentAmountNaira,
     string? Tin = null,
-    string? Industry = null) : IRequest<AdminCreateBusinessResult>;
+    string? Industry = null,
+    string? BusinessRegistrationNumber = null,
+    string? ServiceId = null,
+    string? NRSBusinessId = null) : IRequest<AdminCreateBusinessResult>;
 
 public record AdminCreateBusinessResult(
     bool IsSuccess,

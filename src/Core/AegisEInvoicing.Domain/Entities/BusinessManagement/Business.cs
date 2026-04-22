@@ -177,7 +177,11 @@ public class Business : AuditableAggregateRoot
         Address address,
         Guid updatedBy,
         string? contactPhone = null,
-        string? industry = null)
+        string? industry = null,
+        string? serviceId = null,
+        string? businessRegistrationNumber = null,
+        TIN? taxIdentificationNumber = null,
+        Guid? firsBusinessId = null)
     {
         ValidateInputs(string.Empty, description, invoicePrefix, BusinessRegistrationNumber, contactEmail, true);
 
@@ -188,6 +192,14 @@ public class Business : AuditableAggregateRoot
         ContactPhone = contactPhone ?? "";
         if (!string.IsNullOrWhiteSpace(industry))
             Industry = industry;
+        if (!string.IsNullOrWhiteSpace(serviceId))
+            ServiceId = serviceId;
+        if (!string.IsNullOrWhiteSpace(businessRegistrationNumber))
+            BusinessRegistrationNumber = businessRegistrationNumber;
+        if (taxIdentificationNumber != null)
+            TaxIdentificationNumber = taxIdentificationNumber;
+        if (firsBusinessId.HasValue && firsBusinessId.Value != Guid.Empty)
+            FIRSBusinessId = firsBusinessId.Value;
         UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.Now;
     }

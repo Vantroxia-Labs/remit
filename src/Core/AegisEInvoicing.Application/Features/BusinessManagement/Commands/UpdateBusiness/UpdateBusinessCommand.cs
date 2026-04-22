@@ -11,4 +11,8 @@ public record UpdateBusinessCommand(
     string Industry,
     string ContactEmail,
     string ContactPhone,
-    string Description) : IRequest<UpdateBusinessResult>, ITransactionalCommand;
+    string Description,
+    string? ServiceId = null,
+    string? BusinessRegistrationNumber = null,
+    string? TaxIdentificationNumber = null,
+    Guid? FIRSBusinessId = null) : IRequest<UpdateBusinessResult>, ITransactionalCommand;

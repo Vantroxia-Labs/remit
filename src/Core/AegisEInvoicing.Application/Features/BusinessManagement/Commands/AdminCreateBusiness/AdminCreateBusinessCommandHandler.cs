@@ -57,12 +57,17 @@ public class AdminCreateBusinessCommandHandler(
 
                 // Create business
                 var tin = TIN.Create(request.Tin?.Trim() ?? "0000000000");
-                var address = Address.Create("TBD", "TBD", "TBD", "Nigeria", "TBD");
+                var address = Address.Create(string.Empty, string.Empty, string.Empty, "Nigeria", string.Empty);
+
+                var firsBusinessId = !string.IsNullOrWhiteSpace(request.NRSBusinessId) &&
+                    Guid.TryParse(request.NRSBusinessId, out var parsedFirsId)
+                        ? parsedFirsId
+                        : Guid.Empty;
 
                 var business = Business.Create(
                     name: request.BusinessName,
                     description: request.BusinessDescription,
-                    businessRegistrationNumber: "TBD",
+                    businessRegistrationNumber: request.BusinessRegistrationNumber?.Trim() ?? string.Empty,
                     taxIdentificationNumber: tin,
                     registeredAddress: address,
                     invoicePrefix: "INV",
@@ -70,9 +75,9 @@ public class AdminCreateBusinessCommandHandler(
                     adminUserId: null,
                     createdBy: SystemUserId,
                     contactPhone: request.AdminPhone,
-                    serviceId: "TBD",
+                    serviceId: request.ServiceId?.Trim() ?? string.Empty,
                     industry: request.Industry ?? "Other",
-                    firsBusinessId: Guid.Empty);
+                    firsBusinessId: firsBusinessId);
 
                 // Record payment details for audit
                 business.SetAdminPayment(request.PaymentReference.Trim(), request.PaymentAmountNaira, SystemUserId);

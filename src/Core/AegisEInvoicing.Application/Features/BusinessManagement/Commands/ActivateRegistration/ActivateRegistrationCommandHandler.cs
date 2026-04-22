@@ -63,12 +63,12 @@ public class ActivateRegistrationCommandHandler(
 
                 // Create the business with placeholder details — admin fills in during onboarding
                 var tin = TIN.Create("0000000000");
-                var address = Address.Create("TBD", "TBD", "TBD", "Nigeria", "TBD");
+                var address = Address.Create(string.Empty, string.Empty, string.Empty, "Nigeria", string.Empty);
 
                 var business = Business.Create(
                     name: pending.BusinessName,
                     description: string.Empty,
-                    businessRegistrationNumber: "TBD",
+                    businessRegistrationNumber: string.Empty,
                     taxIdentificationNumber: tin,
                     registeredAddress: address,
                     invoicePrefix: "INV",
@@ -76,8 +76,8 @@ public class ActivateRegistrationCommandHandler(
                     adminUserId: null,
                     createdBy: SystemUserId,
                     contactPhone: pending.AdminPhone,
-                    serviceId: "TBD",
-                    industry: "TBD",
+                    serviceId: string.Empty,
+                    industry: string.Empty,
                     firsBusinessId: Guid.Empty);
 
                 await context.Businesses.AddAsync(business, cancellationToken);

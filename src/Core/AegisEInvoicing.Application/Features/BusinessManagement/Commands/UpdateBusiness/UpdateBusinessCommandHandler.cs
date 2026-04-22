@@ -1,4 +1,5 @@
 using AegisEInvoicing.Application.Common.Interfaces;
+using AegisEInvoicing.Domain.ValueObjects;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -28,7 +29,18 @@ public class UpdateBusinessCommandHandler(
             if (getBusiness is null)
                 return new UpdateBusinessResult(false, $"Business does not exists.");
 
-            getBusiness.Update(request.Description, request.InvoicePrefix, request.ContactEmail, request.RegisteredAddress, tempAdminId, request.ContactPhone, request.Industry);
+            getBusiness.Update(
+                request.Description,
+                request.InvoicePrefix,
+                request.ContactEmail,
+                request.RegisteredAddress,
+                tempAdminId,
+                request.ContactPhone,
+                request.Industry,
+                request.ServiceId,
+                request.BusinessRegistrationNumber,
+                !string.IsNullOrWhiteSpace(request.TaxIdentificationNumber) ? TIN.Create(request.TaxIdentificationNumber) : null,
+                request.FIRSBusinessId);
 
             _context.Businesses.Update(getBusiness);
             await _context.SaveChangesAsync(cancellationToken);
