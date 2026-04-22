@@ -42,8 +42,6 @@ public sealed class ApplicationDbContext(
     public DbSet<Party> Parties => Set<Party>();
     public DbSet<BusinessItem> BusinessItems => Set<BusinessItem>();
     public DbSet<BusinessItemPriceHistory> BusinessItemPriceHistories => Set<BusinessItemPriceHistory>();
-    public DbSet<BusinessItemItemCategory> BusinessItemItemCategory => Set<BusinessItemItemCategory>();
-    public DbSet<ItemCategory> ItemCategories => Set<ItemCategory>();
     public DbSet<ReceivedInvoice> ReceivedInvoices => Set<ReceivedInvoice>();
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<FlowRule> FlowRules => Set<FlowRule>();

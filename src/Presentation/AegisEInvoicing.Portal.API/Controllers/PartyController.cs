@@ -326,25 +326,28 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
         var query = new GetPartyListQuery(BusinessId, pageNumber, pageSize, searchTerm, sortBy, sortDescending);
         var result = await _mediator.Send(query, cancellationToken);
 
-        if (result == null || !result.Items.Any())
-        {
-            return Success(Enumerable.Empty<PartySummaryResponse>(), "No parties found");
-        }
-
-        var response = result.Items.Select(p => new PartySummaryResponse
+        var mappedItems = (result?.Items ?? []).Select(p => new PartySummaryResponse
         {
             Id = p.Id,
             Name = p.Name,
             Email = p.Email,
+            Phone = p.Phone,
             TaxIdentificationNumber = p.TaxIdentificationNumber,
             CreatedAt = p.CreatedAt
-        });
+        }).ToList();
 
         var message = string.IsNullOrWhiteSpace(searchTerm)
-            ? $"Retrieved {result.Items.Count} parties (Page {pageNumber} of {pageSize} items)"
-            : $"Found {result.Items.Count} parties matching '{searchTerm}' (Page {pageNumber} of {pageSize} items)";
+            ? $"Retrieved {mappedItems.Count} parties (Page {pageNumber} of {pageSize} items)"
+            : $"Found {mappedItems.Count} parties matching '{searchTerm}' (Page {pageNumber} of {pageSize} items)";
 
-        return Success(response, message);
+        return Success(new
+        {
+            items = mappedItems,
+            totalCount = result?.TotalCount ?? 0,
+            pageNumber = result?.PageNumber ?? pageNumber,
+            pageSize = result?.PageSize ?? pageSize,
+            totalPages = result?.TotalPages ?? 1
+        }, message);
     }
 
     /// <summary>
@@ -386,24 +389,27 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
         var query = new GetPartiesByBusinessIdQuery(pageNumber, pageSize, searchTerm, sortBy, sortDescending);
         var result = await _mediator.Send(query, cancellationToken);
 
-        if (result == null || !result.Items.Any())
-        {
-            return Success(Enumerable.Empty<PartySummaryResponse>(), "No parties found for the specified business");
-        }
-
-        var response = result.Items.Select(p => new PartySummaryResponse
+        var mappedItems = (result?.Items ?? []).Select(p => new PartySummaryResponse
         {
             Id = p.Id,
             Name = p.Name,
             Email = p.Email,
+            Phone = p.Phone,
             TaxIdentificationNumber = p.TaxIdentificationNumber,
             CreatedAt = p.CreatedAt
-        });
+        }).ToList();
 
         var message = string.IsNullOrWhiteSpace(searchTerm)
-            ? $"Retrieved {result.Items.Count} parties for business {businessId} (Page {pageNumber} of {pageSize} items)"
-            : $"Found {result.Items.Count} parties for business {businessId} matching '{searchTerm}' (Page {pageNumber} of {pageSize} items)";
+            ? $"Retrieved {result?.TotalCount ?? 0} parties (Page {pageNumber} of {result?.TotalPages ?? 1})"
+            : $"Found {result?.TotalCount ?? 0} parties matching '{searchTerm}'";
 
-        return Success(response, message);
+        return Success(new
+        {
+            items = mappedItems,
+            totalCount = result?.TotalCount ?? 0,
+            pageNumber = result?.PageNumber ?? pageNumber,
+            pageSize = result?.PageSize ?? pageSize,
+            totalPages = result?.TotalPages ?? 1
+        }, message);
     }
 }

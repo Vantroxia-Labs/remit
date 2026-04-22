@@ -33,16 +33,6 @@ public class BusinessItemResponse
     public ServiceCodeResponse ServiceCode { get; set; } = null!;
 
     /// <summary>
-    /// Item category ID
-    /// </summary>
-    public Guid ItemCategoryId { get; set; }
-
-    /// <summary>
-    /// Item category name
-    /// </summary>
-    public string? ItemCategoryName { get; set; }
-
-    /// <summary>
     /// Description of the item
     /// </summary>
     public string ItemDescription { get; set; } = null!;
@@ -154,11 +144,6 @@ public class BusinessItemSummaryResponse
     /// Code value
     /// </summary>
     public string ServiceCodeName { get; set; } = null!;
-
-    /// <summary>
-    /// Item category name
-    /// </summary>
-    public string ItemCategoryName { get; set; } = null!;
 
     /// <summary>
     /// Unit price

@@ -29,7 +29,6 @@ public class GetInvoiceItemByIdQueryHandler : IRequestHandler<GetInvoiceItemById
             var query = _context.InvoiceItems
                 .Include(ii => ii.Invoice)
                 .Include(ii => ii.BusinessItem)
-                .ThenInclude(bi => bi!.ItemCategory)
                 .Where(ii => ii.Id == request.InvoiceItemId);
 
             if (!_currentUserService.IsPlatformAdmin && _currentUserService.BusinessId.HasValue)
@@ -54,7 +53,7 @@ public class GetInvoiceItemByIdQueryHandler : IRequestHandler<GetInvoiceItemById
                 InvoiceId = invoiceItem.InvoiceId,
                 ItemCode = invoiceItem.BusinessItem!.ItemId,
                 ServiceCode = invoiceItem.BusinessItem!.ServiceCode,
-                Category = invoiceItem.BusinessItem!.ItemCategory!.Name,
+                Category = invoiceItem.BusinessItem!.ServiceCode?.Name ?? "",
                 ItemDescription = invoiceItem.BusinessItem!.ItemDescription,
                 DiscountFee = invoiceItem.DiscountFee,
                 AdditionalFee = invoiceItem.AdditionalFee,

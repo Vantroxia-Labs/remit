@@ -38,17 +38,10 @@ public class GetBusinessItemListQueryHandler : IRequestHandler<GetBusinessItemLi
             var query = _context.BusinessItems
                 .AsNoTracking()
                 .Include(bi => bi.Business)
-                .Include(bi => bi.ItemCategory)
                 .AsQueryable();
 
             // Filter by business
             query = query.Where(bi => bi.BusinessID == _currentUser.BusinessId.Value);
-
-            // Apply category filter if provided
-            if (request.ItemCategoryId.HasValue)
-            {
-                query = query.Where(bi => bi.ItemCategoryId == request.ItemCategoryId.Value);
-            }
 
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(request.SearchTerm))
@@ -61,8 +54,7 @@ public class GetBusinessItemListQueryHandler : IRequestHandler<GetBusinessItemLi
                         bi.Name.ToLower().Contains(searchTerm) ||
                         bi.ItemId.ToLower().Contains(searchTerm) ||
                         bi.ItemDescription.ToLower().Contains(searchTerm) ||
-                        (bi.ServiceCode != null && bi.ServiceCode.Name.ToLower().Contains(searchTerm)) ||
-                        (bi.ItemCategory != null && bi.ItemCategory.Name.ToLower().Contains(searchTerm)));
+                        (bi.ServiceCode != null && bi.ServiceCode.Name.ToLower().Contains(searchTerm)));
                 }
             }
 
@@ -78,9 +70,6 @@ public class GetBusinessItemListQueryHandler : IRequestHandler<GetBusinessItemLi
                 "unitprice" => request.SortDescending
                     ? query.OrderByDescending(bi => bi.UnitPrice)
                     : query.OrderBy(bi => bi.UnitPrice),
-                "category" => request.SortDescending
-                    ? query.OrderByDescending(bi => bi.ItemCategory != null ? bi.ItemCategory.Name : "")
-                    : query.OrderBy(bi => bi.ItemCategory != null ? bi.ItemCategory.Name : ""),
                 "createdat" => request.SortDescending
                     ? query.OrderByDescending(bi => bi.CreatedAt)
                     : query.OrderBy(bi => bi.CreatedAt),
@@ -101,7 +90,7 @@ public class GetBusinessItemListQueryHandler : IRequestHandler<GetBusinessItemLi
                     bi.ItemType,
                     bi.ServiceCode != null ? bi.ServiceCode.Code : "",
                     bi.ServiceCode != null ? bi.ServiceCode.Name : "",
-                    bi.ItemCategory != null ? bi.ItemCategory.Name : "",
+
                     bi.UnitPrice,
                     bi.Business != null ? bi.Business.Name : "",
                     bi.CreatedAt))

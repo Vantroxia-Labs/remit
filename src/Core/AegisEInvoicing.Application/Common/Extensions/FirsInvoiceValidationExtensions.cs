@@ -316,8 +316,10 @@ public static class FirsInvoiceValidationExtensions
         {
             var invoiceLine = new InvoiceLine
             {
-                HsnCode = item.BusinessItem!.ItemId,
-                ProductCategory = item.BusinessItem!.ItemCategory!.Name,
+                HsnCode = item.BusinessItem!.ItemType == ItemType.Goods ? item.BusinessItem.ServiceCode!.Code : null,
+                ProductCategory = item.BusinessItem!.ItemType == ItemType.Goods ? item.BusinessItem.ServiceCode!.Name : null,
+                IsicCode = item.BusinessItem!.ItemType == ItemType.Service ? item.BusinessItem.ServiceCode!.Code : null,
+                ServiceCategory = item.BusinessItem!.ItemType == ItemType.Service ? item.BusinessItem.ServiceCode!.Name : null,
                 InvoicedQuantity = item.Quantity,
                 Item = new Item
                 {

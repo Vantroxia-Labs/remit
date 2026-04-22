@@ -32,7 +32,6 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                 .AsNoTracking()
                 .Include(i => i.InvoiceLine)
                     .ThenInclude(il => il.BusinessItem)
-                        .ThenInclude(bi => bi!.ItemCategory)
                 .Include(i => i.Business)
                 .Include(i => i.Party)
                 .Include(i => i.CreatedByUser)
@@ -103,7 +102,7 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                     InvoiceId = item.InvoiceId,
                     ItemCode = item.BusinessItem?.ItemId ?? string.Empty,
                     ServiceCode = item.BusinessItem?.ServiceCode ?? ServiceCode.Create("UNKNOWN", "Unknown Service"),
-                    Category = item.BusinessItem?.ItemCategory?.Name ?? "Unknown",
+                    Category = item.BusinessItem?.ServiceCode?.Name ?? "",
                     ItemDescription = item.BusinessItem?.ItemDescription ?? string.Empty,
                     DiscountFee = item.DiscountFee,
                     AdditionalFee = item.AdditionalFee,

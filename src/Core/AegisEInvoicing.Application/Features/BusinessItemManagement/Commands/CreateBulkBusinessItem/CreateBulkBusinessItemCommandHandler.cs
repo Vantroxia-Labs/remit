@@ -114,16 +114,6 @@ public class CreateBulkBusinessItemCommandHandler : IRequestHandler<CreateBulkBu
 
             foreach (var item in readFile.Items)
             {
-                // Validate category exists
-                var itemCategory = await _context.ItemCategories
-                    .FirstOrDefaultAsync(c => c.Name.ToLower() == item.ItemName.ToLower(), cancellationToken);
-
-                if (itemCategory is null)
-                {
-                    _logger.LogWarning("Item category '{ItemName}' not found during bulk upload", item.ItemName);
-                    throw new NotFoundException($"Item category '{item.ItemName}' was not found. Please ensure all category names in the file are valid.");
-                }
-
                 // Create value objects
                 var serviceCode = ServiceCode.Create(item.Service.Code, item.Service.Name);
 
@@ -132,7 +122,7 @@ public class CreateBulkBusinessItemCommandHandler : IRequestHandler<CreateBulkBu
                     item.Name,
                     item.ItemType,
                     serviceCode,
-                    itemCategory.Id,
+                    Guid.Empty,
                     item.ItemDescription,
                     item.UnitPrice);
 

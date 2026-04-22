@@ -505,25 +505,6 @@ public class UploadInvoiceCommandHandler(
             cacheContext.PartyCache[party.Email.ToLowerInvariant()] = party.Id;
         }
 
-        // Preload all item categories
-        var categoryNames = invoices
-            .SelectMany(i => i.InvoiceItems)
-            .Where(item => item.ItemCategory != null)
-            .Select(item => item.ItemCategory.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var existingCategories = await _context.ItemCategories
-            .Where(c => categoryNames.Contains(c.Name) && c.BusinessID == _currentUser.BusinessId)
-            .AsNoTracking()
-            .Select(c => new { c.Name, c.Id })
-            .ToListAsync(cancellationToken);
-
-        foreach (var category in existingCategories)
-        {
-            cacheContext.CategoryCache[category.Name] = category.Id;
-        }
-
         return cacheContext;
     }
 
@@ -664,54 +645,32 @@ public class UploadInvoiceCommandHandler(
             .Select(item => new
             {
                 Item = item,
-                CategoryName = item.ItemCategory?.Trim() ?? throw new ArgumentException("Item category is required"),
                 ItemName = item.Name?.Trim() ?? throw new ArgumentException("Item name is required")
             })
             .ToList();
-
-        // Ensure all categories exist
-        foreach (var item in itemsToProcess)
-        {
-            if (!cacheContext.CategoryCache.TryGetValue(item.CategoryName, out var categoryId))
-            {
-                var newCategory = ItemCategory.Create(
-                    item.CategoryName,
-                    $"Category for {item.CategoryName}",
-                    _currentUser.BusinessId!.Value);
-
-                _context.ItemCategories.Add(newCategory);
-                await _context.SaveChangesAsync(cancellationToken);
-
-                cacheContext.CategoryCache[item.CategoryName] = newCategory.Id;
-                categoryId = newCategory.Id;
-            }
-        }
 
         // Build lookup keys for business items
         var lookupKeys = itemsToProcess
             .Select(x => new BusinessItemKey(
                 x.ItemName,
-                x.Item.UnitPrice,
-                cacheContext.CategoryCache[x.CategoryName]))
+                x.Item.UnitPrice))
             .Distinct()
             .ToList();
 
         // Load existing business items
         var itemNames = lookupKeys.Select(k => k.Name).Distinct().ToList();
-        var categoryIds = lookupKeys.Select(k => k.CategoryId).Distinct().ToList();
 
         var existingBusinessItems = await _context.BusinessItems
             .Where(bi => itemNames.Contains(bi.Name) &&
-                        categoryIds.Contains(bi.ItemCategoryId) &&
                         bi.BusinessID == _currentUser.BusinessId)
             .AsNoTracking()
-            .Select(bi => new { bi.Name, bi.UnitPrice, bi.ItemCategoryId, bi.Id })
+            .Select(bi => new { bi.Name, bi.UnitPrice, bi.Id })
             .ToListAsync(cancellationToken);
 
         var businessItemsDict = new Dictionary<BusinessItemKey, Guid>();
         foreach (var item in existingBusinessItems)
         {
-            var key = new BusinessItemKey(item.Name, item.UnitPrice, item.ItemCategoryId);
+            var key = new BusinessItemKey(item.Name, item.UnitPrice);
             businessItemsDict[key] = item.Id;
         }
 
@@ -721,8 +680,7 @@ public class UploadInvoiceCommandHandler(
         foreach (var itemToProcess in itemsToProcess)
         {
             var item = itemToProcess.Item;
-            var categoryId = cacheContext.CategoryCache[itemToProcess.CategoryName];
-            var key = new BusinessItemKey(itemToProcess.ItemName, item.UnitPrice, categoryId);
+            var key = new BusinessItemKey(itemToProcess.ItemName, item.UnitPrice);
 
             if (!businessItemsDict.TryGetValue(key, out var businessItemId))
             {
@@ -734,7 +692,7 @@ public class UploadInvoiceCommandHandler(
                     item.Name,
                     ItemType.Service,
                     ServiceCode.Create(item.ServiceCode.Code, item.Name),
-                    categoryId,
+                    Guid.Empty,
                     item.ItemDescription,
                     item.UnitPrice);
 
@@ -778,29 +736,26 @@ public class UploadInvoiceCommandHandler(
     private record InvoiceSequenceInfo(string Prefix, int SequenceNumber);
     private record InvoiceItemData(Guid BusinessItemId, decimal Quantity, decimal UnitPrice, DiscountFee? DiscountFee, AdditionalFee? AdditionalFee);
 
-    private sealed record BusinessItemKey(string Name, decimal UnitPrice, Guid CategoryId)
+    private sealed record BusinessItemKey(string Name, decimal UnitPrice)
     {
         public bool Equals(BusinessItemKey? other)
         {
             if (other is null) return false;
             return string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase) &&
-                   UnitPrice == other.UnitPrice &&
-                   CategoryId == other.CategoryId;
+                   UnitPrice == other.UnitPrice;
         }
 
         public override int GetHashCode()
         {
             return HashCode.Combine(
                 Name.ToLowerInvariant(),
-                UnitPrice,
-                CategoryId);
+                UnitPrice);
         }
     }
 
     private class CacheContext
     {
         public Dictionary<string, Guid> PartyCache { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public Dictionary<string, Guid> CategoryCache { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
     private class BulkUploadInvoiceResult

@@ -52,18 +52,6 @@ public class UpdateBusinessItemCommandHandler : IRequestHandler<UpdateBusinessIt
             throw new NotFoundException("Business item not found");
         }
 
-        // Verify item category exists if it's being updated
-        var categoryExists = await _context.ItemCategories
-            .AnyAsync(ic => ic.Id == request.ItemCategoryId
-            && ic.BusinessID == _currentUser.BusinessId.Value
-            , cancellationToken);
-
-        if (!categoryExists)
-        {
-            _logger.LogWarning("Attempt to update business item {BusinessItemId} with non-existent item category {ItemCategoryId}", request.Id, request.ItemCategoryId);
-            throw new NotFoundException("Item Category not found");
-        }
-
         var serviceCode = ServiceCode.Create(request.ServiceCode.Code, request.ServiceCode.Name);
 
         // Update non-price properties
@@ -71,7 +59,7 @@ public class UpdateBusinessItemCommandHandler : IRequestHandler<UpdateBusinessIt
             request.Name,
             request.ItemType,
             serviceCode,
-            request.ItemCategoryId,
+            Guid.Empty,
             request.ItemDescription);
 
         // Update tax categories

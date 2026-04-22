@@ -51,7 +51,6 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
             request.ItemType,
             serviceCodeDto,
             taxCategories,
-            request.ItemCategoryId,
             request.ItemDescription,
             request.UnitPrice);
 
@@ -132,8 +131,6 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
                 Code = result.BusinessItem.ServiceCode.Code,
                 Name = result.BusinessItem.ServiceCode.Name
             },
-            ItemCategoryId = result.BusinessItem.ItemCategoryId,
-            ItemCategoryName = result.BusinessItem.ItemCategoryName,
             ItemDescription = result.BusinessItem.ItemDescription,
             UnitPrice = result.BusinessItem.UnitPrice,
             BusinessId = result.BusinessItem.BusinessId,
@@ -180,7 +177,6 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
             request.ItemType,
             serviceCodeDto,
             taxCategories,
-            request.ItemCategoryId,
             request.ItemDescription,
             request.UnitPrice);
 
@@ -238,7 +234,6 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     /// <param name="pageNumber">Page number (default: 1)</param>
     /// <param name="pageSize">Page size (default: 10, max: 100)</param>
     /// <param name="searchTerm">Optional search term to filter by name, ID, or description</param>
-    /// <param name="itemCategoryId">Optional filter by item category</param>
     /// <param name="sortBy">Optional sort field (name, itemid, unitprice, category, createdat)</param>
     /// <param name="sortDescending">Sort in descending order (default: false)</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -249,13 +244,12 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? searchTerm = null,
-        [FromQuery] Guid? itemCategoryId = null,
         [FromQuery] string? sortBy = null,
         [FromQuery] bool sortDescending = false,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving business items list - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}, Category: {CategoryId}",
-            pageNumber, pageSize, searchTerm ?? "None", itemCategoryId?.ToString() ?? "None");
+        _logger.LogInformation("Retrieving business items list - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}",
+            pageNumber, pageSize, searchTerm ?? "None");
 
         // Validate pagination parameters
         if (pageNumber < 1)
@@ -268,7 +262,7 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
             return BadRequest(Error("Page size must be between 1 and 100"));
         }
 
-        var query = new GetBusinessItemListQuery(pageNumber, pageSize, searchTerm, sortBy, sortDescending, itemCategoryId);
+        var query = new GetBusinessItemListQuery(pageNumber, pageSize, searchTerm, sortBy, sortDescending);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (result is null || !result.Items.Any())

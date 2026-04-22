@@ -9,5 +9,4 @@ public record GetBusinessItemListQuery(
     int PageSize = 10,
     string? SearchTerm = null,
     string? SortBy = null,
-    bool SortDescending = false,
-    Guid? ItemCategoryId = null) : IRequest<PaginatedList<BusinessItemSummaryDto>>;
+    bool SortDescending = false) : IRequest<PaginatedList<BusinessItemSummaryDto>>;

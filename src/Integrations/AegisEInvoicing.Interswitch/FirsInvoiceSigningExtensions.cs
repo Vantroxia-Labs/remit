@@ -275,31 +275,6 @@ public static class FirsInvoiceSigningExtensions
         };
 
         return [taxTotal];
-
-        //var taxTotals = new List<TaxTotal>();
-        //foreach (var item in invoiceItems!)
-        //{
-        //    var totalAmount = item.Quantity * item.BusinessItem.UnitPrice;
-        //    var taxTotal = new TaxTotal
-        //    {
-        //        TaxAmount = totalAmount * (item.BusinessItem.TaxCategory.Percent / 100),
-        //        TaxSubtotal =
-        //        [
-        //            new()
-        //            {
-        //                TaxableAmount = item.BusinessItem.UnitPrice,
-        //                TaxAmount = item.BusinessItem.UnitPrice * (item.BusinessItem.TaxCategory.Percent / 100),
-        //                TaxCategory = new TaxCategory
-        //                {
-        //                     Id = item.BusinessItem.TaxCategory.Name,
-        //                     Percent = item.BusinessItem.TaxCategory.Percent
-        //                }
-        //            }
-        //        ]
-        //    };
-        //    taxTotals.Add(taxTotal);
-        //}
-        //return taxTotals;
     }
 
     public static LegalMonetaryTotal ToSigningLegalMonetaryTotal(this List<InvoiceItem> invoiceItems)
@@ -323,12 +298,10 @@ public static class FirsInvoiceSigningExtensions
         {
             var invoiceLine = new InvoiceLine
             {
-                HsnCode = item.BusinessItem!.ServiceCode!.Code,
-                ProductCategory = item.BusinessItem!.ItemCategory!.Name,
-                //DiscountRate = item.DiscountFee!.Amount,
-                //DiscountAmount
-                //FeeRate
-                //FeeAmount
+                HsnCode = item.BusinessItem!.ItemType == ItemType.Goods ? item.BusinessItem.ServiceCode!.Code : null,
+                ProductCategory = item.BusinessItem!.ItemType == ItemType.Goods ? item.BusinessItem.ServiceCode!.Name : null,
+                IsicCode = item.BusinessItem!.ItemType == ItemType.Service ? item.BusinessItem.ServiceCode!.Code : null,
+                ServiceCategory = item.BusinessItem!.ItemType == ItemType.Service ? item.BusinessItem.ServiceCode!.Name : null,
                 InvoicedQuantity = item.Quantity,
                 Item = new Item
                 {

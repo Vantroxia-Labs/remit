@@ -29,10 +29,6 @@ public class UpdateBusinessItemCommandValidator : AbstractValidator<UpdateBusine
             .LessThan(1000000000)
             .WithMessage("Unit price must be less than 1,000,000,000");
 
-        RuleFor(x => x.ItemCategoryId)
-            .NotEmpty()
-            .WithMessage("Item category ID is required");
-
         RuleFor(x => x.ItemType)
             .IsInEnum()
             .WithMessage("Item type must be either Goods or Service");

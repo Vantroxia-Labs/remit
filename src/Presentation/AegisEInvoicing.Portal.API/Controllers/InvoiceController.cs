@@ -267,7 +267,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// <param name="orderBy">Order by field (default: IssueDate)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of received invoices</returns>
-    [HttpGet("recieved-invoices")]
+    [HttpGet("received-invoices")]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetAllReceivedInvoices(
         [FromQuery] string? searchTerm,

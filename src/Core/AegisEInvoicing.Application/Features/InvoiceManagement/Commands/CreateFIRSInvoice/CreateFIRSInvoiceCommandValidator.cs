@@ -427,12 +427,6 @@ public class InvoiceItemRequestValidator : AbstractValidator<InvoiceItemRequest>
             .MustBeAlphanumeric(500, allowSpecialChars: false)
             .MustBeSafeText(500);
 
-        // VAPT: Validate item category - only alphanumeric
-        RuleFor(x => x.ItemCategory)
-            .NotEmpty()
-            .WithMessage("Item category is required. Please assign each item to a valid category.")
-            .MustBeAlphanumeric(100, allowSpecialChars: false);
-
         RuleFor(x => x.ServiceCode)
             .NotNull()
             .WithMessage("Service code is required for all invoice items. Please provide the FIRS service code.")

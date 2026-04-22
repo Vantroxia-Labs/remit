@@ -101,10 +101,16 @@ public class InvoiceDeliveryPeriod
 public class InvoiceLine
 {
     [JsonPropertyName("hsn_code")]
-    public string HsnCode { get; set; } = null!;
+    public string? HsnCode { get; set; }
 
     [JsonPropertyName("product_category")]
-    public string ProductCategory { get; set; } = null!;
+    public string? ProductCategory { get; set; }
+
+    [JsonPropertyName("isic_code")]
+    public string? IsicCode { get; set; }
+
+    [JsonPropertyName("service_category")]
+    public string? ServiceCategory { get; set; }
 
     [JsonPropertyName("discount_rate")]
     public decimal DiscountRate { get; set; } = 0;

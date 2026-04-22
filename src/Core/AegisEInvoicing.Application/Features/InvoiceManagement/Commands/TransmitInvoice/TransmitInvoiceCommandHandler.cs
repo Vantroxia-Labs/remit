@@ -42,7 +42,6 @@ public class TransmitInvoiceCommandHandler(
                .Include(i => i.Party)
                .Include(i => i.InvoiceLine)
                .ThenInclude(il => il.BusinessItem)
-               .ThenInclude(il => il!.ItemCategory)
                .Include(i => i.InvoiceApprovalHistory)
                .Where(i => i.Id == request.InvoiceId
                            && i.BusinessId == businessId.Value)

@@ -33,10 +33,8 @@ public interface IApplicationDbContext
     DbSet<InvoiceTransmissionQueue> InvoiceTransmissionQueues { get; }
     DbSet<InvoiceApprovalHistory> InvoiceApprovalHistories { get; }
     DbSet<Party> Parties { get; }
-    DbSet<ItemCategory> ItemCategories { get; }
     DbSet<BusinessItem> BusinessItems { get; }
     DbSet<BusinessItemPriceHistory> BusinessItemPriceHistories { get; }
-    DbSet<BusinessItemItemCategory> BusinessItemItemCategory { get; }
     DbSet<ReceivedInvoice> ReceivedInvoices { get; }
 
     // User Management entities

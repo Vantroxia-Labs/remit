@@ -304,35 +304,17 @@ public sealed class ImportFirsInvoicesCommandHandler(
     {
         var itemName = line.Item?.Name ?? "Unnamed Item";
         var itemDesc = line.Item?.Description ?? string.Empty;
-        var categoryName = string.IsNullOrWhiteSpace(line.ProductCategory) ? "General" : line.ProductCategory;
         var svcCodeValue = string.IsNullOrWhiteSpace(line.HsnCode) ? "DEFAULT" : line.HsnCode;
         var svcCodeName = string.IsNullOrWhiteSpace(line.ServiceCategory) ? itemName : line.ServiceCategory;
         var unitPrice = line.Price?.PriceAmount ?? line.LineExtensionAmount;
 
-        // Find or create ItemCategory
-        var itemCategory = await context.ItemCategories
-            .FirstOrDefaultAsync(ic => ic.Name == categoryName &&
-                                       ic.BusinessID == businessId && !ic.IsDeleted, cancellationToken);
-
-        if (itemCategory is null)
-        {
-            itemCategory = ItemCategory.Create(categoryName, $"Auto-created for import: {categoryName}", businessId);
-            await context.ItemCategories.AddAsync(itemCategory, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-            logger.LogInformation("Created ItemCategory '{Category}' for business {BusinessId}", categoryName, businessId);
-        }
-
         // Find or create BusinessItem by name
         var existing = await context.BusinessItems
-            .Include(bi => bi.ItemCategories).ThenInclude(ic => ic.ItemCategory)
             .FirstOrDefaultAsync(bi => bi.Name == itemName &&
                                        bi.BusinessID == businessId && !bi.IsDeleted, cancellationToken);
 
         if (existing is not null)
         {
-            if (!existing.BelongsToCategory(itemCategory.Id))
-                existing.AddCategory(itemCategory.Id);
-
             if (existing.UnitPrice != unitPrice)
                 existing.UpdatePriceFromErp(unitPrice);
 
@@ -348,7 +330,7 @@ public sealed class ImportFirsInvoicesCommandHandler(
             businessId, itemName,
             ItemType.Service,
             ServiceCode.Create(svcCodeValue, svcCodeName),
-            itemCategory.Id, itemDesc, unitPrice);
+            Guid.Empty, itemDesc, unitPrice);
 
         businessItem.CreatedBy = createdById;
         await context.BusinessItems.AddAsync(businessItem, cancellationToken);

@@ -57,7 +57,6 @@ public class TransmitBulkInvoiceCommandHandler(
             .Include(i => i.Party)
             .Include(i => i.InvoiceLine)
                 .ThenInclude(il => il.BusinessItem)
-                .ThenInclude(bi => bi!.ItemCategory)
             .Where(i => request.InvoiceIds.Contains(i.Id)
                      && (i.InvoiceStatus == InvoiceStatus.SIGNED || i.InvoiceStatus == InvoiceStatus.TRANSMISSIONFAILED)
                      && i.BusinessId == businessId)

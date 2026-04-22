@@ -11,6 +11,5 @@ public record UpdateBusinessItemCommand(
     ItemType ItemType,
     UpdateServiceCodeDto ServiceCode,
     IEnumerable<UpdateBusinessItemTaxCategoryDto> TaxCategories,
-    Guid ItemCategoryId,
     string ItemDescription,
     decimal UnitPrice) : IRequest<BusinessItemResult>, ITransactionalCommand;

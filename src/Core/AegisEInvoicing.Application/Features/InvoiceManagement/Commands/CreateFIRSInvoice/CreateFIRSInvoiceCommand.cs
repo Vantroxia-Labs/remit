@@ -41,8 +41,7 @@ public record InvoiceItemRequest
 {
     public string Name { get; init; } = null!;
     public string ItemDescription { get; init; } = null!;
-    public string ItemCategory { get; init; } = null!;
-    public ServiceCodeRequest ServiceCode { get; init; } = null!;
+    public ServiceCodeRequest ServiceCode { get; init; } = null!;;
     public List<TaxCategoryRequest> TaxCategories { get; init; } = [];
     public decimal UnitPrice { get; init; }
     public decimal Quantity { get; init; }

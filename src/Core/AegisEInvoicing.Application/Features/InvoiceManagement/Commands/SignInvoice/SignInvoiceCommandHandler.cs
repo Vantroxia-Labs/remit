@@ -44,7 +44,6 @@ public class SignInvoiceCommandHandler(
                .Include(i => i.Party)
                .Include(i => i.InvoiceLine)
                .ThenInclude(il => il.BusinessItem)
-               .ThenInclude(il => il!.ItemCategory)
                .Include(i => i.InvoiceApprovalHistory)
                .Include(i => i.BillingReferences)
                .Include(i => i.AdditionalDocumentReferences)

@@ -49,16 +49,6 @@ public class CreateBusinessItemCommandHandler : IRequestHandler<CreateBusinessIt
             throw new NotFoundException("Business not found");
         }
 
-        // Verify item category exists
-        var categoryExists = await _context.ItemCategories
-            .AnyAsync(ic => ic.Id == request.ItemCategoryId, cancellationToken);
-
-        if (!categoryExists)
-        {
-            _logger.LogWarning("Attempt to create business item for non-existent item category {ItemCategoryId}", request.ItemCategoryId);
-            throw new ConflictException("Item category not found");
-        }
-
         // Check for duplicate business item name within the same business
         var existingItem = await _context.BusinessItems
             .Where(bi => bi.BusinessID == _currentUser.BusinessId.Value &&
@@ -81,7 +71,7 @@ public class CreateBusinessItemCommandHandler : IRequestHandler<CreateBusinessIt
             request.Name,
             request.ItemType,
             serviceCode,
-            request.ItemCategoryId,
+            Guid.Empty,
             request.ItemDescription,
             request.UnitPrice);
 

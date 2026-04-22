@@ -28,12 +28,6 @@ public class CreateBusinessItemRequest
     public ServiceCodeRequest ServiceCode { get; set; } = null!;
 
     /// <summary>
-    /// Item category ID
-    /// </summary>
-    [Required(ErrorMessage = "Item category is required")]
-    public Guid ItemCategoryId { get; set; }
-
-    /// <summary>
     /// Description of the item
     /// </summary>
     [Required(ErrorMessage = "Item description is required")]

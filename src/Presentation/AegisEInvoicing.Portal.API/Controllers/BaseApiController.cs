@@ -89,7 +89,7 @@ public abstract class BaseApiController : ControllerBase
     }
 
     /// <summary>
-    /// Creates a paginated response
+    /// Creates a paginated response with pagination metadata in both the body and X-Pagination header.
     /// </summary>
     protected IActionResult Paginated<T>(PaginatedList<T> result, string? message = null)
     {
@@ -103,11 +103,18 @@ public abstract class BaseApiController : ControllerBase
             result.HasNextPage
         }));
 
-        return Ok(new ApiResponse<IEnumerable<T>>
+        return Ok(new ApiResponse<object>
         {
             Success = true,
-            Data = result.Items,
-            Message = message
+            Message = message,
+            Data = new
+            {
+                items = result.Items,
+                totalCount = result.TotalCount,
+                pageNumber = result.PageNumber,
+                pageSize = result.PageSize,
+                totalPages = result.TotalPages
+            }
         });
     }
 

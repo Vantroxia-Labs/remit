@@ -29,9 +29,6 @@ public class BusinessItemConfiguration : IEntityTypeConfiguration<BusinessItem>
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(x => x.ItemCategoryId)
-            .IsRequired();
-
         builder.Property(x => x.ItemDescription)
             .IsRequired()
             .HasMaxLength(1000);
@@ -71,20 +68,6 @@ public class BusinessItemConfiguration : IEntityTypeConfiguration<BusinessItem>
             .HasForeignKey(x => x.BusinessID)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(x => x.ItemCategory)
-            .WithMany()
-            .HasForeignKey(x => x.ItemCategoryId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Many-to-many relationship with ItemCategory through junction entity
-        builder.HasMany(x => x.ItemCategories)
-            .WithOne(ic => ic.BusinessItem)
-            .HasForeignKey(ic => ic.BusinessItemId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // Ignore computed navigation properties to prevent auto-generated junction table
-        builder.Ignore(x => x.Categories);
-
         // One-to-many relationship with InvoiceItems
         builder.HasMany(x => x.InvoiceItems)
             .WithOne(ii => ii.BusinessItem)
@@ -102,13 +85,7 @@ public class BusinessItemConfiguration : IEntityTypeConfiguration<BusinessItem>
         builder.HasIndex(x => x.Name)
             .HasDatabaseName("IX_BusinessItems_Name");
 
-        builder.HasIndex(x => x.ItemCategoryId)
-            .HasDatabaseName("IX_BusinessItems_ItemCategoryId");
-
         // Composite indexes for common queries
-        builder.HasIndex(x => new { x.BusinessID, x.ItemCategoryId })
-            .HasDatabaseName("IX_BusinessItems_BusinessId_ItemCategoryId");
-
         builder.HasIndex(x => new { x.BusinessID, x.Name })
             .IsUnique()
             .HasDatabaseName("IX_BusinessItems_BusinessId_Name")

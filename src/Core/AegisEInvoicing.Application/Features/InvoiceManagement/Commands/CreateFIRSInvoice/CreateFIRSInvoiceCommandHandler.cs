@@ -286,36 +286,9 @@ public class CreateFIRSInvoiceCommandHandler(
 
                 var serviceCode = ServiceCode.Create(itemDto.ServiceCode.Code, itemDto.ServiceCode.Name);
 
-                // Find or create ItemCategory
-                var itemCategory = await _context.ItemCategories
-                    .FirstOrDefaultAsync(ic => ic.Name == itemDto.ItemCategory &&
-                                             ic.BusinessID == businessId &&
-                                             !ic.IsDeleted, cancellationToken);
-
-                if (itemCategory == null)
-                {
-                    _logger.LogInformation("Creating new ItemCategory {CategoryName} for business {BusinessId}",
-                        itemDto.ItemCategory, businessId);
-
-                    // Create new ItemCategory
-                    itemCategory = ItemCategory.Create(
-                        itemDto.ItemCategory,
-                        $"Auto-created category for {itemDto.ItemCategory}",
-                        businessId);
-                    await _context.ItemCategories.AddAsync(itemCategory, cancellationToken);
-                    await _context.SaveChangesAsync(cancellationToken);
-                }
-                else
-                {
-                    _logger.LogInformation("Found existing ItemCategory {CategoryId} for {CategoryName}",
-                        itemCategory.Id, itemDto.ItemCategory);
-                }
-
                 // Check if BusinessItem already exists with same name for this business
                 // Query matches the unique constraint: (BusinessID, Name) where IsDeleted = false
                 var existingBusinessItem = await _context.BusinessItems
-                    .Include(bi => bi.ItemCategories)
-                    .ThenInclude(ic => ic.ItemCategory)
                     .FirstOrDefaultAsync(bi => bi.Name == itemDto.Name &&
                                              bi.BusinessID == businessId &&
                                              !bi.IsDeleted, cancellationToken);
@@ -327,14 +300,6 @@ public class CreateFIRSInvoiceCommandHandler(
 
                     // Use existing BusinessItem
                     businessItemId = existingBusinessItem.Id;
-
-                    // Add the category to the item if it doesn't already belong to it
-                    if (!existingBusinessItem.BelongsToCategory(itemCategory.Id))
-                    {
-                        _logger.LogInformation("Adding category '{CategoryName}' to existing BusinessItem {ItemId}",
-                            itemDto.ItemCategory, existingBusinessItem.Id);
-                        existingBusinessItem.AddCategory(itemCategory.Id);
-                    }
 
                     // Optionally update if price or other details have changed
                     var hasItemChanges = false;
@@ -353,8 +318,6 @@ public class CreateFIRSInvoiceCommandHandler(
                         hasItemChanges = true;
                     }
 
-                    // Update using the Update method which handles ServiceCode, Name, etc.
-                    // Note: We keep the primary ItemCategoryId as-is, new categories are added to the collection
                     if (existingBusinessItem.ServiceCode.Code != serviceCode.Code ||
                         existingBusinessItem.ServiceCode.Name != serviceCode.Name ||
                         existingBusinessItem.Name != itemDto.Name)
@@ -363,12 +326,12 @@ public class CreateFIRSInvoiceCommandHandler(
                             itemDto.Name,
                             ItemType.Service,
                             serviceCode,
-                            existingBusinessItem.ItemCategoryId, // Keep existing primary category
+                            Guid.Empty,
                             itemDto.ItemDescription);
                         hasItemChanges = true;
                     }
 
-                    if (hasItemChanges || !existingBusinessItem.BelongsToCategory(itemCategory.Id))
+                    if (hasItemChanges)
                     {
                         await _context.SaveChangesAsync(cancellationToken);
                         _logger.LogInformation("Updated existing BusinessItem {ItemId} with new details and/or categories", existingBusinessItem.Id);
@@ -385,7 +348,7 @@ public class CreateFIRSInvoiceCommandHandler(
                         itemDto.Name,
                         ItemType.Service,
                         serviceCode,
-                        itemCategory.Id,
+                        Guid.Empty,
                         itemDto.ItemDescription,
                         itemDto.UnitPrice);
 

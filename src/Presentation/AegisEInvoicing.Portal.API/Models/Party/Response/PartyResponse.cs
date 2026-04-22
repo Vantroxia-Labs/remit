@@ -113,6 +113,11 @@ public class PartySummaryResponse
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
+    /// Phone number of the party
+    /// </summary>
+    public string Phone { get; set; } = string.Empty;
+
+    /// <summary>
     /// Tax identification number (TIN) of the party
     /// </summary>
     public string TaxIdentificationNumber { get; set; } = string.Empty;

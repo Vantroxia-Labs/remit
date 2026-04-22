@@ -57,7 +57,6 @@ public class SignBulkInvoiceCommandHandler(
             .Include(i => i.Party)
             .Include(i => i.InvoiceLine)
                 .ThenInclude(il => il.BusinessItem)
-                .ThenInclude(bi => bi!.ItemCategory)
             .Include(i => i.BillingReferences)
              .Include(i => i.AdditionalDocumentReferences)
                .Include(i => i.DispatchDocumentReference)

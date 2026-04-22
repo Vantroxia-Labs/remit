@@ -20,8 +20,6 @@ public record BusinessItemDto(
     ItemType ItemType,
     ServiceCodeDto ServiceCode,
     IReadOnlyCollection<BusinessItemTaxCategoryDto> TaxCategories,
-    Guid ItemCategoryId,
-    string? ItemCategoryName,
     string ItemDescription,
     decimal UnitPrice,
     Guid BusinessId,
@@ -36,7 +34,6 @@ public record CreateBusinessItemDto(
     ItemType ItemType,
     CreateServiceCodeDto ServiceCode,
     IEnumerable<CreateBusinessItemTaxCategoryDto> TaxCategories,
-    Guid ItemCategoryId,
     string ItemDescription,
     decimal UnitPrice,
     Guid BusinessId);
@@ -46,7 +43,6 @@ public record UpdateBusinessItemDto(
     ItemType ItemType,
     UpdateServiceCodeDto ServiceCode,
     IEnumerable<UpdateBusinessItemTaxCategoryDto> TaxCategories,
-    Guid ItemCategoryId,
     string ItemDescription,
     decimal UnitPrice);
 
@@ -57,7 +53,6 @@ public record BusinessItemSummaryDto(
     ItemType ItemType,
     string ServiceCode,
     string ServiceCodeName,
-    string ItemCategoryName,
     decimal UnitPrice,
     string BusinessName,
     DateTimeOffset CreatedAt);

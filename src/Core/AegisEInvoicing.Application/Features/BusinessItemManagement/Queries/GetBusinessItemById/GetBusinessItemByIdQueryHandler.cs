@@ -43,7 +43,6 @@ public class GetBusinessItemByIdQueryHandler : IRequestHandler<GetBusinessItemBy
             var businessItem = await _context.BusinessItems
                 .AsNoTracking()
                 .Include(bi => bi.Business)
-                .Include(bi => bi.ItemCategory)
                 .FirstOrDefaultAsync(bi => bi.Id == request.Id
                 && bi.BusinessID == _currentUser.BusinessId.Value,
                     cancellationToken);
@@ -61,8 +60,6 @@ public class GetBusinessItemByIdQueryHandler : IRequestHandler<GetBusinessItemBy
                 businessItem.ItemType,
                 new ServiceCodeDto(businessItem.ServiceCode.Code, businessItem.ServiceCode.Name),
                 businessItem.TaxCategories.Select(tc => new BusinessItemTaxCategoryDto(tc.Code, tc.Name, tc.IsPercentage, tc.Percent, tc.FlatAmount)).ToList(),
-                businessItem.ItemCategoryId,
-                businessItem.ItemCategory?.Name,
                 businessItem.ItemDescription,
                 businessItem.UnitPrice,
                 businessItem.BusinessID,
