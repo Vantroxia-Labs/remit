@@ -1,4 +1,5 @@
-﻿using AegisEInvoicing.Domain.ValueObjects;
+using AegisEInvoicing.Domain.ValueObjects;
+using AegisEInvoicing.Application.Features.BusinessItemManagement.DTOs;
 
 namespace AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
 
@@ -15,4 +16,5 @@ public record InvoiceItemDto
     public decimal UnitPrice { get; init; }
     public decimal TotalPrice { get; init; }
     public decimal Quantity { get; init; }
+    public List<BusinessItemTaxCategoryDto> TaxCategories { get; init; } = [];
 }

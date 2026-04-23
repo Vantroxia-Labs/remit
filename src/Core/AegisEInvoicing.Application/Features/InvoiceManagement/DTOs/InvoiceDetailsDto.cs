@@ -23,6 +23,10 @@ public record InvoiceDetailsDto
     public InvoiceStatus CurrentInvoiceStatus { get; init; }
     public string? FirsResponseMessage { get; init; } = string.Empty;
     public InvoiceStatus[] InvoiceStatus { get; init; } = null!;
+    public string InvoiceCode { get; init; } = null!;
+    public string? PartyName { get; init; }
+    public decimal TotalAmount { get; init; }
+    public decimal TotalTaxAmount { get; init; }
     public string? FIRSSubmissionId { get; init; }
     public string? FIRSubmissionResponse { get; init; }
     public DateTimeOffset? SubmittedToFIRSAt { get; init; }

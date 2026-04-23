@@ -2,6 +2,7 @@ using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.ValueObjects;
+using AegisEInvoicing.Application.Features.BusinessItemManagement.DTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -91,6 +92,11 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                 CurrentInvoiceStatus = invoice.InvoiceStatus,
                 FirsResponseMessage = FirsResponse(invoice.FIRSSubmissionResponseMessage, invoice.InvoiceStatus),
                 InvoiceStatus = [.. invoice.InvoiceApprovalHistory.Select(x => x.InvoiceStatus).OrderBy(x => x)],
+                InvoiceCode = invoice.InvoiceCode,
+                PartyName = invoice.Party?.Name,
+                TotalAmount = invoice.InvoiceLine.Sum(il => (decimal)(il.Quantity * il.UnitPriceSnapshot)),
+                TotalTaxAmount = invoice.InvoiceLine.Sum(il => 
+                    (il.BusinessItem?.TaxCategories ?? []).Sum(tc => tc.CalculateTax(il.Quantity * il.UnitPriceSnapshot))),
                 FIRSSubmissionId = invoice.FIRSSubmissionId,
                 SubmittedToFIRSAt = invoice.SubmittedToFIRSAt,
                 FIRSubmissionResponse = invoice.FIRSSubmissionResponseMessage,
@@ -106,9 +112,15 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                     ItemDescription = item.BusinessItem?.ItemDescription ?? string.Empty,
                     DiscountFee = item.DiscountFee,
                     AdditionalFee = item.AdditionalFee,
-                    UnitPrice = item.BusinessItem?.UnitPrice ?? 0.0m,
+                    UnitPrice = item.UnitPriceSnapshot,
                     Quantity = item.Quantity,
-                    TotalPrice = item.Quantity * (item.BusinessItem?.UnitPrice ?? 0.0m)
+                    TotalPrice = item.Quantity * item.UnitPriceSnapshot,
+                    TaxCategories = (item.BusinessItem?.TaxCategories ?? []).Select(tc => new BusinessItemTaxCategoryDto(
+                        tc.Code,
+                        tc.Name,
+                        tc.IsPercentage,
+                        tc.Percent,
+                        tc.FlatAmount)).ToList()
                 })],
                 Party = invoice.Party != null ? new PartyDto
                 {
@@ -121,14 +133,15 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                                 invoice.Party.Address.City ?? string.Empty,
                                 invoice.Party.Address.State ?? string.Empty,
                                 invoice.Party.Address.Country ?? string.Empty,
-                                invoice.Party.Address.PostalCode ?? string.Empty)
-                            : Address.Create(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
+                                invoice.Party.Address.PostalCode ?? string.Empty,
+                                invoice.Party.Address.Lga)
+                            : Address.Create(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
                 } : new PartyDto
                 {
                     Name = "Unknown Party",
                     Email = string.Empty,
                     Phone = string.Empty,
-                    Address = Address.Create(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
+                    Address = Address.Create(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
                 },
                 InvoiceApprovalHistories = invoice.InvoiceApprovalHistory?.Select(ah => new InvoiceApprovalHistoryDto
                 {

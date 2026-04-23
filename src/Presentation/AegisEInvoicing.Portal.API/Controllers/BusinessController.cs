@@ -382,9 +382,11 @@ public partial class BusinessController(
     [HttpGet("dashboard/stats")]
     [MapToApiVersion("1.0")]
     [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    public async Task<IActionResult> GetDashboardStats(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetDashboardStats(
+        [FromQuery] AppEnvironmentMode? environmentMode = null,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new GetDashboardStatsQuery(), cancellationToken);
+        var result = await _mediator.Send(new GetDashboardStatsQuery { EnvironmentMode = environmentMode }, cancellationToken);
         return Success(result, "Dashboard statistics retrieved successfully");
     }
 

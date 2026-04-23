@@ -12,6 +12,7 @@ namespace AegisEInvoicing.Application.Features.BusinessManagement.Handlers;
 
 public class GetDashboardStatsQueryHandler(
     IApplicationDbContext context,
+    ICurrentUserService currentUserService,
     ILogger<GetDashboardStatsQueryHandler> logger)
     : IRequestHandler<GetDashboardStatsQuery, KMPGDashboardStatsDto>
 {
@@ -48,9 +49,23 @@ public class GetDashboardStatsQueryHandler(
                 .CountAsync(cancellationToken);
 
             // ── Invoice queries ──────────────────────────────────────────────
-            var invoiceStats = await context.Invoices
+            // Build invoice base query — apply BusinessId scope for non-platform-admins
+            var invoiceBaseQuery = context.Invoices
                 .AsNoTracking()
-                .Where(i => !i.IsDeleted)
+                .Where(i => !i.IsDeleted);
+
+            if (!currentUserService.IsPlatformAdmin && currentUserService.BusinessId.HasValue)
+            {
+                invoiceBaseQuery = invoiceBaseQuery.Where(i => i.BusinessId == currentUserService.BusinessId.Value);
+            }
+
+            // Apply environment mode filter — always scope to the requested env mode
+            if (request.EnvironmentMode.HasValue)
+            {
+                invoiceBaseQuery = invoiceBaseQuery.Where(i => i.EnvironmentMode == request.EnvironmentMode.Value);
+            }
+
+            var invoiceStats = await invoiceBaseQuery
                 .GroupBy(i => 1)
                 .Select(g => new
                 {

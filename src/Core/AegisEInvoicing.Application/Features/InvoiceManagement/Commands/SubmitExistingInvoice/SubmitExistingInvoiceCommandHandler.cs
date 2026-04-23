@@ -48,6 +48,7 @@ public class SubmitExistingInvoiceCommandHandler : IRequestHandler<SubmitExistin
         {
             // First, verify the invoice exists and get its IRN
             var invoice = await _context.Invoices
+                .AsNoTracking()
                 .Where(i => i.Id == request.InvoiceId)
                 .Select(i => new { i.Id, i.Irn, i.InvoiceKind })
                 .FirstOrDefaultAsync(cancellationToken);

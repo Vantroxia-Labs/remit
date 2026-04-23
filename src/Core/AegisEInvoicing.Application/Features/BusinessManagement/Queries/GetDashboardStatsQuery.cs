@@ -1,9 +1,11 @@
+using AegisEInvoicing.Domain.Enums;
 using MediatR;
 
 namespace AegisEInvoicing.Application.Features.BusinessManagement.Queries;
 
 public record GetDashboardStatsQuery : IRequest<KMPGDashboardStatsDto>
 {
+    public AppEnvironmentMode? EnvironmentMode { get; init; }
 }
 
 public record KMPGDashboardStatsDto

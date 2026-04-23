@@ -1,4 +1,4 @@
-﻿using AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
+using AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
 using System.ComponentModel.DataAnnotations;
 
 namespace AegisEInvoicing.ERP.API.Models;
@@ -28,7 +28,6 @@ public class CreateInvoiceItemDto
     /// Item category (e.g., Goods, Service, Equipment)
     /// </summary>
     /// <example>Electrical Materials</example>
-    [Required(ErrorMessage = "Item category is required")]
 
 
     /// <summary>

@@ -235,7 +235,8 @@ public partial class InvoiceController
     /// <returns>Complete pipeline execution result</returns>
     [HttpPost("submit-invoice/{invoiceId:guid}")]
     [EnableRateLimiting("InvoiceOperations")]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> SubmitInvoice(
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    
+    public async Task<IActionResult> SubmitInvoice(
         [FromRoute] Guid invoiceId,
         CancellationToken cancellationToken = default)
     {
