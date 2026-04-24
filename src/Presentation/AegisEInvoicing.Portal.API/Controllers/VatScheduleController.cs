@@ -22,9 +22,9 @@ namespace AegisEInvoicing.Portal.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetSchedules([FromQuery] int? year)
+        public async Task<IActionResult> GetSchedules([FromQuery] int? year, [FromQuery] AegisEInvoicing.Domain.Enums.AppEnvironmentMode? environmentMode = null)
         {
-            var query = new GetVatSchedulesQuery { Year = year };
+            var query = new GetVatSchedulesQuery(year, environmentMode);
             var result = await _mediator.Send(query);
             return Ok(result);
         }

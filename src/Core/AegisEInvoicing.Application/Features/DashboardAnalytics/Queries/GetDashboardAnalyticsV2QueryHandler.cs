@@ -48,17 +48,17 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
         {
             DashboardType.General => new DashboardAnalyticsV2Dto
             {
-                GeneralDashboard = await GetGeneralDashboardData(last12MonthsStart, last12MonthsEnd, cancellationToken)
+                GeneralDashboard = await GetGeneralDashboardData(last12MonthsStart, last12MonthsEnd, request.EnvironmentMode, cancellationToken)
             },
             DashboardType.VATTable => new DashboardAnalyticsV2Dto
             {
-                VATTableDashboard = await GetVATTableDashboardData(last12MonthsStart, last12MonthsEnd, cancellationToken)
+                VATTableDashboard = await GetVATTableDashboardData(last12MonthsStart, last12MonthsEnd, request.EnvironmentMode, cancellationToken)
             },
             _ => throw new ArgumentException("Invalid dashboard type", nameof(request.DashboardType))
         };
     }
 
-    private async Task<GeneralDashboardDto> GetGeneralDashboardData(DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
+    private async Task<GeneralDashboardDto> GetGeneralDashboardData(DateTime startDate, DateTime endDate, AppEnvironmentMode? requestedEnvMode, CancellationToken cancellationToken)
     {
         var invoiceQuery = _context.Invoices.AsNoTracking().AsQueryable();
         var receivedInvoiceQuery = _context.ReceivedInvoices.AsNoTracking().AsQueryable();
@@ -69,13 +69,17 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
             invoiceQuery = invoiceQuery.Where(b => b.BusinessId == businessId);
             receivedInvoiceQuery = receivedInvoiceQuery.Where(r => r.BusinessId == businessId);
 
-            // Filter by the business's current environment mode
-            var businessEnvMode = await _context.Businesses
-                .AsNoTracking()
-                .Where(b => b.Id == businessId)
-                .Select(b => b.AppEnvironmentMode)
-                .FirstOrDefaultAsync(cancellationToken);
-            invoiceQuery = invoiceQuery.Where(i => i.EnvironmentMode == businessEnvMode);
+            // Filter by the requested environment mode if provided, else use business's current mode
+            var targetEnvMode = requestedEnvMode;
+            if (!targetEnvMode.HasValue)
+            {
+                targetEnvMode = await _context.Businesses
+                    .AsNoTracking()
+                    .Where(b => b.Id == businessId)
+                    .Select(b => b.AppEnvironmentMode)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            invoiceQuery = invoiceQuery.Where(i => i.EnvironmentMode == targetEnvMode);
         }
 
         // Project only the fields we need - this is much faster than loading full entities
@@ -123,7 +127,7 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
         };
     }
 
-    private async Task<VATTableDashboardDto> GetVATTableDashboardData(DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
+    private async Task<VATTableDashboardDto> GetVATTableDashboardData(DateTime startDate, DateTime endDate, AppEnvironmentMode? requestedEnvMode, CancellationToken cancellationToken)
     {
         var invoiceQuery = _context.Invoices.AsNoTracking().AsQueryable();
         var receivedInvoiceQuery = _context.ReceivedInvoices.AsNoTracking().AsQueryable();
@@ -134,13 +138,17 @@ public class GetDashboardAnalyticsV2QueryHandler : IRequestHandler<GetDashboardA
             invoiceQuery = invoiceQuery.Where(b => b.BusinessId == businessId);
             receivedInvoiceQuery = receivedInvoiceQuery.Where(r => r.BusinessId == businessId);
 
-            // Filter by the business's current environment mode
-            var businessEnvMode = await _context.Businesses
-                .AsNoTracking()
-                .Where(b => b.Id == businessId)
-                .Select(b => b.AppEnvironmentMode)
-                .FirstOrDefaultAsync(cancellationToken);
-            invoiceQuery = invoiceQuery.Where(i => i.EnvironmentMode == businessEnvMode);
+            // Filter by the requested environment mode if provided, else use business's current mode
+            var targetEnvMode = requestedEnvMode;
+            if (!targetEnvMode.HasValue)
+            {
+                targetEnvMode = await _context.Businesses
+                    .AsNoTracking()
+                    .Where(b => b.Id == businessId)
+                    .Select(b => b.AppEnvironmentMode)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            invoiceQuery = invoiceQuery.Where(i => i.EnvironmentMode == targetEnvMode);
         }
 
         // Project only the fields we need

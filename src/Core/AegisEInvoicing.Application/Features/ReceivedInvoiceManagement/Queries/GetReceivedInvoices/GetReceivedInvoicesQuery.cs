@@ -1,4 +1,5 @@
 using AegisEInvoicing.Application.Features.ReceivedInvoiceManagement.DTOs;
+using AegisEInvoicing.Domain.Enums;
 using MediatR;
 
 namespace AegisEInvoicing.Application.Features.ReceivedInvoiceManagement.Queries.GetReceivedInvoices;
@@ -42,6 +43,11 @@ public sealed record GetReceivedInvoicesQuery : IRequest<GetReceivedInvoicesResu
     /// Sort direction (asc or desc, default: desc)
     /// </summary>
     public string SortDirection { get; init; } = "desc";
+
+    /// <summary>
+    /// Environment mode filter (Sandbox/Production)
+    /// </summary>
+    public AppEnvironmentMode? EnvironmentMode { get; init; }
 }
 
 /// <summary>

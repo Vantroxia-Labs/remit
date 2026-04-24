@@ -235,6 +235,7 @@ public partial class BusinessController(
     /// Retrieves V2 dashboard analytics with 12-month data for General or VATTable dashboards
     /// </summary>
     /// <param name="dashboardType">Dashboard type: General (1) or VATTable (2)</param>
+    /// <param name="environmentMode">Optional app environment mode filter</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Dashboard analytics data with 12-month historical data</returns>
     [HttpGet("dashboard-analytics")]
@@ -242,11 +243,12 @@ public partial class BusinessController(
     [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetDashboardAnalyticsV2(
         [FromQuery] DashboardType dashboardType = DashboardType.General,
+        [FromQuery] AppEnvironmentMode? environmentMode = null,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Fetching V2 dashboard analytics for dashboard type: {DashboardType}", dashboardType);
 
-        var query = new GetDashboardAnalyticsV2Query(dashboardType);
+        var query = new GetDashboardAnalyticsV2Query(dashboardType, environmentMode);
         var result = await _mediator.Send(query, cancellationToken);
 
         return Success(result, $"{dashboardType} dashboard analytics retrieved successfully");

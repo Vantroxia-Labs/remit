@@ -262,6 +262,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     /// Get all received invoices with pagination and filtering
     /// </summary>
     /// <param name="searchTerm">Optional search term</param>
+    /// <param name="environmentMode">Optional environment mode</param>
     /// <param name="pageNumber">Page number (default: 1)</param>
     /// <param name="pageSize">Page size (default: 10)</param>
     /// <param name="orderBy">Order by field (default: IssueDate)</param>
@@ -271,6 +272,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetAllReceivedInvoices(
         [FromQuery] string? searchTerm,
+        [FromQuery] AppEnvironmentMode? environmentMode = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string orderBy = "IssueDate",
@@ -281,6 +283,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
             var query = new GetReceivedInvoicesQuery
             {
                 SearchTerm = searchTerm,
+                EnvironmentMode = environmentMode,
                 Page = pageNumber,
                 PageSize = pageSize,
                 SortBy = orderBy

@@ -17,9 +17,9 @@ public class WhtScheduleController(IMediator mediator) : ControllerBase
 
     /// <summary>Get all WHT schedules for the current business, optionally filtered by year.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetSchedules([FromQuery] int? year, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetSchedules([FromQuery] int? year, [FromQuery] AegisEInvoicing.Domain.Enums.AppEnvironmentMode? environmentMode, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(new GetWhtSchedulesQuery(year), cancellationToken);
+        var result = await _mediator.Send(new GetWhtSchedulesQuery(year, environmentMode), cancellationToken);
         return Ok(result);
     }
 

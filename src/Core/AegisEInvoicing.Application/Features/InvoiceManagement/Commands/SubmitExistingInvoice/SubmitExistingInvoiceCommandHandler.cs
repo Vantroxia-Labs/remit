@@ -62,16 +62,7 @@ public class SubmitExistingInvoiceCommandHandler : IRequestHandler<SubmitExistin
                 return result;
             }
 
-            if (invoice.InvoiceKind == InvoiceKind.B2C)
-            {
-                result.Success = false;
-                result.Message = ResponseMessages.B2C_INVOICE_CANNOT_BE_TRANSMITTED;
-                result.StatusCodes = 400;
-                result.FailedAt = "transmit";
-                result.InvoiceId = invoice.Id;
-                result.IRN = invoice.Irn?.Value ?? string.Empty;
-                return result;
-            }
+
 
             result.InvoiceId = invoice.Id;
             result.IRN = invoice.Irn.Value;

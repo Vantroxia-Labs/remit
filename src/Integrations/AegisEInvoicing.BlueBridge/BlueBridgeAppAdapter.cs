@@ -1,7 +1,8 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.BlueBridge.Contracts;
 using AegisEInvoicing.BlueBridge.Models.Requests;
+using AegisEInvoicing.BlueBridge.Converters;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using Microsoft.Extensions.Logging;
 
@@ -394,12 +395,34 @@ public sealed class BlueBridgeAppAdapter(
     // Helper method to map domain Invoice to BlueBridgeInvoiceRequest
     private static BlueBridgeInvoiceRequest MapInvoiceToBlueBridgeRequest(Invoice invoice)
     {
-        // TODO: Implement proper mapping when BlueBridgeInvoiceRequest structure is available
-        // For now, return a minimal request object
         return new BlueBridgeInvoiceRequest
         {
-            // Map invoice fields to BlueBridge format
-            // This will need to be completed based on BlueBridgeInvoiceRequest structure
+            BusinessId = invoice.Business.FIRSBusinessId.ToString(),
+            Irn = invoice.Irn?.Value ?? string.Empty,
+            IssueDate = invoice.IssueDate,
+            DueDate = invoice.DueDate,
+            IssueTime = invoice.IssueTime,
+            InvoiceTypeCode = invoice.InvoiceType.Code.ToString(),
+            InvoiceKind = invoice.InvoiceKind?.ToString(),
+            PaymentStatus = invoice.PaymentStatus.ToString(),
+            Note = invoice.Note,
+            DocumentCurrencyCode = invoice.Currency.Code,
+            TaxCurrencyCode = invoice.Currency.Code,
+            InvoiceDeliveryPeriod = invoice.DeliveryPeriod.ToBlueBridgeInvoiceDeliveryPeriod(),
+            BillingReference = invoice.BillingReferences.ToList().ToBlueBridgeBillingReference(),
+            DispatchDocumentReference = invoice.DispatchDocumentReference!.ToBlueBridgeDispatchDocumentReference(),
+            ReceiptDocumentReference = invoice.ReceiptDocumentReference!.ToBlueBridgeReceiptDocumentReference(),
+            OriginatorDocumentReference = invoice.OriginatorDocumentReference!.ToBlueBridgeOriginatorDocumentReference(),
+            ContractDocumentReference = invoice.ContractDocumentReference!.ToBlueBridgeContractDocumentReference(),
+            AdditionalDocumentReference = invoice.AdditionalDocumentReferences.ToList().ToBlueBridgeAddtionalDocumentReference(),
+            AccountingCustomerParty = invoice.Party.ToBlueBridgeAccountingCustomerParty(),
+            AccountingSupplierParty = invoice.Business.ToBlueBridgeAccountingSupplierParty(),
+            PaymentMeans = invoice.PaymentMeans!.ToBlueBridgePaymentMeans(invoice.IssueDate.AddDays(7)),
+            PaymentTermsNote = invoice.PaymentTerms,
+            AllowanceCharge = invoice.InvoiceLine.ToList().ToBlueBridgeAllowanceCharge(),
+            TaxTotal = invoice.InvoiceLine.ToList().ToBlueBridgeTaxTotal(),
+            LegalMonetaryTotal = invoice.InvoiceLine.ToList().ToBlueBridgeLegalMonetaryTotal(),
+            InvoiceLine = invoice.InvoiceLine.ToList().ToBlueBridgeInvoiceLine(invoice.Currency.Code)
         };
     }
 }

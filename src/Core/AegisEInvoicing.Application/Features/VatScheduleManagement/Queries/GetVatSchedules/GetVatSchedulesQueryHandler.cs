@@ -24,6 +24,10 @@ public class GetVatSchedulesQueryHandler(
             .AsNoTracking()
             .Where(s => s.BusinessId == currentUser.BusinessId.Value);
 
+        // TODO: Filter by EnvironmentMode once property is added to VatSchedule entity
+        // if (request.EnvironmentMode.HasValue)
+        //     query = query.Where(s => s.EnvironmentMode == request.EnvironmentMode.Value);
+
         if (request.Year.HasValue)
             query = query.Where(s => s.Year == request.Year.Value);
 

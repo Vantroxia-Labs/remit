@@ -99,7 +99,7 @@ public class Invoice : AuditableAggregateRoot
 
         var invoice = new Invoice
         {
-            InvoiceCode = new InvoiceId(invoicePrefix).FullId,
+            InvoiceCode = irn.Value.Split('-')[0],
             BusinessId = businessId,
             PartyId = partyId,
             Irn = irn,
@@ -150,7 +150,7 @@ public class Invoice : AuditableAggregateRoot
 
         return new Invoice
         {
-            InvoiceCode = new InvoiceId(invoicePrefix).FullId,
+            InvoiceCode = irn.Value.Split('-')[0],
             BusinessId = businessId,
             PartyId = partyId,
             Irn = irn,

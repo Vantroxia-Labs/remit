@@ -78,10 +78,6 @@ public class ValidateInvoiceCommandHandler(
                 InvoiceStatus.TRANSMISSIONFAILED
             };
 
-            // Check historical status
-            //if (invoice.InvoiceApprovalHistory.Any(h => !validatedStatuses.Contains(h.InvoiceStatus)))
-            //    return ValidateInvoiceResult.BadRequest(ResponseMessages.INVOICE_ALREADY_VALIDATED);
-
             if (string.IsNullOrEmpty(invoice.Business.FIRSApiKey) || string.IsNullOrEmpty(invoice.Business.FIRSClientSecret))
                 return ValidateInvoiceResult.NotFound(ResponseMessages.BUSINESS_FIRS_CREDENTIALS_NOT_CONFIGURED);
 

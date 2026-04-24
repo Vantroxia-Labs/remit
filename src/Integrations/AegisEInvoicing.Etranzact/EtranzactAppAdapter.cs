@@ -1,8 +1,9 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Etranzact.Contracts;
 using AegisEInvoicing.Etranzact.Models.Requests;
+using AegisEInvoicing.Etranzact.Converters;
 using Microsoft.Extensions.Logging;
 
 namespace AegisEInvoicing.Etranzact;
@@ -162,8 +163,32 @@ public sealed class EtranzactAppAdapter(
         {
             var request = new ValidateInvoiceRequest
             {
-                // Map invoice fields to eTranzact format
-                // TODO: Complete mapping based on ValidateInvoiceRequest structure
+                BusinessId = invoice.Business.FIRSBusinessId.ToString(),
+                Irn = invoice.Irn?.Value ?? string.Empty,
+                IssueDate = invoice.IssueDate,
+                DueDate = invoice.DueDate,
+                IssueTime = invoice.IssueTime,
+                InvoiceTypeCode = invoice.InvoiceType.Code.ToString(),
+                InvoiceKind = invoice.InvoiceKind?.ToString(),
+                PaymentStatus = invoice.PaymentStatus.ToString(),
+                Note = invoice.Note,
+                DocumentCurrencyCode = invoice.Currency.Code,
+                TaxCurrencyCode = invoice.Currency.Code,
+                InvoiceDeliveryPeriod = invoice.DeliveryPeriod.ToEtranzactInvoiceDeliveryPeriod(),
+                BillingReference = invoice.BillingReferences.ToList().ToEtranzactBillingReference(),
+                DispatchDocumentReference = invoice.DispatchDocumentReference!.ToEtranzactDispatchDocumentReference(),
+                ReceiptDocumentReference = invoice.ReceiptDocumentReference!.ToEtranzactReceiptDocumentReference(),
+                OriginatorDocumentReference = invoice.OriginatorDocumentReference!.ToEtranzactOriginatorDocumentReference(),
+                ContractDocumentReference = invoice.ContractDocumentReference!.ToEtranzactContractDocumentReference(),
+                AdditionalDocumentReference = invoice.AdditionalDocumentReferences.ToList().ToEtranzactAddtionalDocumentReference(),
+                AccountingCustomerParty = invoice.Party.ToEtranzactAccountingCustomerParty(),
+                AccountingSupplierParty = invoice.Business.ToEtranzactAccountingSupplierParty(),
+                PaymentMeans = invoice.PaymentMeans!.ToEtranzactPaymentMeans(invoice.IssueDate.AddDays(7)),
+                PaymentTermsNote = invoice.PaymentTerms,
+                AllowanceCharge = invoice.InvoiceLine.ToList().ToEtranzactAllowanceCharge(),
+                TaxTotal = invoice.InvoiceLine.ToList().ToEtranzactTaxTotal(),
+                LegalMonetaryTotal = invoice.InvoiceLine.ToList().ToEtranzactLegalMonetaryTotal(),
+                InvoiceLine = invoice.InvoiceLine.ToList().ToEtranzactInvoiceLine(invoice.Currency.Code)
             };
 
             var response = await client.ValidateInvoiceAsync(request, cancellationToken);
@@ -381,12 +406,34 @@ public sealed class EtranzactAppAdapter(
     // Helper method to map domain Invoice to eTranzact SignInvoiceRequest
     private static SignInvoiceRequest MapInvoiceToEtranzactRequest(Invoice invoice)
     {
-        // TODO: Implement proper mapping when SignInvoiceRequest structure is available
-        // For now, return a minimal request object
         return new SignInvoiceRequest
         {
-            // Map invoice fields to eTranzact format
-            // This will need to be completed based on SignInvoiceRequest structure
+            BusinessId = invoice.Business.FIRSBusinessId.ToString(),
+            Irn = invoice.Irn?.Value ?? string.Empty,
+            IssueDate = invoice.IssueDate,
+            DueDate = invoice.DueDate,
+            IssueTime = invoice.IssueTime,
+            InvoiceTypeCode = invoice.InvoiceType.Code.ToString(),
+            InvoiceKind = invoice.InvoiceKind?.ToString(),
+            PaymentStatus = invoice.PaymentStatus.ToString(),
+            Note = invoice.Note,
+            DocumentCurrencyCode = invoice.Currency.Code,
+            TaxCurrencyCode = invoice.Currency.Code,
+            InvoiceDeliveryPeriod = invoice.DeliveryPeriod.ToEtranzactInvoiceDeliveryPeriod(),
+            BillingReference = invoice.BillingReferences.ToList().ToEtranzactBillingReference(),
+            DispatchDocumentReference = invoice.DispatchDocumentReference!.ToEtranzactDispatchDocumentReference(),
+            ReceiptDocumentReference = invoice.ReceiptDocumentReference!.ToEtranzactReceiptDocumentReference(),
+            OriginatorDocumentReference = invoice.OriginatorDocumentReference!.ToEtranzactOriginatorDocumentReference(),
+            ContractDocumentReference = invoice.ContractDocumentReference!.ToEtranzactContractDocumentReference(),
+            AdditionalDocumentReference = invoice.AdditionalDocumentReferences.ToList().ToEtranzactAddtionalDocumentReference(),
+            AccountingCustomerParty = invoice.Party.ToEtranzactAccountingCustomerParty(),
+            AccountingSupplierParty = invoice.Business.ToEtranzactAccountingSupplierParty(),
+            PaymentMeans = invoice.PaymentMeans!.ToEtranzactPaymentMeans(invoice.IssueDate.AddDays(7)),
+            PaymentTermsNote = invoice.PaymentTerms,
+            AllowanceCharge = invoice.InvoiceLine.ToList().ToEtranzactAllowanceCharge(),
+            TaxTotal = invoice.InvoiceLine.ToList().ToEtranzactTaxTotal(),
+            LegalMonetaryTotal = invoice.InvoiceLine.ToList().ToEtranzactLegalMonetaryTotal(),
+            InvoiceLine = invoice.InvoiceLine.ToList().ToEtranzactInvoiceLine(invoice.Currency.Code)
         };
     }
 }
