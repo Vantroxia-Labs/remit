@@ -159,11 +159,10 @@ public class TransmitBulkInvoiceCommandHandler(
 
         if (invoice.InvoiceKind == InvoiceKind.B2C)
         {
-            _logger.LogWarning("Invoice {InvoiceId} is a B2C invoice and cannot be transmitted", invoice.Id);
-            invoice.SetFIRSSubmissionResponseMessage(ResponseMessages.B2C_INVOICE_CANNOT_BE_TRANSMITTED);
-            invoice.UpdateStatus(InvoiceStatus.TRANSMISSIONFAILED);
-            _context.InvoiceApprovalHistories.Add(InvoiceApprovalHistory.Create(invoice.Id, InvoiceStatus.TRANSMISSIONFAILED, ResponseMessages.B2C_INVOICE_CANNOT_BE_TRANSMITTED));
-            stats.RecordFailure(identifier, ResponseMessages.B2C_INVOICE_CANNOT_BE_TRANSMITTED);
+            _logger.LogInformation("Invoice {InvoiceId} is B2C — transmission skipped, invoice remains SIGNED", invoice.Id);
+            invoice.SetFIRSSubmissionResponseMessage(ResponseMessages.B2C_INVOICE_TRANSMISSION_SKIPPED);
+            _context.InvoiceApprovalHistories.Add(InvoiceApprovalHistory.Create(invoice.Id, InvoiceStatus.SIGNED, ResponseMessages.B2C_INVOICE_TRANSMISSION_SKIPPED));
+            stats.RecordSuccess();
             return;
         }
 

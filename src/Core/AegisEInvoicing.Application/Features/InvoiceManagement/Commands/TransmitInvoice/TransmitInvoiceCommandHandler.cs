@@ -51,7 +51,14 @@ public class TransmitInvoiceCommandHandler(
                 return TransmitInvoiceResult.NotFound(ResponseMessages.INVOICE_NOT_FOUND_TRANSMITTED);
 
             if (invoice.InvoiceKind == InvoiceKind.B2C)
-                return TransmitInvoiceResult.BadRequest(ResponseMessages.B2C_INVOICE_CANNOT_BE_TRANSMITTED);
+            {
+                invoice.SetFIRSSubmissionResponseMessage(ResponseMessages.B2C_INVOICE_TRANSMISSION_SKIPPED);
+                var approvalHistory = InvoiceApprovalHistory.Create(invoice.Id, InvoiceStatus.SIGNED, ResponseMessages.B2C_INVOICE_TRANSMISSION_SKIPPED);
+                _context.InvoiceApprovalHistories.Add(approvalHistory);
+                await _context.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Invoice {InvoiceId} is B2C — transmission skipped, invoice remains SIGNED", invoice.Id);
+                return TransmitInvoiceResult.Successful();
+            }
 
             var validStatuses = new[] { InvoiceStatus.SIGNED, InvoiceStatus.TRANSMISSIONFAILED };
             var validatedStatuses = new[]

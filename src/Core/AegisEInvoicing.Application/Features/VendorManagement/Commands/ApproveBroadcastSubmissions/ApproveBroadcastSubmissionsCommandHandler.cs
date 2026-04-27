@@ -44,6 +44,10 @@ public class ApproveBroadcastSubmissionsCommandHandler(
 
             foreach (var invoice in invoices)
             {
+                // Transition to APPROVED so ValidateInvoiceCommandHandler can pick it up
+                invoice.UpdateStatus(InvoiceStatus.APPROVED);
+                await _context.SaveChangesAsync(cancellationToken);
+
                 var validateResult = await _mediator.Send(new ValidateInvoiceCommand(invoice.Id, _currentUser.BusinessId.Value), cancellationToken);
                 if (!validateResult.IsSuccess)
                 {

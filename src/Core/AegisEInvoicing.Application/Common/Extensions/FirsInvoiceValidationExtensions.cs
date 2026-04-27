@@ -314,6 +314,27 @@ public static class FirsInvoiceValidationExtensions
         var invioceLines = new List<InvoiceLine>();
         foreach (var item in invoiceItems)
         {
+            var grossAmount = item.Quantity * item.BusinessItem!.UnitPrice;
+
+            decimal discountAmount = 0;
+            decimal discountRate = 0;
+            if (item.DiscountFee != null)
+            {
+                if (item.DiscountFee.Code == FeeStandardUnit.Percent)
+                {
+                    discountRate = item.DiscountFee.Amount;
+                    discountAmount = grossAmount * (item.DiscountFee.Amount / 100);
+                }
+                else
+                {
+                    discountAmount = item.DiscountFee.Amount;
+                    discountRate = grossAmount > 0 ? (item.DiscountFee.Amount / grossAmount) * 100 : 0;
+                }
+            }
+
+            // LineExtensionAmount = net amount after discount, excluding tax (BIS Billing 3.0 BT-131)
+            var netAmount = grossAmount - discountAmount;
+
             var invoiceLine = new InvoiceLine
             {
                 HsnCode = item.BusinessItem!.ItemType == ItemType.Goods ? item.BusinessItem.ServiceCode!.Code : null,
@@ -326,7 +347,9 @@ public static class FirsInvoiceValidationExtensions
                     Name = item.BusinessItem!.Name,
                     Description = item.BusinessItem!.ItemDescription
                 },
-                LineExtensionAmount = item.Quantity * item.BusinessItem!.UnitPrice,
+                LineExtensionAmount = netAmount,
+                DiscountRate = discountRate,
+                DiscountAmount = discountAmount,
                 Price = new Price
                 {
                     BaseQuantity = 1,
@@ -335,21 +358,6 @@ public static class FirsInvoiceValidationExtensions
                 }
             };
 
-            if (item.DiscountFee != null)
-            {
-                if (item.DiscountFee.Code == FeeStandardUnit.Percent)
-                {
-                    invoiceLine.DiscountRate = item.DiscountFee.Amount;
-                    // Calculate discount amount based on percentage
-                    invoiceLine.DiscountAmount = (item.Quantity * item.BusinessItem!.UnitPrice) * (item.DiscountFee.Amount / 100);
-                }
-                else
-                {
-                    invoiceLine.DiscountAmount = item.DiscountFee.Amount;
-                    // Calculate discount rate based on fixed amount
-                    invoiceLine.DiscountRate = (item.DiscountFee.Amount / (item.Quantity * item.BusinessItem!.UnitPrice)) * 100;
-                }
-            }
             invioceLines.Add(invoiceLine);
         }
         return invioceLines;

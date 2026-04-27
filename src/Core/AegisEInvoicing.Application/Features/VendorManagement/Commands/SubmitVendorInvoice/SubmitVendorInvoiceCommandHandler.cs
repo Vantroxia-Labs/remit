@@ -83,6 +83,10 @@ public class SubmitVendorInvoiceCommandHandler(
         }
         else
         {
+            // Transition to APPROVED so ValidateInvoiceCommandHandler can pick it up
+            invoice.UpdateStatus(InvoiceStatus.APPROVED);
+            await _context.SaveChangesAsync(cancellationToken);
+
             // Auto-approve: validate and sign
             var validateResult = await _mediator.Send(new ValidateInvoiceCommand(invoice.Id, broadcast.BusinessId), cancellationToken);
             if (!validateResult.IsSuccess)
