@@ -331,5 +331,6 @@ public class PaymentMeansRequest
 public record UpdateInvoicePaymentStatusRequest(
     [Required(ErrorMessage = "Payment status is required")]
     PaymentStatus PaymentStatus,
-    string? Reference
+    string? Reference,
+    decimal? Amount
 );

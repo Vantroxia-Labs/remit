@@ -439,7 +439,7 @@ public partial class FIRSController(IFIRSHttpClient firsClient, ILogger<FIRSCont
     {
         try
         {
-            var command = new UpdateInvoicePaymentStatusCommand(id, updateInvoicePaymentStatusRequest.PaymentStatus, updateInvoicePaymentStatusRequest.Reference);
+            var command = new UpdateInvoicePaymentStatusCommand(id, updateInvoicePaymentStatusRequest.PaymentStatus, updateInvoicePaymentStatusRequest.Reference, updateInvoicePaymentStatusRequest.Amount);
             var result = await Mediator.Send(command, cancellationToken);
 
             return GenericResponse(result.Message, result.IsSuccess, data: null, statusCode: result.StatusCodes);

@@ -48,7 +48,7 @@ public class ChangePasswordCommandHandler(
             }
 
             // Step 3: Verify current password
-            if (!user.PasswordHash.Verify(request.CurrentPassword))
+            if (user.PasswordHash.Verify(request.CurrentPassword))
             {
                 return ChangePasswordResult.Failure("Current password is incorrect");
             }

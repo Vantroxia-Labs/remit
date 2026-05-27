@@ -50,15 +50,19 @@ public class UpdateInvoicePaymentStatusCommandHandler : IRequestHandler<UpdateIn
         if (request.PaymentStatus == PaymentStatus.Paid && string.IsNullOrWhiteSpace(request.Reference))
             return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.BadRequest("A payment reference is required when marking an invoice as Paid.");
 
+        if (request.PaymentStatus == PaymentStatus.Partial && request.Amount is null)
+            return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.BadRequest("An amount is required when marking an invoice as Partial.");
+
         var provider = await _appProviderRouter.GetProviderAsync(businessId, cancellationToken);
         var updatePaymentStatus = await provider.UpdateStatusAsync(
             invoice.Irn.Value,
             FormatPaymentStatus(request.PaymentStatus),
             request.Reference,
+            request.Amount,
             cancellationToken);
 
         if (updatePaymentStatus.IsSuccess)
-            invoice.UpdatePaymentStatus(request.PaymentStatus, request.Reference);
+            invoice.UpdatePaymentStatus(request.PaymentStatus, request.Reference, request.Amount);
         else
             return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.Failure("Failed to update payment status with the regulator. Please try again.");
 
@@ -66,7 +70,11 @@ public class UpdateInvoicePaymentStatusCommandHandler : IRequestHandler<UpdateIn
 
         _logger.LogInformation("Invoice payment status updated successfully with ID: {InvoiceId}", invoice.Id);
 
-        return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.Updated(ResponseMessages.INVOICE_UPDATED_SUCCESS);
+        var successMessage = request.PaymentStatus == PaymentStatus.Partial
+            ? $"{ResponseMessages.INVOICE_UPDATED_SUCCESS} Once the invoice is fully paid, the payment status should be updated to PAID and the amount should be removed."
+            : ResponseMessages.INVOICE_UPDATED_SUCCESS;
+
+        return (UpdateInvoicePaymentStatusResult)UpdateInvoicePaymentStatusResult.Updated(successMessage);
     }
 
     private bool IsUserAuthorized() =>
@@ -78,7 +86,7 @@ public class UpdateInvoicePaymentStatusCommandHandler : IRequestHandler<UpdateIn
         {
             PaymentStatus.Paid => "PAID",
             PaymentStatus.Rejected => "REJECTED",
-            PaymentStatus.Cancelled => "CANCELLED",
+            PaymentStatus.Partial => "PARTIAL",
             _ => "PENDING"
         };
     }

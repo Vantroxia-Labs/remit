@@ -24,6 +24,7 @@ public class Invoice : AuditableAggregateRoot
     public InvoiceSource InvoiceSource { get; private set; } = InvoiceSource.PORTAL;
     public string? PaymentTerms { get; private set; }
     public string? PaymentReference { get; private set; }
+    public decimal? PartialAmount { get; private set; }
     public PaymentMeans? PaymentMeans { get; private set; }
     private readonly List<InvoiceItem> _invoiceLine = [];
     public IReadOnlyCollection<InvoiceItem> InvoiceLine => _invoiceLine.AsReadOnly();
@@ -220,11 +221,12 @@ public class Invoice : AuditableAggregateRoot
         }
     }
 
-    public void UpdatePaymentStatus(PaymentStatus newStatus, string? reference = null)
+    public void UpdatePaymentStatus(PaymentStatus newStatus, string? reference = null, decimal? partialAmount = null)
     {
         PaymentStatus = newStatus;
         if (newStatus == PaymentStatus.Paid && !string.IsNullOrWhiteSpace(reference))
             PaymentReference = reference;
+        PartialAmount = newStatus == PaymentStatus.Partial ? partialAmount : null;
     }
 
     /// <summary>

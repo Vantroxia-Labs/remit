@@ -242,6 +242,7 @@ public sealed class BlueBridgeAppAdapter(
         string irn,
         string paymentStatus,
         string? reference,
+        decimal? amount,
         CancellationToken cancellationToken = default)
     {
         try
@@ -249,7 +250,8 @@ public sealed class BlueBridgeAppAdapter(
             var request = new UpdateInvoiceRequest
             {
                 PaymentStatus = paymentStatus,
-                Reference = reference
+                Reference = reference,
+                Amount = amount
             };
 
             var response = await client.UpdateInvoiceAsync(irn, request, cancellationToken);

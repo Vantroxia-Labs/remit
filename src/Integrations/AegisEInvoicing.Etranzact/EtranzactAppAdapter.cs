@@ -292,13 +292,15 @@ public sealed class EtranzactAppAdapter(
         string irn,
         string paymentStatus,
         string? reference,
+        decimal? amount,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var request = new UpdatePaymentStatusRequest
             {
-                PaymentStatus = paymentStatus
+                PaymentStatus = paymentStatus,
+                Amount = amount
             };
 
             var response = await client.UpdatePaymentStatusAsync(irn, request, cancellationToken);

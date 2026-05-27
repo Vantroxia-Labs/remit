@@ -342,6 +342,7 @@ public sealed class InterswitchAppAdapter(
         string irn,
         string paymentStatus,
         string? reference,
+        decimal? amount,
         CancellationToken cancellationToken = default)
     {
         try
@@ -350,7 +351,8 @@ public sealed class InterswitchAppAdapter(
             {
                 IRN = irn,
                 PaymentStatus = paymentStatus,
-                Reference = reference
+                Reference = reference,
+                Amount = amount
             };
 
             var response = await client.UpdateStatusAsync(request, cancellationToken);

@@ -6,4 +6,5 @@ namespace AegisEInvoicing.Application.Features.ReceivedInvoiceManagement.Command
 public record UpdateReceivedInvoicePaymentStatusCommand(
     Guid ReceivedInvoiceId,
     string PaymentStatus,
-    string? Reference) : IRequest<UpdateReceivedInvoicePaymentStatusResult>, ITransactionalCommand;
+    string? Reference,
+    decimal? Amount) : IRequest<UpdateReceivedInvoicePaymentStatusResult>, ITransactionalCommand;

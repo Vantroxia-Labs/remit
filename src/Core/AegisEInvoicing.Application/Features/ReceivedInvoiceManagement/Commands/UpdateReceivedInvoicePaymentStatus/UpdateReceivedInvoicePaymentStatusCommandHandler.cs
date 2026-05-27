@@ -51,26 +51,31 @@ public class UpdateReceivedInvoicePaymentStatusCommandHandler
 
         var status = request.PaymentStatus.Trim().ToUpperInvariant();
 
-        if (status != "PAID" && status != "REJECTED")
+        if (status != "PAID" && status != "REJECTED" && status != "PARTIAL")
             return UpdateReceivedInvoicePaymentStatusResult.BadRequest(
-                "Only PAID or REJECTED statuses are allowed for received invoices as the buyer.");
+                "Only PAID, REJECTED, or PARTIAL statuses are allowed for received invoices as the buyer.");
 
         if (status == "PAID" && string.IsNullOrWhiteSpace(request.Reference))
             return UpdateReceivedInvoicePaymentStatusResult.BadRequest(
                 "A payment reference is required when marking an invoice as Paid.");
+
+        if (status == "PARTIAL" && request.Amount is null)
+            return UpdateReceivedInvoicePaymentStatusResult.BadRequest(
+                "An amount is required when marking an invoice as Partial.");
 
         var provider = await _appProviderRouter.GetProviderAsync(businessId, cancellationToken);
         var updateResult = await provider.UpdateStatusAsync(
             receivedInvoice.Irn.Value,
             status,
             request.Reference,
+            request.Amount,
             cancellationToken);
 
         if (!updateResult.IsSuccess)
             return UpdateReceivedInvoicePaymentStatusResult.Failure(
                 "Failed to update payment status with the regulator. Please try again.");
 
-        receivedInvoice.UpdatePaymentStatus(status, request.Reference);
+        receivedInvoice.UpdatePaymentStatus(status, request.Reference, request.Amount);
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -78,7 +83,10 @@ public class UpdateReceivedInvoicePaymentStatusCommandHandler
             "Received invoice payment status updated to {Status} for ID: {InvoiceId}",
             status, receivedInvoice.Id);
 
-        return UpdateReceivedInvoicePaymentStatusResult.Updated(
-            "Received invoice payment status updated successfully");
+        var successMessage = status == "PARTIAL"
+            ? "Received invoice payment status updated successfully. Once the invoice is fully paid, the payment status should be updated to PAID and the amount should be removed."
+            : "Received invoice payment status updated successfully";
+
+        return UpdateReceivedInvoicePaymentStatusResult.Updated(successMessage);
     }
 }

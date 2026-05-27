@@ -316,7 +316,7 @@ public interface IAccessPointProviderClient
     /// <summary>
     /// Update payment status of an invoice on the NRS portal.
     /// </summary>
-    Task<AppUpdateStatusResult> UpdateStatusAsync(string irn, string paymentStatus, string? reference, CancellationToken cancellationToken = default);
+    Task<AppUpdateStatusResult> UpdateStatusAsync(string irn, string paymentStatus, string? reference, decimal? amount, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get all purchase invoices (received invoices) for a business within a date range.

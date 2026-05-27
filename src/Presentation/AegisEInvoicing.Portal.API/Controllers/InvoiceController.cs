@@ -476,7 +476,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     {
         try
         {
-            var command = new UpdateInvoicePaymentStatusCommand(id, updateInvoicePaymentStatusRequest.PaymentStatus, updateInvoicePaymentStatusRequest.Reference);
+            var command = new UpdateInvoicePaymentStatusCommand(id, updateInvoicePaymentStatusRequest.PaymentStatus, updateInvoicePaymentStatusRequest.Reference, updateInvoicePaymentStatusRequest.Amount);
             var result = await _mediator.Send(command, cancellationToken);
 
             return GenericResponse(result.Message, result.IsSuccess, result.StatusCodes);
@@ -501,7 +501,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
     {
         try
         {
-            var command = new UpdateReceivedInvoicePaymentStatusCommand(id, request.PaymentStatus, request.Reference);
+            var command = new UpdateReceivedInvoicePaymentStatusCommand(id, request.PaymentStatus, request.Reference, request.Amount);
             var result = await _mediator.Send(command, cancellationToken);
 
             return GenericResponse(result.Message, result.IsSuccess, result.StatusCodes);

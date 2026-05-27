@@ -13,4 +13,7 @@ public sealed class UpdateInvoiceRequest
 
     [JsonPropertyName("reference")]
     public string? Reference { get; set; }
+
+    [JsonPropertyName("amount")]
+    public decimal? Amount { get; set; }
 }

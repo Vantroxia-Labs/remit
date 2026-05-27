@@ -10,8 +10,6 @@ public enum PaymentStatus
     Paid,
     [Display(Name = "REJECTED")]
     Rejected,
-    [Display(Name = "CANCELLED")]
-    Cancelled,
-    [Display(Name = "DISMISSED")]
-    Dismissed
+    [Display(Name = "PARTIAL")]
+    Partial
 }

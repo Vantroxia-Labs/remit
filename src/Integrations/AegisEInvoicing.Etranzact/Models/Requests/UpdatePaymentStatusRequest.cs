@@ -11,4 +11,7 @@ public sealed class UpdatePaymentStatusRequest
 {
     [JsonPropertyName("payment_status")]
     public string PaymentStatus { get; set; } = null!;
+
+    [JsonPropertyName("amount")]
+    public decimal? Amount { get; set; }
 }
