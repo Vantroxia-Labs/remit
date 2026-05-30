@@ -10,6 +10,7 @@ using AegisEInvoicing.ERP.API.Extensions;
 using AegisEInvoicing.ERP.API.Middleware;
 using Microsoft.AspNetCore.Authentication;
 using QuestPDF.Infrastructure;
+using Scalar.AspNetCore;
 using Serilog;
 using AegisEInvoicing.Infrastructure.Services.Telemetry;
 
@@ -88,7 +89,7 @@ public class Program
                 var cloudRoleName = Environment.GetEnvironmentVariable("ApplicationInsights__CloudRoleName") ?? "AegisEInvoicing-SaaS";
 
                 var environmentName = context.HostingEnvironment.EnvironmentName?.ToLowerInvariant().Replace(".", "-") ?? "unknown";
-                
+
                 Log.Information("=== Application Insights Configuration ===");
                 Log.Information("Environment: {Environment}", environmentName);
                 Log.Information("Cloud Role Name: {CloudRoleName}", cloudRoleName);
@@ -232,14 +233,17 @@ public class Program
                 Log.Warning("HTTPS enforcement is DISABLED - This should only be used for testing without SSL certificates");
             }
 
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
+            // Scalar API documentation (replaces Swagger)
+            app.MapOpenApi("/openapi/v1.json").WithGroupName("v1");
+
+            app.MapScalarApiReference(options =>
             {
-                c.SwaggerEndpoint("v1/swagger.json", "EInvoice Integrator SaaS API V1");
-                c.RoutePrefix = "swagger";
-                c.DocumentTitle = "EInvoice Integrator SaaS API Documentation";
-                c.DisplayRequestDuration();
+                options
+                    .WithTitle("EInvoice Integrator SaaS API Documentation")
+                    .WithTheme(ScalarTheme.Purple)
+                    .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
             });
+
             app.UseStaticFiles();
 
             app.UseRouting();

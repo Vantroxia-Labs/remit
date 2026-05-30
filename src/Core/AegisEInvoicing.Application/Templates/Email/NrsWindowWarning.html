@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NRS Confirmation Window Warning</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f0f4f8; font-family: Arial, sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+        style="background-color: #f0f4f8; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0"
+                    style="background-color: #ffffff; border-top: 6px solid #e74c3c; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h1 style="color: #e74c3c; font-size: 20px; margin: 0 0 16px;">&#9888; 24-Hour NRS Confirmation Window Closing</h1>
+                            <p style="font-size: 14px; color: #333333; line-height: 1.6; margin: 0 0 16px;">
+                                Dear <strong>{tenantName}</strong>,
+                            </p>
+                            <p style="font-size: 14px; color: #333333; line-height: 1.6; margin: 0 0 16px;">
+                                You have approximately <strong>24 hours remaining</strong> to reject or dispute the following invoice at NRS before it is permanently confirmed:
+                            </p>
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                                style="background-color: #f8f9fa; border-radius: 6px; margin: 20px 0;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <p style="font-size: 13px; color: #555; margin: 0 0 8px;"><strong>Vendor:</strong> {vendorName}</p>
+                                        <p style="font-size: 13px; color: #555; margin: 0 0 8px;"><strong>IRN:</strong> {irn}</p>
+                                        <p style="font-size: 13px; color: #555; margin: 0 0 8px;"><strong>Submitted to NRS:</strong> {submittedAt}</p>
+                                        <p style="font-size: 13px; color: #e74c3c; margin: 0;"><strong>Confirmation Deadline:</strong> {deadline}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="font-size: 13px; color: #555555; line-height: 1.6; margin: 0 0 16px;">
+                                After this deadline the invoice will be permanently confirmed and can only be corrected with a credit or debit note. Please review the invoice and take action if necessary.
+                            </p>
+                            <div style="text-align: center; margin-top: 40px; border-top: 1px solid #e9ecef; padding-top: 25px;">
+                                <p style="font-size: 10px; color: #999; margin: 0;">&copy; 2026 Aegis. All rights reserved.</p>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -1,4 +1,4 @@
-﻿using AegisEInvoicing.Portal.API.Attributes;
+using AegisEInvoicing.Portal.API.Attributes;
 using AegisEInvoicing.Portal.API.Models;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.CreateAndSubmitInvoice;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.SignBulkInvoice;
@@ -13,7 +13,6 @@ using AegisEInvoicing.Application.Features.InvoiceManagement.Queries.DownloadInv
 using AegisEInvoicing.Domain.Constants;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -26,17 +25,7 @@ public partial class InvoiceController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Detailed invoice status information</returns>
     [HttpGet("download/{invoiceId:guid}")]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Download invoice",
-        Description = "Downloads Invoice as PDF"
-    )]
-    [SwaggerResponse(200, "Invoice downloaded successfully as PDF", typeof(FileResult))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied to this business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [Produces("application/pdf", "application/json")]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    [Produces("application/pdf", "application/json")]
     public async Task<IActionResult> DownloadInvoice(
         [FromRoute] Guid invoiceId,
         CancellationToken cancellationToken = default)
@@ -76,17 +65,7 @@ public partial class InvoiceController
     /// <returns>Detailed invoice status information</returns>
     [HttpPost("Validate/{invoiceId:guid}")]
     [EnableRateLimiting("InvoiceOperations")] // Rate limit: 20 operations per minute per user
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Validate invoice",
-        Description = "Validate Invoice. Rate limited to 20 operations per minute per user."
-    )]
-    [SwaggerResponse(200, "Invoice validation successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied to this business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> ValidateInvoice(
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> ValidateInvoice(
         [FromRoute] Guid invoiceId,
         CancellationToken cancellationToken = default)
     {
@@ -98,7 +77,7 @@ public partial class InvoiceController
 
             return GenericResponse(result.Message, result.IsSuccess, result.StatusCodes);
         }
-        
+
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error validating invoice for ID: {InvoiceId}", invoiceId);
@@ -115,24 +94,13 @@ public partial class InvoiceController
     /// <returns>Detailed invoice status information</returns>
     [HttpPost("validatebulk")]
     [EnableRateLimiting("BulkOperations")] // Strict rate limit: 5 bulk operations per 5 minutes per user
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Bulk Validate invoices",
-        Description = "Bulk Validate Invoices. Rate limited to 5 bulk operations per 5 minutes per user to prevent system overload."
-    )]
-    [SwaggerResponse(101, "Bulk Invoice validation Processed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(200, "Bulk Invoice validation successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied to this business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> ValidateBulkInvoices(
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> ValidateBulkInvoices(
         [FromBody] List<Guid> invoiceIds = null!,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Bulk Invoice validation requested for IDs: {InvoiceId}", string.Join(',',invoiceIds));
+            _logger.LogInformation("Bulk Invoice validation requested for IDs: {InvoiceId}", string.Join(',', invoiceIds));
             var query = new ValidateBulkInvoiceCommand(invoiceIds);
             var result = await Mediator.Send(query, cancellationToken);
 
@@ -154,17 +122,7 @@ public partial class InvoiceController
     /// <returns>Detailed invoice status information</returns>
     [HttpPost("Sign/{invoiceId:guid}")]
     [EnableRateLimiting("InvoiceOperations")] // Rate limit: 20 operations per minute per user
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Sign invoice",
-        Description = "Sign Invoice. Rate limited to 20 operations per minute per user."
-    )]
-    [SwaggerResponse(200, "Invoice signing successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied to this business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> SignInvoice(
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> SignInvoice(
         [FromRoute] Guid invoiceId,
         CancellationToken cancellationToken = default)
     {
@@ -192,17 +150,7 @@ public partial class InvoiceController
     /// <returns>Detailed invoice status information</returns>
     [HttpPost("signbulk")]
     [EnableRateLimiting("BulkOperations")] // Strict rate limit: 5 bulk operations per 5 minutes per user
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Bulk Sign invoices",
-        Description = "Bulk Sign Invoices. Rate limited to 5 bulk operations per 5 minutes per user to prevent system overload."
-    )]
-    [SwaggerResponse(200, "Invoice signing successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied to this business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> SignBulkInvoices(
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> SignBulkInvoices(
         [FromBody] List<Guid> invoiceIds = null!,
         CancellationToken cancellationToken = default)
     {
@@ -231,17 +179,7 @@ public partial class InvoiceController
     /// <returns>Detailed invoice status information</returns>
     [HttpPost("transmit/{invoiceId:guid}")]
     [EnableRateLimiting("InvoiceOperations")] // Rate limit: 20 operations per minute per user
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Transmit invoice",
-        Description = "Transmit Invoice. Rate limited to 20 operations per minute per user."
-    )]
-    [SwaggerResponse(200, "Invoice transmitted successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied to this business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> TransmitInvoice(
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> TransmitInvoice(
         [FromRoute] Guid invoiceId,
         CancellationToken cancellationToken = default)
     {
@@ -269,17 +207,7 @@ public partial class InvoiceController
     /// <returns>Detailed invoice status information</returns>
     [HttpPost("transmitbulk")]
     [EnableRateLimiting("BulkOperations")] // Strict rate limit: 5 bulk operations per 5 minutes per user
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Bulk Transmit invoices",
-        Description = "Bulk Transmit Invoices. Rate limited to 5 bulk operations per 5 minutes per user to prevent system overload."
-    )]
-    [SwaggerResponse(200, "Invoice transmission successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied to this business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> TransmitBulkInvoices(
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> TransmitBulkInvoices(
         [FromBody] List<Guid> invoiceIds = null!,
         CancellationToken cancellationToken = default)
     {
@@ -307,54 +235,7 @@ public partial class InvoiceController
     /// <returns>Complete pipeline execution result</returns>
     [HttpPost("submit-invoice/{invoiceId:guid}")]
     [EnableRateLimiting("InvoiceOperations")]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Submit Invoice (Validate → Sign → Transmit)",
-        Description = @"Submits an existing invoice through the complete FIRS compliance pipeline:
-**Pipeline Steps (Always Executed):**
-1. **VALIDATE** - Validates invoice against FIRS requirements
-2. **SIGN** - Digitally signs invoice via NRS (Interswitch)  
-3. **TRANSMIT** - Transmits signed invoice to FIRS
-
-**Key Features:**
-- Single endpoint replaces 3 separate API calls
-- All steps always execute (no skipping)
-- Continues processing even if intermediate steps fail
-- Returns detailed status for each pipeline step
-- Final invoice status reflects last successful step
-
-**Note:** Invoice must already exist (created separately). Use this for invoices created via the regular CREATE endpoint.
-
-**Rate Limit:** 20 operations per minute per user
-
-**Access Control:**
-- **Required Roles**: Business User or Administrator
-- **Tenant Isolation**: Automatically enforced via authentication
-
-**Example Success Response:**
-```json
-{
-  ""success"": true,
-  ""invoiceId"": ""guid"",
-  ""irn"": ""ITW00000001-E9E0C0D3-20250115"",
-  ""currentStatus"": ""TRANSMITTED"",
-  ""message"": ""Invoice submitted successfully"",
-  ""pipeline"": {
-    ""validate"": { ""status"": ""SUCCESS"", ""message"": ""Invoice validated"" },
-    ""sign"": { ""status"": ""SUCCESS"", ""message"": ""Invoice signed"" },
-    ""transmit"": { ""status"": ""SUCCESS"", ""message"": ""Invoice transmitted"" }
-  }
-}
-```",
-        OperationId = "SubmitInvoice",
-        Tags = new[] { "Invoice Management Operations" }
-    )]
-    [SwaggerResponse(200, "Invoice successfully processed through entire pipeline", typeof(ApiResponse<object>))]
-    [SwaggerResponse(207, "Invoice processed but some pipeline steps failed (Multi-Status)", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    
     public async Task<IActionResult> SubmitInvoice(
         [FromRoute] Guid invoiceId,
         CancellationToken cancellationToken = default)
@@ -379,7 +260,7 @@ public partial class InvoiceController
                     "Submission pipeline completed successfully. InvoiceId: {InvoiceId}, Status: {Status}",
                     invoiceId, result.CurrentStatus);
 
-                return Ok(Success(new
+                return Success(new
                 {
                     result.InvoiceId,
                     result.IRN,
@@ -387,7 +268,7 @@ public partial class InvoiceController
                     result.Message,
                     result.Pipeline,
                     ExecutionTime = result.Pipeline.TotalExecutionTime
-                }, result.Message));
+                }, result.Message);
             }
             else
             {
@@ -428,55 +309,7 @@ public partial class InvoiceController
     /// <returns>Bulk processing results with individual invoice statuses</returns>
     [HttpPost("submit-invoices-bulk")]
     [EnableRateLimiting("BulkOperations")]
-    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Bulk Submit Invoices (Validate → Sign → Transmit)",
-        Description = @"Submits multiple existing invoices through the complete FIRS compliance pipeline.
-Each invoice goes through: Validate → Sign → Transmit
-
-**Features:**
-- Process up to 100 invoices per request
-- Each invoice processed independently
-- Continues processing even if individual invoices fail
-- Returns detailed results for each invoice
-- Summary includes success/failure counts
-
-**Rate Limit:** 5 bulk operations per 5 minutes per user
-
-**Processing Behavior:**
-- Invoices processed sequentially (not parallel)
-- Each invoice gets its own transaction
-- Failure of one invoice doesn't affect others
-- Progress logged every 10 invoices
-
-**Example Response:**
-```json
-{
-  ""success"": false,
-  ""totalProcessed"": 100,
-  ""successCount"": 95,
-  ""failedCount"": 5,
-  ""message"": ""Bulk processing completed: 95 succeeded, 5 failed"",
-  ""results"": [ /* individual invoice results */ ],
-  ""errors"": [
-    {
-      ""invoiceIndex"": 12,
-      ""invoiceId"": ""guid"",
-      ""errorMessage"": ""Validation failed"",
-      ""failedAt"": ""validate""
-    }
-  ]
-}
-```",
-        OperationId = "SubmitBulkInvoices",
-        Tags = new[] { "Invoice Management Operations" }
-    )]
-    [SwaggerResponse(200, "All invoices processed successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(207, "Bulk processing completed with some failures (Multi-Status)", typeof(ApiResponse<object>))]
-    [SwaggerResponse(400, "Invalid request or no invoices provided", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> SubmitBulkInvoices(
+    [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]    public async Task<IActionResult> SubmitBulkInvoices(
         [FromBody] List<Guid> invoiceIds,
         CancellationToken cancellationToken = default)
     {

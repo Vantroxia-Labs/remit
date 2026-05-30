@@ -75,6 +75,11 @@ public class PartyConfiguration : IEntityTypeConfiguration<Party>
             address.Property(p => p.PostalCode)
                 .HasColumnName("PostalCode")
                 .HasMaxLength(20);
+
+            address.Property(p => p.Lga)
+                .HasColumnName("Lga")
+                .HasMaxLength(20)
+                .IsRequired(false);
         });
 
         // Navigation properties

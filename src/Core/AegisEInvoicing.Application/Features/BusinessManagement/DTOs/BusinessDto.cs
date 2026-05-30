@@ -44,7 +44,8 @@ public record AddressDto(
     string City,
     string? State,
     string Country,
-    string? PostalCode);
+    string? PostalCode,
+    string? Lga);
 
 public record BusinessStatisticsDto(
     int TotalBusinesses,

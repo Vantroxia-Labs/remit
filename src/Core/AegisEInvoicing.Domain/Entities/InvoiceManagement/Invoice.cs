@@ -26,7 +26,9 @@ public class Invoice : AuditableAggregateRoot
     public string? PaymentReference { get; private set; }
     public PaymentMeans? PaymentMeans { get; private set; }
     private readonly List<InvoiceItem> _invoiceLine = [];
+    private readonly List<InvoicePayment> _payments = [];
     public IReadOnlyCollection<InvoiceItem> InvoiceLine => _invoiceLine.AsReadOnly();
+    public IReadOnlyCollection<InvoicePayment> Payments => _payments.AsReadOnly();
 
     private readonly List<InvoiceApprovalHistory> _invoiceApprovalHistory = [];
     public IReadOnlyCollection<InvoiceApprovalHistory> InvoiceApprovalHistory => _invoiceApprovalHistory.AsReadOnly();
@@ -42,6 +44,9 @@ public class Invoice : AuditableAggregateRoot
 
     private readonly List<InvoiceAdditionalDocumentReference> _additionalDocumentReferences = [];
     public IReadOnlyCollection<InvoiceAdditionalDocumentReference> AdditionalDocumentReferences => _additionalDocumentReferences.AsReadOnly();
+
+    // Environment Mode — tracks whether this invoice was created in Sandbox or Production mode.
+    public AppEnvironmentMode EnvironmentMode { get; private set; } = AppEnvironmentMode.Production;
 
     // FIRS Integration Fields
     public InvoiceStatus InvoiceStatus { get; private set; }
@@ -85,7 +90,8 @@ public class Invoice : AuditableAggregateRoot
         string? note = null,
         string? paymentReference = null,
         string? paymentTerms = null,
-        DateOnly? dueDate = null)
+        DateOnly? dueDate = null,
+        AppEnvironmentMode environmentMode = AppEnvironmentMode.Production)
     {
         if (irn is null) throw new BadRequestException("IRN cannot be null", nameof(irn));
         if (invoiceType is null) throw new BadRequestException("Invoice type cannot be null", nameof(invoiceType));
@@ -95,7 +101,7 @@ public class Invoice : AuditableAggregateRoot
 
         var invoice = new Invoice
         {
-            InvoiceCode = new InvoiceId(invoicePrefix).FullId,
+            InvoiceCode = irn.Value.Split('-')[0],
             BusinessId = businessId,
             PartyId = partyId,
             Irn = irn,
@@ -112,11 +118,12 @@ public class Invoice : AuditableAggregateRoot
             DueDate = dueDate,
             InvoiceStatus = InvoiceStatus.APPROVED,
             Note = note,
-            InvoiceSource = invoiceSource
+            InvoiceSource = invoiceSource,
+            EnvironmentMode = environmentMode
         };
         invoice.AddDomainEvent(new InvoiceCreatedEvent(invoice.Id, invoice.Irn, businessId));
         return invoice;
-    }    
+    }
 
     // Factory method for importing existing invoices from FIRS (skips future date validation)
     public static Invoice CreateFromImport(
@@ -135,7 +142,8 @@ public class Invoice : AuditableAggregateRoot
         string? note = null,
         string? paymentReference = null,
         string? paymentTerms = null,
-        DateOnly? dueDate = null)
+        DateOnly? dueDate = null,
+        AppEnvironmentMode environmentMode = AppEnvironmentMode.Production)
     {
         if (irn is null) throw new BadRequestException("IRN cannot be null", nameof(irn));
         if (invoiceType is null) throw new BadRequestException("Invoice type cannot be null", nameof(invoiceType));
@@ -144,7 +152,7 @@ public class Invoice : AuditableAggregateRoot
 
         return new Invoice
         {
-            InvoiceCode = new InvoiceId(invoicePrefix).FullId,
+            InvoiceCode = irn.Value.Split('-')[0],
             BusinessId = businessId,
             PartyId = partyId,
             Irn = irn,
@@ -161,7 +169,8 @@ public class Invoice : AuditableAggregateRoot
             DueDate = dueDate,
             InvoiceStatus = InvoiceStatus.CREATED,
             Note = note,
-            InvoiceSource = invoiceSource
+            InvoiceSource = invoiceSource,
+            EnvironmentMode = environmentMode
         };
     }
 
@@ -170,7 +179,8 @@ public class Invoice : AuditableAggregateRoot
         Guid businessId,
         string invoicePrefix,
         InvoiceType invoiceType,
-        Currency currency)
+        Currency currency,
+        AppEnvironmentMode environmentMode = AppEnvironmentMode.Production)
     {
         var draftInvoice = new Invoice
         {
@@ -182,7 +192,8 @@ public class Invoice : AuditableAggregateRoot
             Currency = currency,
             PaymentStatus = PaymentStatus.Pending,
             InvoiceStatus = InvoiceStatus.DRAFT,
-            Note = "Draft Invoice - Incomplete"
+            Note = "Draft Invoice - Incomplete",
+            EnvironmentMode = environmentMode
         };
 
         return draftInvoice;
@@ -211,10 +222,11 @@ public class Invoice : AuditableAggregateRoot
         }
     }
 
-    public void UpdatePaymentStatus(PaymentStatus newStatus)
+    public void UpdatePaymentStatus(PaymentStatus newStatus, string? reference = null)
     {
-        var oldStatus = PaymentStatus;
         PaymentStatus = newStatus;
+        if (newStatus == PaymentStatus.Paid && !string.IsNullOrWhiteSpace(reference))
+            PaymentReference = reference;
     }
 
     /// <summary>
@@ -262,6 +274,13 @@ public class Invoice : AuditableAggregateRoot
     public void UpdateStatus(InvoiceStatus newStatus)
     {
         InvoiceStatus = newStatus;
+    }
+
+    /// <summary>Sets the PartyId on an invoice that was created without one (e.g. vendor portal drafts).</summary>
+    public void SetParty(Guid partyId)
+    {
+        if (partyId == Guid.Empty) throw new ArgumentException("PartyId cannot be empty", nameof(partyId));
+        PartyId = partyId;
     }
 
     public void SetQRCode(string encryptedData, byte[]? base64Image)

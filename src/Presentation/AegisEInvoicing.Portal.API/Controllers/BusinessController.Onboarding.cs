@@ -1,4 +1,4 @@
-﻿using AegisEInvoicing.Portal.API.Attributes;
+using AegisEInvoicing.Portal.API.Attributes;
 using AegisEInvoicing.Portal.API.Models;
 using AegisEInvoicing.Portal.API.Models.Business.Request;
 using AegisEInvoicing.Portal.API.Models.BusinessOnboarding.Response;
@@ -6,7 +6,6 @@ using AegisEInvoicing.Application.Features.BusinessManagement.Commands.OnboardBu
 using AegisEInvoicing.Domain.Constants;
 using AegisEInvoicing.Domain.ValueObjects;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -18,15 +17,7 @@ public partial class BusinessController
     /// <param name="request">Business onboarding details</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Onboarding result with subscription status</returns>
-    [HttpPost("onboard-business")]
-    [SwaggerOperation(
-        Summary = "Onboard Business to Platform (KMPG Admin Only)",
-        Description = "Onboards business to EInvoice Integrator platform. Only KMPG platform administrators can perform business onboarding. KMPG manages all FIRS interactions for SaaS/API solutions and activates business subscriptions."
-    )]
-    [SwaggerResponse(200, "Onboarding successful", typeof(ApiResponse<OnboardBusinessResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.AegisAdmin)]
+    [HttpPost("onboard-business")]    [RequireRole(RoleConstants.AegisAdmin)]
     public async Task<IActionResult> OnboardBusinessAsync([FromBody] OnboardBusinessRequest request,
         CancellationToken cancellationToken = default)
     {

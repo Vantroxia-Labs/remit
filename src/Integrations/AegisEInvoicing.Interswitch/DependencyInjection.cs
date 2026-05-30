@@ -1,3 +1,4 @@
+using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Interswitch.Configuration;
 using AegisEInvoicing.Interswitch.Interfaces;
 using AegisEInvoicing.Interswitch.Services;
@@ -49,6 +50,10 @@ public static class DependencyInjection
         })
             .AddPolicyHandler(GetRetryPolicy())
             .AddPolicyHandler(GetCircuitBreakerPolicy());
+
+        // Register APP adapter for provider-agnostic routing
+        services.AddScoped<InterswitchAppAdapter>();
+        services.AddScoped<IAccessPointProviderClient>(sp => sp.GetRequiredService<InterswitchAppAdapter>());
 
         return services;
     }

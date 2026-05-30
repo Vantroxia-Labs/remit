@@ -29,7 +29,6 @@ public class GetInvoiceItemByIdQueryHandler : IRequestHandler<GetInvoiceItemById
             var query = _context.InvoiceItems
                 .Include(ii => ii.Invoice)
                 .Include(ii => ii.BusinessItem)
-                .ThenInclude(bi => bi.ItemCategory)
                 .Where(ii => ii.Id == request.InvoiceItemId);
 
             if (!_currentUserService.IsPlatformAdmin && _currentUserService.BusinessId.HasValue)
@@ -52,16 +51,15 @@ public class GetInvoiceItemByIdQueryHandler : IRequestHandler<GetInvoiceItemById
             {
                 Id = invoiceItem.Id,
                 InvoiceId = invoiceItem.InvoiceId,
-                ItemCode = invoiceItem.BusinessItem.ItemId,
-                ServiceCode = invoiceItem.BusinessItem.ServiceCode,
-                TaxCategory = invoiceItem.BusinessItem.TaxCategory,
-                Category = invoiceItem.BusinessItem.ItemCategory.Name,
-                ItemDescription = invoiceItem.BusinessItem.ItemDescription,
+                ItemCode = invoiceItem.BusinessItem!.ItemId,
+                ServiceCode = invoiceItem.BusinessItem!.ServiceCode,
+                Category = invoiceItem.BusinessItem!.ServiceCode?.Name ?? "",
+                ItemDescription = invoiceItem.BusinessItem!.ItemDescription,
                 DiscountFee = invoiceItem.DiscountFee,
                 AdditionalFee = invoiceItem.AdditionalFee,
-                UnitPrice = invoiceItem.BusinessItem.UnitPrice,
+                UnitPrice = invoiceItem.BusinessItem!.UnitPrice,
                 Quantity = invoiceItem.Quantity,
-                TotalPrice = invoiceItem.Quantity * invoiceItem.BusinessItem.UnitPrice
+                TotalPrice = invoiceItem.Quantity * invoiceItem.BusinessItem!.UnitPrice
             };
 
             return new GetInvoiceItemByIdResult

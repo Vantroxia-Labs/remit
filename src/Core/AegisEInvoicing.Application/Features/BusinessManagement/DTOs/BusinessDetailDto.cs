@@ -1,4 +1,4 @@
-﻿using AegisEInvoicing.Domain.Enums;
+using AegisEInvoicing.Domain.Enums;
 
 namespace AegisEInvoicing.Application.Features.BusinessManagement.DTOs;
 
@@ -20,4 +20,6 @@ public record BusinessDetailDto
     public DateTimeOffset CreatedAt { get; init; }
     public BusinessSubscriptionDto? SubscriptionInfo { get; init; }
     public int UserCount { get; init; }
+    public bool HasNrsCredentials { get; init; }
+    public bool HasQrCodeConfig { get; init; }
 }

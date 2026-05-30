@@ -48,9 +48,11 @@ public class GetAllInvoicesForBusinessQueryHandler : IRequestHandler<GetAllInvoi
             // Start with base query filtering by business
             var query = _context.Invoices
                 .AsNoTracking()
+                .Include(i => i.InvoiceLine)
+                    .ThenInclude(il => il.BusinessItem)
+                .Include(i => i.Party)
                 .Include(i => i.Business)
                 .Include(i => i.InvoiceApprovalHistory)
-                .Include(i => i.CreatedByUser)
                 .Where(i => i.BusinessId == businessId);
 
             // Apply filters
@@ -109,17 +111,20 @@ public class GetAllInvoicesForBusinessQueryHandler : IRequestHandler<GetAllInvoi
                 .Select(i => new InvoiceDto
                 {
                     Id = i.Id,
+                    InvoiceCode = i.InvoiceCode,
                     BusinessId = i.BusinessId,
                     BusinessName = i.Business.Name,
-                    Irn = i.Irn.Value,
+                    PartyName = i.Party != null ? i.Party.Name : null,
+                    Irn = i.Irn != null ? i.Irn.Value : string.Empty,
                     InvoiceSource = i.InvoiceSource,
-                    CurrentInvoiceStatus = i.InvoiceStatus,
+                    Status = i.InvoiceStatus,
                     FirsResponseMessage = FirsResponse(i.FIRSSubmissionResponseMessage, i.InvoiceStatus),
                     InvoiceStatus = i.InvoiceApprovalHistory.Select(x => x.InvoiceStatus).OrderBy(x => x).ToArray(),
                     PaymentStatus = i.PaymentStatus,
                     IssueDate = i.IssueDate,
+                    TotalAmount = i.InvoiceLine.Sum(il => (decimal)(il.Quantity * (il.BusinessItem != null ? il.BusinessItem.UnitPrice : 0.0m))),
                     CreatedAt = i.CreatedAt,
-                    CreatedBy = i.CreatedByUser.Email
+                    CreatedBy = i.CreatedBy.ToString()
                 })
                 .ToListAsync(cancellationToken);
 

@@ -1,4 +1,4 @@
-﻿using AegisEInvoicing.Domain.Constants;
+using AegisEInvoicing.Domain.Constants;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.Extensions;
 using AegisEInvoicing.Domain.Models;
@@ -7,11 +7,14 @@ namespace AegisEInvoicing.Application.Features.InvoiceManagement.Commands.Create
 
 public record CreateInvoiceResult : GenericResult
 {
-    public static CreateInvoiceResult Created(string? message = null)
+    public Guid? InvoiceId { get; init; }
+
+    public static CreateInvoiceResult Created(Guid invoiceId, string? message = null)
     {
         return new CreateInvoiceResult
         {
             IsSuccess = true,
+            InvoiceId = invoiceId,
             StatusCodes = HttpStatusCodes.Created.ToInt(),
             Message = message ?? ResponseMessages.CREATED
         };

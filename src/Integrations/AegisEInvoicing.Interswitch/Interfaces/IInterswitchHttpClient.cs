@@ -157,4 +157,15 @@ public interface IInterswitchHttpClient
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if connection is successful, false otherwise</returns>
     Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Dynamically reconfigures the client with the supplied credentials.
+    /// Used by <c>AppProviderRouter</c> to inject DB-stored credentials at runtime
+    /// instead of relying on appsettings values.
+    /// </summary>
+    /// <param name="baseUrl">Provider base URL for the target environment.</param>
+    /// <param name="clientId">OAuth2 client ID (API key).</param>
+    /// <param name="clientSecret">OAuth2 client secret.</param>
+    /// <param name="tokenEndpoint">Token endpoint path (e.g. "/Api/SwitchTax/Token").</param>
+    void Configure(string baseUrl, string clientId, string clientSecret, string tokenEndpoint);
 }

@@ -250,6 +250,87 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.ToTable("ApiUsageTrackings", (string)null);
                 });
 
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.AppProviderConfiguration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdapterKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("BaseUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("EncryptedCredentials")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EncryptedSandboxCredentials")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SandboxBaseUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdapterKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AppProviderConfigurations_AdapterKey");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_AppProviderConfigurations_IsActive");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_AppProviderConfigurations_IsDeleted");
+
+                    b.HasIndex("IsDeleted", "IsActive")
+                        .HasDatabaseName("IX_AppProviderConfigurations_IsDeleted_IsActive");
+
+                    b.ToTable("AppProviderConfigurations", (string)null);
+                });
+
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.Branch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -339,6 +420,16 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ActiveAdapterKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal?>("AdminPaymentAmountNaira")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("AdminPaymentReference")
+                        .HasColumnType("text");
+
                     b.Property<Guid?>("AdminUserId")
                         .HasColumnType("uuid");
 
@@ -351,6 +442,13 @@ namespace AegisEInvoicing.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("ApiKeyLastUsedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AppEnvironmentMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Sandbox");
 
                     b.Property<Guid?>("BusinessFIRSApiConfigurationId")
                         .HasColumnType("uuid");
@@ -454,9 +552,6 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
-
-                    b.Property<Guid?>("SubscriptionId")
-                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("TokenExpiresAt")
                         .HasColumnType("timestamp with time zone");
@@ -581,9 +676,6 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
-                    b.Property<Guid>("ItemCategoryId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("ItemDescription")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -593,6 +685,11 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ItemType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -617,9 +714,6 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.HasIndex("BusinessID")
                         .HasDatabaseName("IX_BusinessItems_BusinessId");
 
-                    b.HasIndex("ItemCategoryId")
-                        .HasDatabaseName("IX_BusinessItems_ItemCategoryId");
-
                     b.HasIndex("ItemId")
                         .IsUnique()
                         .HasDatabaseName("IX_BusinessItems_ItemId");
@@ -627,60 +721,12 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.HasIndex("Name")
                         .HasDatabaseName("IX_BusinessItems_Name");
 
-                    b.HasIndex("BusinessID", "ItemCategoryId")
-                        .HasDatabaseName("IX_BusinessItems_BusinessId_ItemCategoryId");
-
                     b.HasIndex("BusinessID", "Name")
                         .IsUnique()
                         .HasDatabaseName("IX_BusinessItems_BusinessId_Name")
                         .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("BusinessItems", (string)null);
-                });
-
-            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.BusinessManagement.BusinessItemItemCategory", b =>
-                {
-                    b.Property<Guid>("BusinessItemId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ItemCategoryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("BusinessItemId", "ItemCategoryId");
-
-                    b.HasIndex("BusinessItemId")
-                        .HasDatabaseName("IX_BusinessItemCategories_BusinessItemId");
-
-                    b.HasIndex("ItemCategoryId")
-                        .HasDatabaseName("IX_BusinessItemCategories_ItemCategoryId");
-
-                    b.ToTable("BusinessItemItemCategory", (string)null);
                 });
 
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.BusinessManagement.BusinessItemPriceHistory", b =>
@@ -909,6 +955,9 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.Property<Guid>("PlatformSubscriptionId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("SelectedPlanIds")
+                        .HasColumnType("text");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -934,9 +983,6 @@ namespace AegisEInvoicing.Persistence.Migrations
 
                     b.Property<Guid?>("BusinessId")
                         .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("CerberusCreatedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -972,6 +1018,9 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("SFTPGoCreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("SftpInvoiceTransmissionEnabled")
                         .ValueGeneratedOnAdd()
@@ -1073,7 +1122,6 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BusinessId")
-                        .IsUnique()
                         .HasDatabaseName("IX_Subscriptions_BusinessId");
 
                     b.HasIndex("CreatedAt")
@@ -1474,6 +1522,50 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.ToTable("IntegrationLogs", (string)null);
                 });
 
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.InputVatScheduleItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Irn")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateOnly>("IssueDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("ReceivedInvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ScheduleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SupplierName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("SupplierTin")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("TaxableAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("VatAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceivedInvoiceId");
+
+                    b.HasIndex("ScheduleId");
+
+                    b.ToTable("InputVatScheduleItems", (string)null);
+                });
+
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.Invoice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1497,6 +1589,9 @@ namespace AegisEInvoicing.Persistence.Migrations
 
                     b.Property<DateOnly?>("DueDate")
                         .HasColumnType("date");
+
+                    b.Property<int>("EnvironmentMode")
+                        .HasColumnType("integer");
 
                     b.Property<string>("FIRSSubmissionId")
                         .HasMaxLength(500)
@@ -1846,13 +1941,13 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.ToTable("DispatchDocumentReferences", (string)null);
                 });
 
-            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.InvoiceItem", b =>
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.InvoiceDraft", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("BusinessItemId")
+                    b.Property<Guid>("BusinessId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedAt")
@@ -1867,6 +1962,61 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("DraftPayload")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateOnly>("IssueDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("PartyName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId")
+                        .HasDatabaseName("IX_InvoiceDrafts_BusinessId");
+
+                    b.ToTable("InvoiceDrafts", (string)null);
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.InvoiceItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BusinessItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FreeTextDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("InvoiceId")
                         .HasColumnType("uuid");
 
@@ -1878,6 +2028,10 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("UnitOfMeasure")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<decimal>("UnitPriceSnapshot")
                         .HasColumnType("numeric");
@@ -1946,6 +2100,57 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.ToTable("OriginatorDocumentReferences", (string)null);
                 });
 
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.InvoicePayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReceivedInvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reference")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("ReceivedInvoiceId");
+
+                    b.ToTable("InvoicePayments");
+                });
+
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.InvoiceReceiptDocumentReference", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1988,63 +2193,6 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .HasDatabaseName("IX_ReceiptDocumentReferences_InvoiceId");
 
                     b.ToTable("ReceiptDocumentReferences", (string)null);
-                });
-
-            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.ItemCategory", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BusinessID")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BusinessID")
-                        .HasDatabaseName("IX_ItemCategories_BusinessId");
-
-                    b.HasIndex("Name")
-                        .HasDatabaseName("IX_ItemCategories_Name");
-
-                    b.HasIndex("BusinessID", "Name")
-                        .IsUnique()
-                        .HasDatabaseName("IX_ItemCategories_BusinessId_Name");
-
-                    b.ToTable("ItemCategories", (string)null);
                 });
 
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.Party", b =>
@@ -2185,6 +2333,9 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("InputVatScheduleId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("InvoiceLinesJson")
                         .HasColumnType("text");
 
@@ -2229,6 +2380,10 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.Property<decimal?>("PayableRoundingAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("PaymentStatus")
                         .IsRequired()
@@ -2291,10 +2446,16 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("WhtScheduleId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BusinessId")
                         .HasDatabaseName("IX_ReceivedInvoices_BusinessId");
+
+                    b.HasIndex("InputVatScheduleId")
+                        .HasDatabaseName("IX_ReceivedInvoices_InputVatScheduleId");
 
                     b.HasIndex("IsReconciled")
                         .HasDatabaseName("IX_ReceivedInvoices_IsReconciled");
@@ -2304,6 +2465,9 @@ namespace AegisEInvoicing.Persistence.Migrations
 
                     b.HasIndex("PaymentStatus")
                         .HasDatabaseName("IX_ReceivedInvoices_PaymentStatus");
+
+                    b.HasIndex("WhtScheduleId")
+                        .HasDatabaseName("IX_ReceivedInvoices_WhtScheduleId");
 
                     b.HasIndex("BusinessId", "IssueDate")
                         .HasDatabaseName("IX_ReceivedInvoices_Business_IssueDate");
@@ -2359,6 +2523,15 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<int>("TotalInputInvoiceCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TotalInputTaxableAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalInputVatAmount")
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("TotalInvoiceCount")
                         .HasColumnType("integer");
@@ -2444,6 +2617,155 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .HasDatabaseName("IX_VatScheduleItems_Schedule_Invoice");
 
                     b.ToTable("VatScheduleItems", (string)null);
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.WhtSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTimeOffset?>("FiledAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MonthName")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateOnly>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("PeriodStart")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal>("TotalGrossAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("TotalItemCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TotalNrsWhtAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalStateWhtAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalWhtAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId", "Year", "Month")
+                        .IsUnique()
+                        .HasDatabaseName("IX_WhtSchedules_Business_Period");
+
+                    b.ToTable("WhtSchedules", (string)null);
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.WhtScheduleItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("GrossAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Irn")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateOnly>("IssueDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("NatureOfTransaction")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("ReceivedInvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ScheduleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TaxAuthority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("VendorAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("VendorName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("VendorTin")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("WhtAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("WhtRate")
+                        .HasColumnType("numeric(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScheduleId")
+                        .HasDatabaseName("IX_WhtScheduleItems_ScheduleId");
+
+                    b.HasIndex("ScheduleId", "ReceivedInvoiceId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_WhtScheduleItems_Schedule_ReceivedInvoice");
+
+                    b.ToTable("WhtScheduleItems", (string)null);
                 });
 
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceTransmissionQueue", b =>
@@ -2913,6 +3235,10 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("Id");
 
+                    b.Property<Guid?>("BusinessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("BusinessId");
+
                     b.Property<string>("Category")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -2990,6 +3316,9 @@ namespace AegisEInvoicing.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BusinessId")
+                        .HasDatabaseName("IX_PlatformRoles_BusinessId");
+
                     b.HasIndex("Category")
                         .HasDatabaseName("IX_PlatformRoles_Category");
 
@@ -3006,7 +3335,6 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .HasDatabaseName("IX_PlatformRoles_IsSystemRole");
 
                     b.HasIndex("Name")
-                        .IsUnique()
                         .HasDatabaseName("IX_PlatformRoles_Name");
 
                     b.HasIndex("SortOrder")
@@ -3359,6 +3687,296 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.ToTable("UserSessions", (string)null);
                 });
 
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.VendorManagement.InvoiceBroadcast", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("InvoiceTypeCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<bool>("IsApprovalLocked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("RequiresApproval")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId")
+                        .HasDatabaseName("IX_InvoiceBroadcasts_BusinessId");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_InvoiceBroadcasts_IsDeleted");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_InvoiceBroadcasts_Status");
+
+                    b.HasIndex("BusinessId", "Status")
+                        .HasDatabaseName("IX_InvoiceBroadcasts_BusinessId_Status");
+
+                    b.ToTable("InvoiceBroadcasts", (string)null);
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.VendorManagement.InvoiceBroadcastVendor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("EmailVerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("InvoiceBroadcastId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEmailVerified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("VendorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VerificationCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTimeOffset?>("VerificationCodeExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId")
+                        .HasDatabaseName("IX_InvoiceBroadcastVendors_InvoiceId");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_InvoiceBroadcastVendors_IsDeleted");
+
+                    b.HasIndex("Token")
+                        .IsUnique()
+                        .HasDatabaseName("IX_InvoiceBroadcastVendors_Token");
+
+                    b.HasIndex("VendorId");
+
+                    b.HasIndex("InvoiceBroadcastId", "VendorId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_InvoiceBroadcastVendors_BroadcastId_VendorId");
+
+                    b.ToTable("InvoiceBroadcastVendors", (string)null);
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.VendorManagement.Vendor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BusinessName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("VendorGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId")
+                        .HasDatabaseName("IX_Vendors_BusinessId");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Vendors_IsDeleted");
+
+                    b.HasIndex("VendorGroupId")
+                        .HasDatabaseName("IX_Vendors_VendorGroupId");
+
+                    b.HasIndex("BusinessId", "Email")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Vendors_BusinessId_Email");
+
+                    b.ToTable("Vendors", (string)null);
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.VendorManagement.VendorGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId")
+                        .HasDatabaseName("IX_VendorGroups_BusinessId");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_VendorGroups_IsDeleted");
+
+                    b.HasIndex("BusinessId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_VendorGroups_BusinessId_Name");
+
+                    b.ToTable("VendorGroups", (string)null);
+                });
+
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.ApiUsageSummary", b =>
                 {
                     b.HasOne("AegisEInvoicing.Domain.Entities.BusinessManagement.Business", "Business")
@@ -3476,6 +4094,11 @@ namespace AegisEInvoicing.Persistence.Migrations
                                 .HasColumnType("character varying(100)")
                                 .HasColumnName("address_country");
 
+                            b1.Property<string>("Lga")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("address_lga");
+
                             b1.Property<string>("PostalCode")
                                 .IsRequired()
                                 .HasMaxLength(20)
@@ -3557,11 +4180,38 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("AegisEInvoicing.Domain.Entities.InvoiceManagement.ItemCategory", "ItemCategory")
-                        .WithMany()
-                        .HasForeignKey("ItemCategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.OwnsMany("AegisEInvoicing.Domain.Entities.BusinessManagement.BusinessItemTaxCategory", "TaxCategories", b1 =>
+                        {
+                            b1.Property<Guid>("BusinessItemId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Code")
+                                .HasMaxLength(50)
+                                .HasColumnType("character varying(50)");
+
+                            b1.Property<decimal?>("FlatAmount")
+                                .HasPrecision(18, 2)
+                                .HasColumnType("numeric(18,2)");
+
+                            b1.Property<bool>("IsPercentage")
+                                .HasColumnType("boolean");
+
+                            b1.Property<string>("Name")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)");
+
+                            b1.Property<decimal?>("Percent")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("numeric(18,4)");
+
+                            b1.HasKey("BusinessItemId", "Code");
+
+                            b1.ToTable("BusinessItemTaxCategories", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("BusinessItemId");
+                        });
 
                     b.OwnsOne("AegisEInvoicing.Domain.ValueObjects.ServiceCode", "ServiceCode", b1 =>
                         {
@@ -3588,58 +4238,12 @@ namespace AegisEInvoicing.Persistence.Migrations
                                 .HasForeignKey("BusinessItemId");
                         });
 
-                    b.OwnsOne("AegisEInvoicing.Domain.ValueObjects.TaxCategory", "TaxCategory", b1 =>
-                        {
-                            b1.Property<Guid>("BusinessItemId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("Name")
-                                .IsRequired()
-                                .HasMaxLength(500)
-                                .HasColumnType("character varying(500)")
-                                .HasColumnName("TaxCategoryName");
-
-                            b1.Property<decimal>("Percent")
-                                .HasPrecision(5, 2)
-                                .HasColumnType("numeric(5,2)")
-                                .HasColumnName("TaxCategoryPercent");
-
-                            b1.HasKey("BusinessItemId");
-
-                            b1.ToTable("BusinessItems");
-
-                            b1.WithOwner()
-                                .HasForeignKey("BusinessItemId");
-                        });
-
                     b.Navigation("Business");
-
-                    b.Navigation("ItemCategory");
 
                     b.Navigation("ServiceCode")
                         .IsRequired();
 
-                    b.Navigation("TaxCategory")
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.BusinessManagement.BusinessItemItemCategory", b =>
-                {
-                    b.HasOne("AegisEInvoicing.Domain.Entities.BusinessManagement.BusinessItem", "BusinessItem")
-                        .WithMany("ItemCategories")
-                        .HasForeignKey("BusinessItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AegisEInvoicing.Domain.Entities.InvoiceManagement.ItemCategory", "ItemCategory")
-                        .WithMany("BusinessItems")
-                        .HasForeignKey("ItemCategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("BusinessItem");
-
-                    b.Navigation("ItemCategory");
+                    b.Navigation("TaxCategories");
                 });
 
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.BusinessManagement.BusinessItemPriceHistory", b =>
@@ -3683,9 +4287,10 @@ namespace AegisEInvoicing.Persistence.Migrations
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.BusinessManagement.Subscription", b =>
                 {
                     b.HasOne("AegisEInvoicing.Domain.Entities.BusinessManagement.Business", "Business")
-                        .WithOne("Subscription")
-                        .HasForeignKey("AegisEInvoicing.Domain.Entities.BusinessManagement.Subscription", "BusinessId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .WithMany("Subscriptions")
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("AegisEInvoicing.Domain.Entities.PlatformSubscription", "PlatformSubscription")
                         .WithMany("Subscriptions")
@@ -3761,6 +4366,17 @@ namespace AegisEInvoicing.Persistence.Migrations
 
                     b.Navigation("TaxIdentificationNumber")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.InputVatScheduleItem", b =>
+                {
+                    b.HasOne("AegisEInvoicing.Domain.Entities.InvoiceManagement.VatSchedule", "Schedule")
+                        .WithMany("InputItems")
+                        .HasForeignKey("ScheduleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Schedule");
                 });
 
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.Invoice", b =>
@@ -4112,8 +4728,7 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.HasOne("AegisEInvoicing.Domain.Entities.BusinessManagement.BusinessItem", "BusinessItem")
                         .WithMany("InvoiceItems")
                         .HasForeignKey("BusinessItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("AegisEInvoicing.Domain.Entities.InvoiceManagement.Invoice", "Invoice")
                         .WithMany("InvoiceLine")
@@ -4211,6 +4826,21 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.InvoicePayment", b =>
+                {
+                    b.HasOne("AegisEInvoicing.Domain.Entities.InvoiceManagement.Invoice", "Invoice")
+                        .WithMany("Payments")
+                        .HasForeignKey("InvoiceId");
+
+                    b.HasOne("AegisEInvoicing.Domain.Entities.InvoiceManagement.ReceivedInvoice", "ReceivedInvoice")
+                        .WithMany("Payments")
+                        .HasForeignKey("ReceivedInvoiceId");
+
+                    b.Navigation("Invoice");
+
+                    b.Navigation("ReceivedInvoice");
+                });
+
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.InvoiceReceiptDocumentReference", b =>
                 {
                     b.HasOne("AegisEInvoicing.Domain.Entities.InvoiceManagement.Invoice", "Invoice")
@@ -4244,17 +4874,6 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.ItemCategory", b =>
-                {
-                    b.HasOne("AegisEInvoicing.Domain.Entities.BusinessManagement.Business", "Business")
-                        .WithMany("ItemCategories")
-                        .HasForeignKey("BusinessID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Business");
-                });
-
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.Party", b =>
                 {
                     b.HasOne("AegisEInvoicing.Domain.Entities.BusinessManagement.Business", "Business")
@@ -4279,6 +4898,11 @@ namespace AegisEInvoicing.Persistence.Migrations
                                 .HasMaxLength(100)
                                 .HasColumnType("character varying(100)")
                                 .HasColumnName("Country");
+
+                            b1.Property<string>("Lga")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("Lga");
 
                             b1.Property<string>("PostalCode")
                                 .IsRequired()
@@ -4526,6 +5150,28 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.Navigation("Schedule");
                 });
 
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.WhtSchedule", b =>
+                {
+                    b.HasOne("AegisEInvoicing.Domain.Entities.BusinessManagement.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.WhtScheduleItem", b =>
+                {
+                    b.HasOne("AegisEInvoicing.Domain.Entities.InvoiceManagement.WhtSchedule", "Schedule")
+                        .WithMany("Items")
+                        .HasForeignKey("ScheduleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Schedule");
+                });
+
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.UserManagement.RefreshToken", b =>
                 {
                     b.HasOne("AegisEInvoicing.Domain.Entities.UserManagement.User", "User")
@@ -4693,6 +5339,73 @@ namespace AegisEInvoicing.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.VendorManagement.InvoiceBroadcast", b =>
+                {
+                    b.HasOne("AegisEInvoicing.Domain.Entities.BusinessManagement.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.VendorManagement.InvoiceBroadcastVendor", b =>
+                {
+                    b.HasOne("AegisEInvoicing.Domain.Entities.VendorManagement.InvoiceBroadcast", "InvoiceBroadcast")
+                        .WithMany("BroadcastVendors")
+                        .HasForeignKey("InvoiceBroadcastId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AegisEInvoicing.Domain.Entities.InvoiceManagement.Invoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AegisEInvoicing.Domain.Entities.VendorManagement.Vendor", "Vendor")
+                        .WithMany("BroadcastVendors")
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
+
+                    b.Navigation("InvoiceBroadcast");
+
+                    b.Navigation("Vendor");
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.VendorManagement.Vendor", b =>
+                {
+                    b.HasOne("AegisEInvoicing.Domain.Entities.BusinessManagement.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AegisEInvoicing.Domain.Entities.VendorManagement.VendorGroup", "VendorGroup")
+                        .WithMany("Vendors")
+                        .HasForeignKey("VendorGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+
+                    b.Navigation("VendorGroup");
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.VendorManagement.VendorGroup", b =>
+                {
+                    b.HasOne("AegisEInvoicing.Domain.Entities.BusinessManagement.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+                });
+
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.Branch", b =>
                 {
                     b.Navigation("Users");
@@ -4710,11 +5423,9 @@ namespace AegisEInvoicing.Persistence.Migrations
 
                     b.Navigation("Invoices");
 
-                    b.Navigation("ItemCategories");
-
                     b.Navigation("Parties");
 
-                    b.Navigation("Subscription");
+                    b.Navigation("Subscriptions");
 
                     b.Navigation("Users");
                 });
@@ -4722,8 +5433,6 @@ namespace AegisEInvoicing.Persistence.Migrations
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.BusinessManagement.BusinessItem", b =>
                 {
                     b.Navigation("InvoiceItems");
-
-                    b.Navigation("ItemCategories");
 
                     b.Navigation("PriceHistory");
                 });
@@ -4749,12 +5458,9 @@ namespace AegisEInvoicing.Persistence.Migrations
 
                     b.Navigation("OriginatorDocumentReference");
 
-                    b.Navigation("ReceiptDocumentReference");
-                });
+                    b.Navigation("Payments");
 
-            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.ItemCategory", b =>
-                {
-                    b.Navigation("BusinessItems");
+                    b.Navigation("ReceiptDocumentReference");
                 });
 
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.Party", b =>
@@ -4762,7 +5468,19 @@ namespace AegisEInvoicing.Persistence.Migrations
                     b.Navigation("Invoices");
                 });
 
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.ReceivedInvoice", b =>
+                {
+                    b.Navigation("Payments");
+                });
+
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.VatSchedule", b =>
+                {
+                    b.Navigation("InputItems");
+
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.InvoiceManagement.WhtSchedule", b =>
                 {
                     b.Navigation("Items");
                 });
@@ -4775,6 +5493,21 @@ namespace AegisEInvoicing.Persistence.Migrations
             modelBuilder.Entity("AegisEInvoicing.Domain.Entities.UserManagement.User", b =>
                 {
                     b.Navigation("RoleAssignments");
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.VendorManagement.InvoiceBroadcast", b =>
+                {
+                    b.Navigation("BroadcastVendors");
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.VendorManagement.Vendor", b =>
+                {
+                    b.Navigation("BroadcastVendors");
+                });
+
+            modelBuilder.Entity("AegisEInvoicing.Domain.Entities.VendorManagement.VendorGroup", b =>
+                {
+                    b.Navigation("Vendors");
                 });
 #pragma warning restore 612, 618
         }

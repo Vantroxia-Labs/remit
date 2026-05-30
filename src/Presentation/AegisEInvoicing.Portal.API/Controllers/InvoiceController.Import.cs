@@ -2,7 +2,6 @@ using AegisEInvoicing.Portal.API.Attributes;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.ImportFirsInvoices;
 using AegisEInvoicing.Domain.Constants;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -20,13 +19,6 @@ public partial class InvoiceController
     /// <returns>Import summary with counts of imported, skipped, and failed invoices</returns>
     [HttpPost("import/firs-invoices")]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
-    [SwaggerOperation(
-        Summary = "Import FIRS invoices",
-        Description = "Imports all invoices from the FIRS MBS portal. Existing invoices (matched by IRN) are skipped.",
-        Tags = new[] { "Invoice Management Operations" }
-    )]
-    [SwaggerResponse(200, "Import completed successfully", typeof(ImportFirsInvoicesResult))]
-    [SwaggerResponse(400, "Invalid request (missing email or password)")]
     public async Task<IActionResult> ImportFirsInvoices(
         [FromBody] FirsImportRequest request,
         CancellationToken cancellationToken)

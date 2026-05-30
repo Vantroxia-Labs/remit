@@ -70,7 +70,7 @@ public static class FirsInvoiceValidationExtensions
 
         foreach (var item in invoiceItems!)
         {
-            var totalAmount = item.Quantity * item.BusinessItem.UnitPrice;
+            var totalAmount = item.Quantity * item.BusinessItem!.UnitPrice;
             if (item.DiscountFee is not null && item.DiscountFee.Amount > 0)
             {
                 switch (item.DiscountFee.Code)
@@ -220,7 +220,7 @@ public static class FirsInvoiceValidationExtensions
 
         foreach (var item in invoiceItems!)
         {
-            var totalAmount = item.Quantity * item.BusinessItem.UnitPrice;
+            var totalAmount = item.Quantity * item.BusinessItem!.UnitPrice;
             var discountAmount = 0.0m;
             if (item.DiscountFee != null)
             {
@@ -230,17 +230,35 @@ public static class FirsInvoiceValidationExtensions
                     discountAmount = item.DiscountFee.Amount;
             }
 
-            var taxSubTotal = new TaxSubtotal
+            var taxableAmount = totalAmount - discountAmount;
+
+            if (item.BusinessItem.TaxCategories.Count > 0)
             {
-                TaxableAmount = totalAmount - discountAmount,
-                TaxAmount = (totalAmount - discountAmount) * (item.BusinessItem.TaxCategory.Percent / 100),
-                TaxCategory = new FIRSAccessPoint.Models.Requests.ValidateInvoiceData.TaxCategory
+                foreach (var tc in item.BusinessItem.TaxCategories)
                 {
-                    Id = item.BusinessItem.TaxCategory.Name,
-                    Percent = item.BusinessItem.TaxCategory.Percent
+                    var taxSubTotal = new TaxSubtotal
+                    {
+                        TaxableAmount = taxableAmount,
+                        TaxAmount = tc.CalculateTax(taxableAmount),
+                        TaxCategory = new FIRSAccessPoint.Models.Requests.ValidateInvoiceData.TaxCategory
+                        {
+                            Id = tc.Code,
+                            Percent = tc.IsPercentage ? tc.Percent!.Value : 0m
+                        }
+                    };
+                    taxSubTotals.Add(taxSubTotal);
                 }
-            };
-            taxSubTotals.Add(taxSubTotal);
+            }
+            else
+            {
+                var taxSubTotal = new TaxSubtotal
+                {
+                    TaxableAmount = taxableAmount,
+                    TaxAmount = 0m,
+                    TaxCategory = new FIRSAccessPoint.Models.Requests.ValidateInvoiceData.TaxCategory { Id = "", Percent = 0m }
+                };
+                taxSubTotals.Add(taxSubTotal);
+            }
         }
 
         var taxTotal = new TaxTotal
@@ -296,40 +314,50 @@ public static class FirsInvoiceValidationExtensions
         var invioceLines = new List<InvoiceLine>();
         foreach (var item in invoiceItems)
         {
-            var invoiceLine = new InvoiceLine
-            {
-                HsnCode = item.BusinessItem.ItemId,
-                ProductCategory = item.BusinessItem.ItemCategory.Name,
-                InvoicedQuantity = item.Quantity,
-                Item = new Item
-                {
-                    Name = item.BusinessItem.Name,
-                    Description = item.BusinessItem.ItemDescription
-                },
-                LineExtensionAmount = item.Quantity * item.BusinessItem.UnitPrice,
-                Price = new Price
-                {
-                    BaseQuantity = 1,
-                    PriceUnit = $"{currency} Per 1",
-                    PriceAmount = item.BusinessItem.UnitPrice
-                }
-            };
+            var grossAmount = item.Quantity * item.BusinessItem!.UnitPrice;
 
+            decimal discountAmount = 0;
+            decimal discountRate = 0;
             if (item.DiscountFee != null)
             {
                 if (item.DiscountFee.Code == FeeStandardUnit.Percent)
                 {
-                    invoiceLine.DiscountRate = item.DiscountFee.Amount;
-                    // Calculate discount amount based on percentage
-                    invoiceLine.DiscountAmount = (item.Quantity * item.BusinessItem.UnitPrice) * (item.DiscountFee.Amount / 100);
+                    discountRate = item.DiscountFee.Amount;
+                    discountAmount = grossAmount * (item.DiscountFee.Amount / 100);
                 }
                 else
                 {
-                    invoiceLine.DiscountAmount = item.DiscountFee.Amount;
-                    // Calculate discount rate based on fixed amount
-                    invoiceLine.DiscountRate = (item.DiscountFee.Amount / (item.Quantity * item.BusinessItem.UnitPrice)) * 100;
+                    discountAmount = item.DiscountFee.Amount;
+                    discountRate = grossAmount > 0 ? (item.DiscountFee.Amount / grossAmount) * 100 : 0;
                 }
             }
+
+            // LineExtensionAmount = net amount after discount, excluding tax (BIS Billing 3.0 BT-131)
+            var netAmount = grossAmount - discountAmount;
+
+            var invoiceLine = new InvoiceLine
+            {
+                HsnCode = item.BusinessItem!.ItemType == ItemType.Goods ? item.BusinessItem.ServiceCode!.Code : null,
+                ProductCategory = item.BusinessItem!.ItemType == ItemType.Goods ? item.BusinessItem.ServiceCode!.Name : null,
+                IsicCode = item.BusinessItem!.ItemType == ItemType.Service ? item.BusinessItem.ServiceCode!.Code : null,
+                ServiceCategory = item.BusinessItem!.ItemType == ItemType.Service ? item.BusinessItem.ServiceCode!.Name : null,
+                InvoicedQuantity = item.Quantity,
+                Item = new Item
+                {
+                    Name = item.BusinessItem!.Name,
+                    Description = item.BusinessItem!.ItemDescription
+                },
+                LineExtensionAmount = netAmount,
+                DiscountRate = discountRate,
+                DiscountAmount = discountAmount,
+                Price = new Price
+                {
+                    BaseQuantity = 1,
+                    PriceUnit = $"{currency} Per 1",
+                    PriceAmount = item.BusinessItem!.UnitPrice
+                }
+            };
+
             invioceLines.Add(invoiceLine);
         }
         return invioceLines;
@@ -341,12 +369,12 @@ public static class FirsInvoiceValidationExtensions
         decimal totalAmount = 0;
         foreach (var item in invoiceItems!)
         {
-            var invoiceItemTotal = item.Quantity * item.BusinessItem.UnitPrice;
+            var invoiceItemTotal = item.Quantity * item.BusinessItem!.UnitPrice;
             var discountAmount = 0.0m;
             if (item.DiscountFee != null)
             {
                 if (item.DiscountFee.Code == FeeStandardUnit.Percent)
-                    discountAmount = invoiceItemTotal * (item.DiscountFee.Amount/100);
+                    discountAmount = invoiceItemTotal * (item.DiscountFee.Amount / 100);
                 else
                     discountAmount = item.DiscountFee.Amount;
             }
@@ -362,7 +390,7 @@ public static class FirsInvoiceValidationExtensions
         decimal totalTaxAmount = 0;
         foreach (var item in invoiceItems!)
         {
-            var invoiceItemTotal = item.Quantity * item.BusinessItem.UnitPrice;
+            var invoiceItemTotal = item.Quantity * item.BusinessItem!.UnitPrice;
             var discountAmount = 0.0m;
             if (item.DiscountFee != null)
             {
@@ -373,10 +401,7 @@ public static class FirsInvoiceValidationExtensions
             }
             var actualItemTotal = invoiceItemTotal - discountAmount;
 
-            var tax = item.BusinessItem.TaxCategory.Percent;
-            var taxAmount = actualItemTotal * (tax / 100);
-
-            totalTaxAmount += taxAmount;
+            totalTaxAmount += item.BusinessItem!.TaxCategories.Sum(tc => tc.CalculateTax(actualItemTotal));
         }
         return totalTaxAmount;
     }

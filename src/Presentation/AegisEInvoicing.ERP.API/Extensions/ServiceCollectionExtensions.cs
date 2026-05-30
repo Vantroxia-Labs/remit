@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
+using Microsoft.AspNetCore.OpenApi;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -117,65 +117,9 @@ public static class ServiceCollectionExtensions
             .AddPolicy("KMPGAdminOnly", policy => policy.RequireRole("KMPGAdmin"))
             .AddPolicy("OrganizationAdminOnly", policy => policy.RequireRole("OrganizationAdmin"));
 
-        // Swagger/OpenAPI
+        // OpenAPI
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen(options =>
-        {
-            // Filter API descriptions to only include controllers from this assembly
-            options.DocInclusionPredicate((name, api) =>
-            {
-                if (api.ActionDescriptor is Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor controllerActionDescriptor)
-                {
-                    // Only include controllers from the AegisEInvoicing.ERP.API assembly
-                    return controllerActionDescriptor.ControllerTypeInfo.Assembly == Assembly.GetExecutingAssembly();
-                }
-                return false;
-            });
-
-            options.SwaggerDoc("v1", new OpenApiInfo
-            {
-                Title = "EInvoice Integrator SaaS API",
-                Version = "v1",
-                Description = "SaaS Electronic Invoice Integration System API",
-                Contact = new OpenApiContact
-                {
-                    Name = "Development Team",
-                    Email = "dev@aegiseinvoicing.com"
-                },
-                License = new OpenApiLicense
-                {
-                    Name = "MIT",
-                    Url = new Uri("https://opensource.org/licenses/MIT")
-                }
-            });          
-
-            // API Key authentication
-            options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
-            {
-                Description = "API Key authentication. Use your API key in the X-API-Key header",
-                In = ParameterLocation.Header,
-                Name = "X-API-Key",
-                Type = SecuritySchemeType.ApiKey
-            });
-
-            options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
-            {
-                {
-                    new OpenApiSecuritySchemeReference("ApiKey"),
-                    new List<string>()
-                }
-            });
-
-            options.EnableAnnotations();
-            options.CustomSchemaIds(type => type.FullName);
-
-            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-            if (File.Exists(xmlPath))
-            {
-                options.IncludeXmlComments(xmlPath);
-            }
-        });
+        services.AddOpenApi("v1");
 
         // =================================================================
         // CORS CONFIGURATION

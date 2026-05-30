@@ -1,5 +1,6 @@
 ﻿using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.CreateInvoice;
 using AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
+using AegisEInvoicing.Domain.Enums;
 
 namespace AegisEInvoicing.Portal.API.Models.Invoice.Request;
 
@@ -11,7 +12,8 @@ public class CreateInvoiceRequest
     public CurrencyDto Currency { get; init; } = null!;
     public DeliveryPeriodDto DeliveryPeriod { get; init; } = null!;
     public PaymentMeansDto PaymentMeans { get; init; } = null!;
-    public DateOnly? DueDate { get; init; }    
+    public DateOnly? DueDate { get; init; }
+    public InvoiceKind? InvoiceKind { get; init; }
     public string? Note { get; init; }
     public string? PaymentReference { get; init; }
     public string? PaymentTerms { get; init; }

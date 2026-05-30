@@ -44,6 +44,10 @@ public class SessionActivityMiddleware
             }
         }
 
+        // If the middleware already wrote a response (e.g. 401 session expired), stop the pipeline
+        if (context.Response.HasStarted)
+            return;
+
         await _next(context);
     }
 

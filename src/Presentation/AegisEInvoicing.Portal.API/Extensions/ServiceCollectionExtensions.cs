@@ -10,8 +10,11 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
-using Swashbuckle.AspNetCore.SwaggerGen;
+using Microsoft.AspNetCore.OpenApi;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -19,18 +22,6 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 namespace AegisEInvoicing.Portal.API.Extensions;
-
-/// <summary>
-/// Schema filter to ensure OpenAPI 3.0.3 compatibility for IBM API Connect
-/// </summary>
-public class OpenApi303CompatibilityFilter : ISchemaFilter
-{
-    public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
-    {
-        // Remove any OpenAPI 3.1+ specific features that might cause issues
-        schema.Extensions?.Remove("x-nullable");
-    }
-}
 
 /// <summary>
 /// Service collection extensions for API configuration
@@ -275,75 +266,25 @@ public static class ServiceCollectionExtensions
             options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
             options.AddPolicy("KMPGAdminOnly", policy => policy.RequireRole("KMPGAdmin"));
             options.AddPolicy("OrganizationAdminOnly", policy => policy.RequireRole("OrganizationAdmin"));
-            
+
             // Portal CUD operations require SaaS subscription tier
             // ApiOnly and SFTP tiers have read-only access to Portal
             options.AddPolicy("RequireSaasSubscription", policy =>
                 policy.Requirements.Add(new AegisEInvoicing.Portal.API.Authorization.RequireSaasSubscriptionRequirement()));
         });
 
+        // PBAC: dynamic policy provider resolves "RequirePermissions:{permission}" policies
+        // automatically — no manual AddPolicy needed per permission string
+        services.AddSingleton<IAuthorizationPolicyProvider, AegisEInvoicing.Portal.API.Authorization.PermissionPolicyProvider>();
+        services.AddSingleton<IAuthorizationHandler, AegisEInvoicing.Portal.API.Authorization.PermissionAuthorizationHandler>();
+
         // Register authorization handler for SaaS subscription requirement
         services.AddSingleton<IAuthorizationHandler, AegisEInvoicing.Portal.API.Authorization.RequireSaasSubscriptionHandler>();
 
-        // Swagger/OpenAPI
+        // OpenAPI with multiple document support
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen(options =>
-        {
-            options.SwaggerDoc("v1", new OpenApiInfo
-            {
-                Title = "EInvoice Integrator API",
-                Version = "v1",
-                Description = "Enterprise Electronic Invoice Integration System API",
-                Contact = new OpenApiContact
-                {
-                    Name = "Development Team",
-                    Email = "dev@aegiseinvoicing.com"
-                },
-                License = new OpenApiLicense
-                {
-                    Name = "MIT",
-                    Url = new Uri("https://opensource.org/licenses/MIT")
-                }
-            });
-
-            options.SwaggerDoc("v2", new OpenApiInfo
-            {
-                Title = "EInvoice Integrator API",
-                Version = "v2",
-                Description = "Enterprise Electronic Invoice Integration System API V2"
-            });
-
-            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-            {
-                Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-                Name = "Authorization",
-                In = ParameterLocation.Header,
-                Type = SecuritySchemeType.Http,
-                Scheme = "bearer",
-                BearerFormat = "JWT"
-            });
-
-            options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
-            {
-                {
-                    new OpenApiSecuritySchemeReference("Bearer"),
-                    new List<string>()
-                }
-            });
-
-            options.EnableAnnotations();
-            options.CustomSchemaIds(type => type.FullName);
-
-            // Add schema filter for OpenAPI 3.0.3 compatibility with IBM API Connect
-            options.SchemaFilter<OpenApi303CompatibilityFilter>();
-
-            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-            if (File.Exists(xmlPath))
-            {
-                options.IncludeXmlComments(xmlPath);
-            }
-        });
+        services.AddOpenApi("v1");
+        services.AddOpenApi("v2");
 
         // =================================================================
         // CORS CONFIGURATION
@@ -607,8 +548,38 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Add simplified OpenTelemetry - can be configured properly later
-        services.AddOpenTelemetry();
+        var sigNozEndpoint = configuration["SigNoz:Endpoint"]
+            ?? Environment.GetEnvironmentVariable("SIGNOZ_ENDPOINT")
+            ?? "http://localhost:4317";
+
+        var serviceName = configuration["SigNoz:ServiceName"] ?? "AegisEInvoicing-Portal";
+
+        services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource
+                .AddService(serviceName)
+                .AddAttributes(new Dictionary<string, object>
+                {
+                    ["deployment.environment"] = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"
+                }))
+            .WithTracing(tracing => tracing
+                .AddAspNetCoreInstrumentation(opts => opts.RecordException = true)
+                .AddHttpClientInstrumentation()
+                .AddEntityFrameworkCoreInstrumentation()
+                .AddSource("AegisEInvoicing")
+                .AddOtlpExporter(opts =>
+                {
+                    opts.Endpoint = new Uri(sigNozEndpoint);
+                    opts.Protocol = OtlpExportProtocol.Grpc;
+                }))
+            .WithMetrics(metrics => metrics
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddRuntimeInstrumentation()
+                .AddOtlpExporter(opts =>
+                {
+                    opts.Endpoint = new Uri(sigNozEndpoint);
+                    opts.Protocol = OtlpExportProtocol.Grpc;
+                }));
 
         return services;
     }

@@ -1,3 +1,5 @@
+using AegisEInvoicing.Domain.Enums;
+
 namespace AegisEInvoicing.Application.Features.BusinessItemManagement.DTOs;
 
 public record BusinessItemResult(
@@ -15,10 +17,9 @@ public record BusinessItemDto(
     Guid Id,
     string ItemId,
     string Name,
+    ItemType ItemType,
     ServiceCodeDto ServiceCode,
-    TaxCategoryDto TaxCategory,
-    Guid ItemCategoryId,
-    string? ItemCategoryName,
+    IReadOnlyCollection<BusinessItemTaxCategoryDto> TaxCategories,
     string ItemDescription,
     decimal UnitPrice,
     Guid BusinessId,
@@ -30,18 +31,18 @@ public record BusinessItemDto(
 
 public record CreateBusinessItemDto(
     string Name,
+    ItemType ItemType,
     CreateServiceCodeDto ServiceCode,
-    CreateTaxCategoryDto TaxCategory,
-    Guid ItemCategoryId,
+    IEnumerable<CreateBusinessItemTaxCategoryDto> TaxCategories,
     string ItemDescription,
     decimal UnitPrice,
     Guid BusinessId);
 
 public record UpdateBusinessItemDto(
     string Name,
+    ItemType ItemType,
     UpdateServiceCodeDto ServiceCode,
-    UpdateTaxCategoryDto TaxCategory,
-    Guid ItemCategoryId,
+    IEnumerable<UpdateBusinessItemTaxCategoryDto> TaxCategories,
     string ItemDescription,
     decimal UnitPrice);
 
@@ -49,10 +50,9 @@ public record BusinessItemSummaryDto(
     Guid Id,
     string ItemId,
     string Name,
+    ItemType ItemType,
     string ServiceCode,
     string ServiceCodeName,
-    string TaxCategoryName,
-    string ItemCategoryName,
     decimal UnitPrice,
     string BusinessName,
     DateTimeOffset CreatedAt);
@@ -69,14 +69,23 @@ public record UpdateServiceCodeDto(
     string Code,
     string Name);
 
-public record TaxCategoryDto(
+public record BusinessItemTaxCategoryDto(
+    string Code,
     string Name,
-    decimal Percent);
+    bool IsPercentage,
+    decimal? Percent,
+    decimal? FlatAmount);
 
-public record CreateTaxCategoryDto(
+public record CreateBusinessItemTaxCategoryDto(
+    string Code,
     string Name,
-    decimal Percent);
+    bool IsPercentage,
+    decimal? Percent,
+    decimal? FlatAmount);
 
-public record UpdateTaxCategoryDto(
+public record UpdateBusinessItemTaxCategoryDto(
+    string Code,
     string Name,
-    decimal Percent);
+    bool IsPercentage,
+    decimal? Percent,
+    decimal? FlatAmount);

@@ -46,8 +46,8 @@ public class ApiKeyAuthenticationService : IApiKeyAuthenticationService
         {
             // Find business by API key
             var business = await _dbContext.Businesses
-                .Include(b => b.Subscription)
-                    .ThenInclude(s => s!.PlatformSubscription)
+                .Include(b => b.Subscriptions)
+                    .ThenInclude(s => s.PlatformSubscription)
                 .FirstOrDefaultAsync(b => b.ApiKey == apiKey && b.IsApiKeyActive);
 
             if (business == null)
@@ -78,33 +78,33 @@ public class ApiKeyAuthenticationService : IApiKeyAuthenticationService
             }
 
             // Check subscription
-            if (business.Subscription == null || !business.Subscription.IsActive())
+            var primarySub = business.Subscriptions.FirstOrDefault(s => s.IsActive());
+            if (primarySub == null)
             {
-                return new ApiKeyValidationResult 
-                { 
-                    IsValid = false, 
+                return new ApiKeyValidationResult
+                {
+                    IsValid = false,
                     Error = "Subscription is not active or has expired",
                     BusinessId = business.Id
                 };
             }
 
-            // Check if subscription tier allows API access
-            if (business.Subscription.PlatformSubscription == null)
+            if (primarySub.PlatformSubscription == null)
             {
-                return new ApiKeyValidationResult 
-                { 
-                    IsValid = false, 
+                return new ApiKeyValidationResult
+                {
+                    IsValid = false,
                     Error = "Subscription plan information is not available",
                     BusinessId = business.Id
                 };
             }
-            
-            if (business.Subscription.PlatformSubscription.Tier != SubscriptionTier.ApiOnly &&
-                business.Subscription.PlatformSubscription.Tier != SubscriptionTier.SaaS)
+
+            if (primarySub.PlatformSubscription.Tier != SubscriptionTier.ApiOnly &&
+                primarySub.PlatformSubscription.Tier != SubscriptionTier.SaaS)
             {
-                return new ApiKeyValidationResult 
-                { 
-                    IsValid = false, 
+                return new ApiKeyValidationResult
+                {
+                    IsValid = false,
                     Error = "Your subscription plan does not include API access. Please upgrade to API-Only or SaaS plan.",
                     BusinessId = business.Id
                 };
@@ -131,7 +131,7 @@ public class ApiKeyAuthenticationService : IApiKeyAuthenticationService
                 new Claim("isAegisUser", "false"), // API clients are not Aegis users
 
                 // Subscription info
-                new Claim("SubscriptionTier", business.Subscription.PlatformSubscription.Tier.ToString()),
+                new Claim("SubscriptionTier", primarySub.PlatformSubscription.Tier.ToString()),
 
                 // API Key info (truncated for security)
                 new Claim("ApiKey", apiKey.Substring(0, 10) + "..."),
@@ -157,9 +157,9 @@ public class ApiKeyAuthenticationService : IApiKeyAuthenticationService
                 IsValid = true,
                 BusinessId = business.Id,
                 BusinessName = business.Name,
-                SubscriptionTier = business.Subscription.PlatformSubscription.Tier,
+                SubscriptionTier = primarySub.PlatformSubscription.Tier,
                 Claims = claims,
-                RateLimitTier = GetRateLimitTier(business.Subscription.PlatformSubscription.Tier)
+                RateLimitTier = GetRateLimitTier(primarySub.PlatformSubscription.Tier)
             };
         }
         catch (Exception ex)
@@ -172,8 +172,6 @@ public class ApiKeyAuthenticationService : IApiKeyAuthenticationService
     public async Task<string> GenerateApiKeyAsync(Guid businessId)
     {
         var business = await _dbContext.Businesses
-            .Include(b => b.Subscription)
-                .ThenInclude(s => s!.PlatformSubscription)
             .FirstOrDefaultAsync(b => b.Id == businessId);
 
         if (business == null)
@@ -223,20 +221,18 @@ public class ApiKeyAuthenticationService : IApiKeyAuthenticationService
     public async Task<bool> IsSubscriptionValidForApiAccessAsync(Guid businessId)
     {
         var business = await _dbContext.Businesses
-            .Include(b => b.Subscription)
-                .ThenInclude(s => s!.PlatformSubscription)
+            .Include(b => b.Subscriptions)
+                .ThenInclude(s => s.PlatformSubscription)
             .FirstOrDefaultAsync(b => b.Id == businessId);
 
-        if (business?.Subscription == null)
-        {
+        if (business == null || !business.Subscriptions.Any())
             return false;
-        }
 
-        // Check if subscription is active and has API access
-        return business.Subscription.IsActive() && 
-               business.Subscription.PlatformSubscription != null &&
-               (business.Subscription.PlatformSubscription.Tier == SubscriptionTier.ApiOnly ||
-                business.Subscription.PlatformSubscription.Tier == SubscriptionTier.SaaS);
+        return business.Subscriptions.Any(s =>
+            s.IsActive() &&
+            s.PlatformSubscription != null &&
+            (s.PlatformSubscription.Tier == SubscriptionTier.ApiOnly ||
+             s.PlatformSubscription.Tier == SubscriptionTier.SaaS));
     }
 
     private string GenerateSecureApiKey(Guid businessId)

@@ -70,7 +70,8 @@ public class CreateInvoiceCommandHandler(
                 note: request.Note,
                 paymentReference: request.PaymentReference,
                 paymentTerms: request.PaymentTerms,
-                dueDate: request.DueDate);
+                dueDate: request.DueDate,
+                environmentMode: business.AppEnvironmentMode);
 
             var qrCode = InvoiceQrService.GenerateQrCode(
                                 invoice.Irn,
@@ -455,7 +456,7 @@ public class CreateInvoiceCommandHandler(
             _logger.LogInformation("Invoice created successfully with ID: {InvoiceId}, Status: {Status}",
                 invoice.Id, invoice.InvoiceStatus);
 
-            return CreateInvoiceResult.Created($"{statusMessage} with IRN {invoice.Irn.Value}");
+            return CreateInvoiceResult.Created(invoice.Id, $"{statusMessage} with IRN {invoice.Irn.Value}");
         }
         catch (Exception ex)
         {

@@ -59,7 +59,8 @@ public class UpdatePartyCommandHandler : IRequestHandler<UpdatePartyCommand, Par
             request.Address.City,
             request.Address.State,
             request.Address.Country,
-            request.Address.PostalCode ?? string.Empty);
+            request.Address.PostalCode ?? string.Empty,
+            request.Address.Lga);
 
         // Update party properties
         party.UpdateName(request.Name);

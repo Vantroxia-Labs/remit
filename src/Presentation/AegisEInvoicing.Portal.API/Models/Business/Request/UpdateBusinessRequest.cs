@@ -11,8 +11,7 @@ namespace AegisEInvoicing.Portal.API.Models.Business.Request
         [Required]
         public string Industry { get; set; } = string.Empty;
 
-        [Required]
-        public string InvoicePrefix { get; set; } = string.Empty;
+        public string? InvoicePrefix { get; set; }
 
         [Required]
         [EmailAddress]
@@ -23,5 +22,17 @@ namespace AegisEInvoicing.Portal.API.Models.Business.Request
 
         [Required]
         public string Description { get; set; } = string.Empty;
+
+        /// <summary>FIRS-assigned 8-character service ID for IRN generation.</summary>
+        public string? ServiceId { get; set; }
+
+        /// <summary>CAC or relevant business registration number.</summary>
+        public string? BusinessRegistrationNumber { get; set; }
+
+        /// <summary>Tax Identification Number (TIN).</summary>
+        public string? TaxIdentificationNumber { get; set; }
+
+        /// <summary>NRS / FIRS-assigned Business ID (GUID string).</summary>
+        public string? NRSBusinessId { get; set; }
     }
 }

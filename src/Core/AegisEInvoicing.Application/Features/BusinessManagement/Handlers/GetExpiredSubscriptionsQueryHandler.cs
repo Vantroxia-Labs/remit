@@ -27,17 +27,21 @@ public class GetExpiredSubscriptionsQueryHandler : IRequestHandler<GetExpiredSub
             
             var expiredBusinesses = await _context.Businesses
                 .AsNoTracking()
-                .Include(b => b.Subscription)
-                .Where(b => b.Subscription.EndDate < now && b.Subscription.IsActive())
+                .Include(b => b.Subscriptions)
+                .Where(b => b.Subscriptions.Any(s => s.EndDate < now && s.Status == AegisEInvoicing.Domain.Entities.BusinessManagement.SubscriptionStatus.Active))
                 .ToListAsync(cancellationToken);
 
-            return expiredBusinesses.Select(b => new ExpiredSubscriptionDto
+            return expiredBusinesses.Select(b =>
             {
-                BusinessId = b.Id,
-                BusinessName = b.Name,
-                EndDate = b.Subscription.EndDate,
-                DaysOverdue = (int)(now - b.Subscription.EndDate).TotalDays,
-                ContactEmail = b.ContactEmail
+                var expiredSub = b.Subscriptions.Where(s => s.EndDate < now).OrderByDescending(s => s.EndDate).First();
+                return new ExpiredSubscriptionDto
+                {
+                    BusinessId = b.Id,
+                    BusinessName = b.Name,
+                    EndDate = expiredSub.EndDate,
+                    DaysOverdue = (int)(now - expiredSub.EndDate).TotalDays,
+                    ContactEmail = b.ContactEmail
+                };
             });
         }
         catch (Exception ex)

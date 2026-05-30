@@ -6,7 +6,7 @@ using System.Text;
 namespace AegisEInvoicing.Domain.Entities.BusinessManagement;
 
 /// <summary>
-/// Represents an SFTP user in the Cerberus FTP server system
+/// Represents an SFTP user in the SFTPGo FTP server system
 /// </summary>
 public class SFTPUser : AuditableEntity
 {
@@ -16,7 +16,7 @@ public class SFTPUser : AuditableEntity
     public Guid? BusinessId { get; private set; }
 
     /// <summary>
-    /// The Cerberus SFTP username (typically the business name)
+    /// The SFTPGo SFTP username (typically the business name)
     /// </summary>
     public string Username { get; private set; } = null!;
 
@@ -52,12 +52,12 @@ public class SFTPUser : AuditableEntity
     public bool SftpInvoiceTransmissionEnabled { get; private set; } = false;
 
     /// <summary>
-    /// Date when the SFTP user was created in Cerberus
+    /// Date when the SFTP user was created in SFTPGo
     /// </summary>
-    public DateTimeOffset? CerberusCreatedAt { get; private set; }
+    public DateTimeOffset? SFTPGoCreatedAt { get; private set; }
 
     /// <summary>
-    /// Date when the SFTP user was last synced with Cerberus
+    /// Date when the SFTP user was last synced with SFTPGo
     /// </summary>
     public DateTimeOffset? LastSyncedAt { get; private set; }
 
@@ -146,11 +146,11 @@ public class SFTPUser : AuditableEntity
     }
 
     /// <summary>
-    /// Updates the Cerberus creation timestamp
+    /// Updates the SFTPGo creation timestamp
     /// </summary>
-    public void SetCerberusCreatedAt(DateTimeOffset createdAt, Guid updatedBy)
+    public void SetSFTPGoCreatedAt(DateTimeOffset createdAt, Guid updatedBy)
     {
-        CerberusCreatedAt = createdAt;
+        SFTPGoCreatedAt = createdAt;
         UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.UtcNow;
     }

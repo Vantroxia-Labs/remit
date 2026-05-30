@@ -1,9 +1,11 @@
+using AegisEInvoicing.Domain.Enums;
 using MediatR;
 
 namespace AegisEInvoicing.Application.Features.BusinessManagement.Queries;
 
 public record GetDashboardStatsQuery : IRequest<KMPGDashboardStatsDto>
 {
+    public AppEnvironmentMode? EnvironmentMode { get; init; }
 }
 
 public record KMPGDashboardStatsDto
@@ -27,8 +29,8 @@ public record KMPGDashboardStatsDto
     public long TotalInvoicesThisMonth { get; init; }
     public long DraftInvoices { get; init; }
     public long PendingApprovalInvoices { get; init; }
-    public long SubmittedToFIRS { get; init; }        // SUBMITTED + CONFIRMED
-    public long ConfirmedByFIRS { get; init; }        // CONFIRMED only
+    public long SubmittedToNRS { get; init; }          // SUBMITTED + CONFIRMED
+    public long ConfirmedByNRS { get; init; }          // CONFIRMED only
     public long RejectedInvoices { get; init; }
     public long PortalCreatedInvoices { get; init; }  // Source = Portal
     public long SftpCreatedInvoices { get; init; }    // Source = SFTP
@@ -54,4 +56,8 @@ public record KMPGDashboardStatsDto
 
     // ── Pending Registrations ─────────────────────────────────────────────
     public int PendingRegistrations { get; init; }    // Awaiting Paystack payment
+
+    // ── Platform Revenue (Aegis Admin only) ──────────────────────────────────
+    public decimal PlatformRevenueTotal { get; init; }
+    public decimal PlatformRevenueThisMonth { get; init; }
 }

@@ -1,20 +1,26 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
-namespace AegisEInvoicing.Portal.API.Models.AccessPointProvider
+namespace AegisEInvoicing.Portal.API.Models.AccessPointProvider;
+
+public class UpdateAccessPointProviderRequest
 {
-    public class UpdateAccessPointProviderRequest
-    {
-        [Required]
-        public string Name { get; set; } = string.Empty;
-        [Required]
-        public string Description { get; set; } = string.Empty;
-        [Required]
-        public string Environment { get; set; } = string.Empty;
-        [Required]
-        public string BaseUrl { get; set; } = string.Empty;
-        [Required]
-        public string ApiKey { get; set; } = string.Empty;
-        [Required]
-        public string ApiSecret { get; set; } = string.Empty;
-    }
+    [Required]
+    public string Name { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
+
+    /// <summary>Updated production base URL. Omit to keep the existing value.</summary>
+    public string? BaseUrl { get; set; }
+
+    /// <summary>
+    /// Plaintext JSON of updated production credentials. Omit to keep existing encrypted credentials.
+    /// </summary>
+    public string? CredentialsJson { get; set; }
+
+    public string? SandboxBaseUrl { get; set; }
+
+    /// <summary>
+    /// Plaintext JSON of updated sandbox credentials. Omit to keep existing encrypted credentials.
+    /// </summary>
+    public string? SandboxCredentialsJson { get; set; }
 }

@@ -1,11 +1,13 @@
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Features.VatScheduleManagement.DTOs;
+using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.Exceptions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace AegisEInvoicing.Application.Features.VatScheduleManagement.Commands.GenerateVatSchedule;
 
@@ -17,10 +19,16 @@ public class GenerateVatScheduleCommandHandler(
 {
     private static readonly InvoiceStatus[] EligibleStatuses =
     [
+        InvoiceStatus.SIGNED,
         InvoiceStatus.TRANSMITTED,
         InvoiceStatus.ACKNOWLEDGED,
-        InvoiceStatus.COMPLETELYTRANSMITTED,
     ];
+
+    private static readonly HashSet<string> VatCategoryIds =
+        ["STANDARD_VAT", "REDUCED_VAT"];
+
+    private static readonly JsonSerializerOptions JsonOpts =
+        new(JsonSerializerDefaults.Web);
 
     public async Task<VatScheduleDto> Handle(GenerateVatScheduleCommand request, CancellationToken cancellationToken)
     {
@@ -51,7 +59,6 @@ public class GenerateVatScheduleCommandHandler(
             .AsNoTracking()
             .Include(i => i.InvoiceLine)
                 .ThenInclude(l => l.BusinessItem)
-                    .ThenInclude(bi => bi.TaxCategory)
             .Include(i => i.Party)
             .Where(i => !i.IsDeleted
                      && i.BusinessId == businessId
@@ -83,7 +90,7 @@ public class GenerateVatScheduleCommandHandler(
                     - (line.DiscountFee?.Amount ?? 0m)
                     + (line.AdditionalFee?.Amount ?? 0m);
                 taxable += lineTotal;
-                vat += lineTotal * (line.BusinessItem?.TaxCategory?.Percent ?? 0m) / 100m;
+                vat += line.BusinessItem?.TaxCategories.Sum(tc => tc.CalculateTax(lineTotal)) ?? 0m;
             }
 
             items.Add(VatScheduleItem.Create(
@@ -102,8 +109,7 @@ public class GenerateVatScheduleCommandHandler(
         schedule.AddItems(items);
         context.VatScheduleItems.AddRange(items);
 
-        // ── Mark invoices as scheduled so they cant be double-counted ────────
-        // Load tracked copies to mutate
+        // ── Mark output invoices as scheduled so they can't be double-counted ─
         var trackedInvoices = await context.Invoices
             .Where(i => invoiceData.Select(x => x.Id).Contains(i.Id))
             .ToListAsync(cancellationToken);
@@ -111,11 +117,80 @@ public class GenerateVatScheduleCommandHandler(
         foreach (var inv in trackedInvoices)
             inv.AssignToVatSchedule(schedule.Id);
 
+        // ── Fetch eligible received invoices (input VAT) ──────────────────────
+        var receivedInvoiceData = await context.ReceivedInvoices
+            .AsNoTracking()
+            .Where(r => !r.IsDeleted
+                     && r.BusinessId == businessId
+                     && r.InputVatScheduleId == null
+                     && r.IssueDate >= periodStart
+                     && r.IssueDate <= periodEnd)
+            .ToListAsync(cancellationToken);
+
+        logger.LogInformation(
+            "VAT schedule {ScheduleId}: {Count} received invoices eligible for input VAT.",
+            schedule.Id, receivedInvoiceData.Count);
+
+        var inputItems = new List<InputVatScheduleItem>();
+        foreach (var ri in receivedInvoiceData)
+        {
+            if (string.IsNullOrWhiteSpace(ri.TaxTotalJson))
+                continue;
+
+            List<AppTaxTotal>? taxTotals = null;
+            try
+            {
+                taxTotals = JsonSerializer.Deserialize<List<AppTaxTotal>>(
+                    ri.TaxTotalJson, JsonOpts);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogWarning(ex,
+                    "Could not deserialize TaxTotalJson for ReceivedInvoice {Id}; skipping input VAT.",
+                    ri.Id);
+                continue;
+            }
+
+            if (taxTotals is null || taxTotals.Count == 0)
+                continue;
+
+            var vatTaxable = taxTotals
+                .Where(t => t.TaxCategoryId != null
+                         && VatCategoryIds.Contains(t.TaxCategoryId))
+                .Sum(t => t.TaxableAmount);
+
+            var vatAmount = taxTotals
+                .Where(t => t.TaxCategoryId != null
+                         && VatCategoryIds.Contains(t.TaxCategoryId))
+                .Sum(t => t.TaxAmount);
+
+            inputItems.Add(InputVatScheduleItem.Create(
+                scheduleId: schedule.Id,
+                receivedInvoiceId: ri.Id,
+                irn: ri.Irn.Value,
+                supplierName: ri.SupplierPartyName,
+                supplierTin: ri.SupplierTIN?.Value,
+                issueDate: ri.IssueDate,
+                taxableAmount: Math.Round(vatTaxable, 2),
+                vatAmount: Math.Round(vatAmount, 2)));
+        }
+
+        schedule.AddInputItems(inputItems);
+        context.InputVatScheduleItems.AddRange(inputItems);
+
+        // ── Mark received invoices so they can't be double-counted ─────────────
+        var trackedReceived = await context.ReceivedInvoices
+            .Where(r => receivedInvoiceData.Select(x => x.Id).Contains(r.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var ri in trackedReceived)
+            ri.AssignToInputVatSchedule(schedule.Id);
+
         await context.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "VAT schedule {ScheduleId} generated for {Year}-{Month} with {Count} invoices.",
-            schedule.Id, request.Year, request.Month, items.Count);
+            "VAT schedule {ScheduleId} generated for {Year}-{Month}: {OutputCount} output invoices, {InputCount} input invoices.",
+            schedule.Id, request.Year, request.Month, items.Count, inputItems.Count);
 
         return new VatScheduleDto
         {
@@ -132,6 +207,10 @@ public class GenerateVatScheduleCommandHandler(
             TotalInvoiceCount = schedule.TotalInvoiceCount,
             TotalTaxableAmount = schedule.TotalTaxableAmount,
             TotalVatAmount = schedule.TotalVatAmount,
+            TotalInputInvoiceCount = schedule.TotalInputInvoiceCount,
+            TotalInputTaxableAmount = schedule.TotalInputTaxableAmount,
+            TotalInputVatAmount = schedule.TotalInputVatAmount,
+            NetVatPayable = schedule.NetVatPayable,
             Items = items.Select(i => new VatScheduleItemDto
             {
                 Id = i.Id,
@@ -145,6 +224,18 @@ public class GenerateVatScheduleCommandHandler(
                 VatAmount = i.VatAmount,
                 TotalAmount = i.TotalAmount,
                 PaymentStatus = i.PaymentStatus.ToString(),
+            }).ToList(),
+            InputItems = inputItems.Select(i => new InputVatScheduleItemDto
+            {
+                Id = i.Id,
+                ReceivedInvoiceId = i.ReceivedInvoiceId,
+                Irn = i.Irn,
+                SupplierName = i.SupplierName,
+                SupplierTin = i.SupplierTin,
+                IssueDate = i.IssueDate,
+                TaxableAmount = i.TaxableAmount,
+                VatAmount = i.VatAmount,
+                TotalAmount = i.TotalAmount,
             }).ToList(),
         };
     }

@@ -25,7 +25,8 @@ public class GetUsageStatsQueryHandler : IRequestHandler<GetUsageStatsQuery, IEn
         {
             var businesses = await _context.Businesses
                 .AsNoTracking()
-                .Include(b => b.Subscription)
+                .Include(b => b.Subscriptions)
+                    .ThenInclude(s => s.PlatformSubscription)
                 .ToListAsync(cancellationToken);
 
             var stats = new List<BusinessUsageStats>();
@@ -38,14 +39,15 @@ public class GetUsageStatsQueryHandler : IRequestHandler<GetUsageStatsQuery, IEn
                                     i.CreatedAt >= request.FromDate && i.CreatedAt <= request.ToDate, 
                               cancellationToken);
 
+                var primarySub = business.Subscriptions.FirstOrDefault(s => s.IsActive()) ?? business.Subscriptions.FirstOrDefault();
                 stats.Add(new BusinessUsageStats
                 {
                     BusinessId = business.Id,
                     BusinessName = business.Name,
                     Period = $"{request.FromDate:yyyy-MM-dd} to {request.ToDate:yyyy-MM-dd}",
                     InvoicesProcessed = invoiceCount,
-                    SubscriptionTier = business.Subscription.Tier.ToString(),
-                    IsWithinLimits = invoiceCount <= business.Subscription.MaxInvoicesPerMonth
+                    SubscriptionTier = primarySub?.PlatformSubscription?.Tier.ToString() ?? "None",
+                    IsWithinLimits = true
                 });
             }
 

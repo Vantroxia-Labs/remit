@@ -34,7 +34,9 @@ public class GetAllInvoicesQueryHandler : IRequestHandler<GetAllInvoicesQuery, P
             var query = _context.Invoices
                 .AsNoTracking()
                 .Include(i => i.InvoiceLine)
+                    .ThenInclude(il => il.BusinessItem)
                 .Include(i => i.Business)
+                .Include(i => i.Party)
                 .Include(i => i.InvoiceApprovalHistory)
                 .Include(i => i.CreatedByUser)
                 .AsQueryable();
@@ -79,6 +81,11 @@ public class GetAllInvoicesQueryHandler : IRequestHandler<GetAllInvoicesQuery, P
                     (i.Note != null && i.Note.ToLower().Contains(searchTerm)));
             }
 
+            if (request.EnvironmentMode.HasValue)
+            {
+                query = query.Where(i => i.EnvironmentMode == request.EnvironmentMode.Value);
+            }
+
             // Exclude deleted invoices
             query = query.Where(inv => !inv.IsDeleted);
 
@@ -95,17 +102,20 @@ public class GetAllInvoicesQueryHandler : IRequestHandler<GetAllInvoicesQuery, P
                 .Select(invoice => new InvoiceDto
                 {
                     Id = invoice.Id,
+                    InvoiceCode = invoice.InvoiceCode,
                     BusinessId = invoice.BusinessId,
                     BusinessName = invoice.Business.Name,
+                    PartyName = invoice.Party != null ? invoice.Party.Name : null,
                     InvoiceStatus = invoice.InvoiceApprovalHistory.Select(x => x.InvoiceStatus).OrderBy(x => x).ToArray(),
-                    Irn = invoice.Irn.Value,
-                    CurrentInvoiceStatus = invoice.InvoiceStatus,
+                    Irn = invoice.Irn != null ? invoice.Irn.Value : string.Empty,
+                    Status = invoice.InvoiceStatus,
                     FirsResponseMessage = FirsResponse(invoice.FIRSSubmissionResponseMessage, invoice.InvoiceStatus),
                     InvoiceSource = invoice.InvoiceSource,
                     PaymentStatus = invoice.PaymentStatus,
                     IssueDate = invoice.IssueDate,
+                    TotalAmount = invoice.InvoiceLine.Sum(il => (decimal)(il.Quantity * (il.BusinessItem != null ? il.BusinessItem.UnitPrice : 0.0m))),
                     CreatedAt = invoice.CreatedAt,
-                    CreatedBy = invoice.CreatedByUser.ToString()
+                    CreatedBy = invoice.CreatedBy.ToString()
                 })
                 .ToListAsync(cancellationToken);
 
@@ -131,8 +141,8 @@ public class GetAllInvoicesQueryHandler : IRequestHandler<GetAllInvoicesQuery, P
             _ => i => i.CreatedAt
         };
 
-        return descending 
-            ? query.OrderByDescending(keySelector) 
+        return descending
+            ? query.OrderByDescending(keySelector)
             : query.OrderBy(keySelector);
     }
 

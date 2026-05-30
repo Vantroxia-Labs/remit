@@ -24,9 +24,9 @@ public sealed class ImportFirsInvoicesCommandHandler(
         CancellationToken cancellationToken)
     {
         var imported = new List<string>();
-        var skipped  = new List<string>();
-        var failed   = new List<string>();
-        var errors   = new List<string>();
+        var skipped = new List<string>();
+        var failed = new List<string>();
+        var errors = new List<string>();
 
         // Authenticate
         string token;
@@ -135,16 +135,16 @@ public sealed class ImportFirsInvoicesCommandHandler(
 
         return new ImportFirsInvoicesResult
         {
-            Success      = true,
-            Message      = $"Import complete. Imported: {imported.Count}, Skipped: {skipped.Count}, Failed: {failed.Count}",
+            Success = true,
+            Message = $"Import complete. Imported: {imported.Count}, Skipped: {skipped.Count}, Failed: {failed.Count}",
             TotalFetched = allItems.Count,
             TotalImported = imported.Count,
-            TotalSkipped  = skipped.Count,
-            TotalFailed   = failed.Count,
-            ImportedIRNs  = imported,
-            SkippedIRNs   = skipped,
-            FailedIRNs    = failed,
-            Errors        = errors
+            TotalSkipped = skipped.Count,
+            TotalFailed = failed.Count,
+            ImportedIRNs = imported,
+            SkippedIRNs = skipped,
+            FailedIRNs = failed,
+            Errors = errors
         };
     }
 
@@ -175,31 +175,32 @@ public sealed class ImportFirsInvoicesCommandHandler(
         var partyId = await ResolvePartyAsync(detail.CustomerParty, business.Id, createdById, cancellationToken);
 
         // 4. Build value objects
-        var irn          = IRN.CreateFromString(detail.Irn);
-        var issueDate    = ParseDateOnly(detail.IssueDate) ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var issueTime    = ParseTimeOnly(detail.IssueTime);
-        var dueDate      = ParseDateOnly(detail.DueDate);
-        var invoiceType  = MapInvoiceType(detail.InvoiceTypeCode);
-        var currency     = MapCurrency(detail.DocumentCurrencyCode);
+        var irn = IRN.CreateFromString(detail.Irn);
+        var issueDate = ParseDateOnly(detail.IssueDate) ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var issueTime = ParseTimeOnly(detail.IssueTime);
+        var dueDate = ParseDateOnly(detail.DueDate);
+        var invoiceType = MapInvoiceType(detail.InvoiceTypeCode);
+        var currency = MapCurrency(detail.DocumentCurrencyCode);
         var deliveryPeriod = MapDeliveryPeriod(detail.DeliveryPeriod, issueDate);
         var paymentMeans = MapPaymentMeans(detail.PaymentMeans);
 
         // 5. Create invoice
         var invoice = Invoice.CreateFromImport(
             businessId: business.Id,
-            partyId:       partyId,
-            irn:           irn,
+            partyId: partyId,
+            irn: irn,
             invoicePrefix: business.InvoicePrefix,
-            issueDate:     issueDate,
-            issueTime:     issueTime,
-            invoiceType:   invoiceType,
-            currency:      currency,
+            issueDate: issueDate,
+            issueTime: issueTime,
+            invoiceType: invoiceType,
+            currency: currency,
             deliveryPeriod: deliveryPeriod,
-            paymentMeans:  paymentMeans,
+            paymentMeans: paymentMeans,
             invoiceSource: InvoiceSource.FIRS,
-            note:          detail.Note,
-            paymentTerms:  detail.PaymentTermsNote,
-            dueDate:       dueDate);
+            note: detail.Note,
+            paymentTerms: detail.PaymentTermsNote,
+            dueDate: dueDate,
+            environmentMode: business.AppEnvironmentMode);
 
         invoice.CreatedBy = createdById;
         // 6. QR code (skip if business lacks cert/key)
@@ -215,11 +216,9 @@ public sealed class ImportFirsInvoicesCommandHandler(
         }
 
         // 7. Invoice line items
-        var taxCategory = ExtractTaxCategory(detail.TaxTotal);
-
         foreach (var line in detail.InvoiceLine)
         {
-            var businessItemId = await ResolveBusinessItemAsync(line, taxCategory, business.Id, createdById, cancellationToken);
+            var businessItemId = await ResolveBusinessItemAsync(line, business.Id, createdById, cancellationToken);
             var unitPrice = line.Price?.PriceAmount ?? line.LineExtensionAmount;
 
             DiscountFee? discountFee = line.DiscountAmount > 0
@@ -299,42 +298,23 @@ public sealed class ImportFirsInvoicesCommandHandler(
 
     private async Task<Guid> ResolveBusinessItemAsync(
         MbsInvoiceLine line,
-        (string Name, decimal Percent) taxCategory,
         Guid businessId,
         Guid createdById,
         CancellationToken cancellationToken)
     {
-        var itemName       = line.Item?.Name ?? "Unnamed Item";
-        var itemDesc       = line.Item?.Description ?? string.Empty;
-        var categoryName   = string.IsNullOrWhiteSpace(line.ProductCategory) ? "General" : line.ProductCategory;
-        var svcCodeValue   = string.IsNullOrWhiteSpace(line.HsnCode) ? "DEFAULT" : line.HsnCode;
-        var svcCodeName    = string.IsNullOrWhiteSpace(line.ServiceCategory) ? itemName : line.ServiceCategory;
-        var unitPrice      = line.Price?.PriceAmount ?? line.LineExtensionAmount;
-
-        // Find or create ItemCategory
-        var itemCategory = await context.ItemCategories
-            .FirstOrDefaultAsync(ic => ic.Name == categoryName &&
-                                       ic.BusinessID == businessId && !ic.IsDeleted, cancellationToken);
-
-        if (itemCategory is null)
-        {
-            itemCategory = ItemCategory.Create(categoryName, $"Auto-created for import: {categoryName}", businessId);
-            await context.ItemCategories.AddAsync(itemCategory, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-            logger.LogInformation("Created ItemCategory '{Category}' for business {BusinessId}", categoryName, businessId);
-        }
+        var itemName = line.Item?.Name ?? "Unnamed Item";
+        var itemDesc = line.Item?.Description ?? string.Empty;
+        var svcCodeValue = string.IsNullOrWhiteSpace(line.HsnCode) ? "DEFAULT" : line.HsnCode;
+        var svcCodeName = string.IsNullOrWhiteSpace(line.ServiceCategory) ? itemName : line.ServiceCategory;
+        var unitPrice = line.Price?.PriceAmount ?? line.LineExtensionAmount;
 
         // Find or create BusinessItem by name
         var existing = await context.BusinessItems
-            .Include(bi => bi.ItemCategories).ThenInclude(ic => ic.ItemCategory)
             .FirstOrDefaultAsync(bi => bi.Name == itemName &&
                                        bi.BusinessID == businessId && !bi.IsDeleted, cancellationToken);
 
         if (existing is not null)
         {
-            if (!existing.BelongsToCategory(itemCategory.Id))
-                existing.AddCategory(itemCategory.Id);
-
             if (existing.UnitPrice != unitPrice)
                 existing.UpdatePriceFromErp(unitPrice);
 
@@ -348,9 +328,9 @@ public sealed class ImportFirsInvoicesCommandHandler(
 
         var businessItem = BusinessItem.Create(
             businessId, itemName,
+            ItemType.Service,
             ServiceCode.Create(svcCodeValue, svcCodeName),
-            TaxCategory.Create(taxCategory.Name, taxCategory.Percent),
-            itemCategory.Id, itemDesc, unitPrice);
+            Guid.Empty, itemDesc, unitPrice);
 
         businessItem.CreatedBy = createdById;
         await context.BusinessItems.AddAsync(businessItem, cancellationToken);
@@ -397,8 +377,8 @@ public sealed class ImportFirsInvoicesCommandHandler(
         entryStatus.ToUpperInvariant() switch
         {
             "TRANSMITTING" => InvoiceStatus.TRANSMITTING,
-            "TRANSMITTED"  => InvoiceStatus.TRANSMITTED,
-            _              => InvoiceStatus.SIGNED
+            "TRANSMITTED" => InvoiceStatus.TRANSMITTED,
+            _ => InvoiceStatus.SIGNED
         };
 
     private InvoiceType MapInvoiceType(string code)
@@ -412,14 +392,14 @@ public sealed class ImportFirsInvoicesCommandHandler(
     private Currency MapCurrency(string code)
     {
         var upper = code.ToUpperInvariant();
-        var name  = referenceCache.GetCurrencyName(upper) ?? upper;
+        var name = referenceCache.GetCurrencyName(upper) ?? upper;
         return Currency.Create(name, upper);
     }
 
     private static DeliveryPeriod MapDeliveryPeriod(MbsDeliveryPeriod? period, DateOnly issueDate)
     {
         var start = period is not null ? ParseDateOnly(period.StartDate) ?? issueDate : issueDate;
-        var end   = period is not null ? ParseDateOnly(period.EndDate)   ?? issueDate.AddDays(30) : issueDate.AddDays(30);
+        var end = period is not null ? ParseDateOnly(period.EndDate) ?? issueDate.AddDays(30) : issueDate.AddDays(30);
         if (end < start) end = start.AddDays(30);
         return DeliveryPeriod.Create(start, end);
     }

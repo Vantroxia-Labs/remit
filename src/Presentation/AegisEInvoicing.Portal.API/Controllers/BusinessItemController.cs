@@ -4,7 +4,7 @@ using AegisEInvoicing.Portal.API.Models.BusinessItem.Request;
 using AegisEInvoicing.Portal.API.Models.BusinessItem.Response;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.CreateBulkBusinessItem;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.CreateBusinessItem;
-using AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.DeleteBusinessItem;
+using AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.DeactivateBusinessItem;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.UpdateBusinessItem;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.DTOs;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.Queries.GetBusinessItemById;
@@ -13,7 +13,6 @@ using AegisEInvoicing.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -23,7 +22,6 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
-[SwaggerTag("Business Item Operations including create, read, update, delete and list items")]
 [Authorize]
 public class BusinessItemController(IMediator mediator, ILogger<BusinessItemController> logger) : BaseApiController
 {
@@ -37,15 +35,6 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Created business item information</returns>
     [HttpPost]
-    [SwaggerOperation(
-        Summary = "Create Business Item",
-        Description = "Creates a new business item (product or service) for the current business. Only business administrators can create items."
-    )]
-    [SwaggerResponse(201, "Business item created successfully", typeof(ApiResponse<CreateBusinessItemResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateBusinessItemRequest request,
         CancellationToken cancellationToken = default)
@@ -53,13 +42,15 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
         _logger.LogInformation("Creating business item with name: {Name}", request.Name);
 
         var serviceCodeDto = new CreateServiceCodeDto(request.ServiceCode.Code.Trim(), request.ServiceCode.Name.Trim());
-        var taxCategoryDto = new CreateTaxCategoryDto(request.TaxCategory.Name.Trim(), request.TaxCategory.Percent);
+
+        var taxCategories = request.TaxCategories.Select(tc => new CreateBusinessItemTaxCategoryDto(
+            tc.Code, tc.Name, tc.IsPercentage, tc.Percent, tc.FlatAmount));
 
         var command = new CreateBusinessItemCommand(
             request.Name.Trim(),
+            request.ItemType,
             serviceCodeDto,
-            taxCategoryDto,
-            request.ItemCategoryId,
+            taxCategories,
             request.ItemDescription,
             request.UnitPrice);
 
@@ -89,12 +80,6 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("CreateBulkItem")]
-    [SwaggerOperation(Summary = "Create new bulk item", Description = "Creates a new bulk business item (product or service) for the current business. Only business administrators can create items."
-    )]
-    [SwaggerResponse(200, "Bulk item created successfully", typeof(ApiResponse<BulkItemResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> CreateBulkItem(CreateBulkBusinessItemUploadRequest request,
         CancellationToken cancellationToken = default)
@@ -121,15 +106,6 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Business item details</returns>
     [HttpGet("{id:guid}")]
-    [SwaggerOperation(
-        Summary = "Get Business Item by ID",
-        Description = "Retrieves a specific business item by its ID. Only items belonging to the current business can be accessed."
-    )]
-    [SwaggerResponse(200, "Business item retrieved successfully", typeof(ApiResponse<BusinessItemResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Business item not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetByIdAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
@@ -149,18 +125,12 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
             Id = result.BusinessItem.Id,
             ItemId = result.BusinessItem.ItemId,
             Name = result.BusinessItem.Name,
+            ItemType = result.BusinessItem.ItemType,
             ServiceCode = new ServiceCodeResponse
             {
                 Code = result.BusinessItem.ServiceCode.Code,
                 Name = result.BusinessItem.ServiceCode.Name
             },
-            TaxCategory = new TaxCategoryResponse
-            {
-                Name = result.BusinessItem.TaxCategory.Name,
-                Percent = result.BusinessItem.TaxCategory.Percent
-            },
-            ItemCategoryId = result.BusinessItem.ItemCategoryId,
-            ItemCategoryName = result.BusinessItem.ItemCategoryName,
             ItemDescription = result.BusinessItem.ItemDescription,
             UnitPrice = result.BusinessItem.UnitPrice,
             BusinessId = result.BusinessItem.BusinessId,
@@ -168,7 +138,15 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
             CreatedAt = result.BusinessItem.CreatedAt,
             UpdatedAt = result.BusinessItem.UpdatedAt,
             CreatedBy = result.BusinessItem.CreatedBy,
-            UpdatedBy = result.BusinessItem.UpdatedBy
+            UpdatedBy = result.BusinessItem.UpdatedBy,
+            TaxCategories = result.BusinessItem.TaxCategories.Select(tc => new TaxCategoryItemResponse
+            {
+                Code = tc.Code,
+                Name = tc.Name,
+                IsPercentage = tc.IsPercentage,
+                Percent = tc.Percent,
+                FlatAmount = tc.FlatAmount
+            }).ToList()
         };
 
         return Success(response, "Business item retrieved successfully");
@@ -182,16 +160,6 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Update result</returns>
     [HttpPut("{id:guid}")]
-    [SwaggerOperation(
-        Summary = "Update Business Item",
-        Description = "Updates an existing business item. Only business administrators can update items belonging to their business."
-    )]
-    [SwaggerResponse(200, "Business item updated successfully", typeof(ApiResponse<UpdateBusinessItemResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Business item not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> UpdateAsync([FromRoute] Guid id, [FromBody] UpdateBusinessItemRequest request,
         CancellationToken cancellationToken = default)
@@ -199,14 +167,16 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
         _logger.LogInformation("Updating business item with ID: {Id}", id);
 
         var serviceCodeDto = new UpdateServiceCodeDto(request.ServiceCode.Code, request.ServiceCode.Name);
-        var taxCategoryDto = new UpdateTaxCategoryDto(request.TaxCategory.Name, request.TaxCategory.Percent);
+
+        var taxCategories = request.TaxCategories.Select(tc => new UpdateBusinessItemTaxCategoryDto(
+            tc.Code, tc.Name, tc.IsPercentage, tc.Percent, tc.FlatAmount));
 
         var command = new UpdateBusinessItemCommand(
             id,
             request.Name,
+            request.ItemType,
             serviceCodeDto,
-            taxCategoryDto,
-            request.ItemCategoryId,
+            taxCategories,
             request.ItemDescription,
             request.UnitPrice);
 
@@ -232,40 +202,30 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     }
 
     /// <summary>
-    /// Delete a business item
+    /// Deactivate a business item (soft delete)
     /// </summary>
     /// <param name="id">Business item ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Deletion result</returns>
-    [HttpDelete("{id:guid}")]
-    [SwaggerOperation(
-        Summary = "Delete Business Item",
-        Description = "Soft deletes a business item. Only business administrators can delete items. The item will be marked as deleted but retained for audit purposes."
-    )]
-    [SwaggerResponse(200, "Business item deleted successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Business item not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
+    /// <returns>Deactivation result</returns>
+    [HttpPatch("{id:guid}/deactivate")]
     [RequireRole(RoleConstants.ClientAdmin)]
-    public async Task<IActionResult> DeleteAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> DeactivateAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Deleting business item with ID: {Id}", id);
+        _logger.LogInformation("Deactivating business item with ID: {Id}", id);
 
-        var command = new DeleteBusinessItemCommand(id);
+        var command = new DeactivateBusinessItemCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
 
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("Failed to delete business item: {Message}", result.Message);
+            _logger.LogWarning("Failed to deactivate business item: {Message}", result.Message);
             return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
                 ? Error(result.Message, 404)
                 : BadRequest(Error(result.Message));
         }
 
-        _logger.LogInformation("Business item deleted successfully. ID: {Id}", id);
-        return Success<object?>(null, "Business item deleted successfully");
+        _logger.LogInformation("Business item deactivated successfully. ID: {Id}", id);
+        return Success<object?>(null, "Business item deactivated successfully");
     }
 
     /// <summary>
@@ -274,51 +234,22 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
     /// <param name="pageNumber">Page number (default: 1)</param>
     /// <param name="pageSize">Page size (default: 10, max: 100)</param>
     /// <param name="searchTerm">Optional search term to filter by name, ID, or description</param>
-    /// <param name="itemCategoryId">Optional filter by item category</param>
     /// <param name="sortBy">Optional sort field (name, itemid, unitprice, category, createdat)</param>
     /// <param name="sortDescending">Sort in descending order (default: false)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of business items</returns>
     [HttpGet]
-    [SwaggerOperation(
-        Summary = "Get Business Items List",
-        Description = @"Retrieve all business items for the current business with pagination, search, and sorting capabilities.
-
-**Features:**
-- **Pagination**: Use pageNumber and pageSize parameters
-- **Search**: Filter by name, item ID, description, service code, or category
-- **Category Filter**: Filter items by specific category ID
-- **Sorting**: Sort by name, itemid, unitprice, category, or createdat
-- **Security**: Only returns items belonging to the current business
-
-**Query Parameters:**
-- `pageNumber`: Page number (default: 1)
-- `pageSize`: Items per page (default: 10, max: 100)
-- `searchTerm`: Search in name, ID, description, service code, and category
-- `itemCategoryId`: Filter by specific item category
-- `sortBy`: Field to sort by (name, itemid, unitprice, category, createdat)
-- `sortDescending`: Sort order (default: false - ascending)
-
-**Access Control:**
-- **Business Admin**: Can view all items for their business
-- **Business User**: Can view all items for their business"
-    )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<IEnumerable<BusinessItemSummaryResponse>>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetListAsync(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? searchTerm = null,
-        [FromQuery] Guid? itemCategoryId = null,
         [FromQuery] string? sortBy = null,
         [FromQuery] bool sortDescending = false,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving business items list - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}, Category: {CategoryId}",
-            pageNumber, pageSize, searchTerm ?? "None", itemCategoryId?.ToString() ?? "None");
+        _logger.LogInformation("Retrieving business items list - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}",
+            pageNumber, pageSize, searchTerm ?? "None");
 
         // Validate pagination parameters
         if (pageNumber < 1)
@@ -331,7 +262,7 @@ public class BusinessItemController(IMediator mediator, ILogger<BusinessItemCont
             return BadRequest(Error("Page size must be between 1 and 100"));
         }
 
-        var query = new GetBusinessItemListQuery(pageNumber, pageSize, searchTerm, sortBy, sortDescending, itemCategoryId);
+        var query = new GetBusinessItemListQuery(pageNumber, pageSize, searchTerm, sortBy, sortDescending);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (result is null || !result.Items.Any())

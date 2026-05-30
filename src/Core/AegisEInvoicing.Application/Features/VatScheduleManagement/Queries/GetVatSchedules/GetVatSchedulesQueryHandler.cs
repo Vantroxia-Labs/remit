@@ -24,6 +24,10 @@ public class GetVatSchedulesQueryHandler(
             .AsNoTracking()
             .Where(s => s.BusinessId == currentUser.BusinessId.Value);
 
+        // TODO: Filter by EnvironmentMode once property is added to VatSchedule entity
+        // if (request.EnvironmentMode.HasValue)
+        //     query = query.Where(s => s.EnvironmentMode == request.EnvironmentMode.Value);
+
         if (request.Year.HasValue)
             query = query.Where(s => s.Year == request.Year.Value);
 
@@ -45,7 +49,10 @@ public class GetVatSchedulesQueryHandler(
                 TotalInvoiceCount = s.TotalInvoiceCount,
                 TotalTaxableAmount = s.TotalTaxableAmount,
                 TotalVatAmount = s.TotalVatAmount,
-                Items = new List<VatScheduleItemDto>(), // items loaded separately via GetVatScheduleWithItems
+                TotalInputInvoiceCount = s.TotalInputInvoiceCount,
+                TotalInputTaxableAmount = s.TotalInputTaxableAmount,
+                TotalInputVatAmount = s.TotalInputVatAmount,
+                NetVatPayable = s.TotalVatAmount - s.TotalInputVatAmount,
             })
             .ToListAsync(cancellationToken);
 

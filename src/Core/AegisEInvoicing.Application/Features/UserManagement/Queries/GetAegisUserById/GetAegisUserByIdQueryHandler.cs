@@ -83,6 +83,15 @@ public class GetAegisUserByIdQueryHandler : IRequestHandler<GetAegisUserByIdQuer
             }
         }
 
+        // Load permissions from the user's custom AegisStaff role (if any)
+        var customRoleName = $"AegisStaff_{AegisUser.Id:N}";
+        var customRole = await _context.PlatformRoles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Name == customRoleName && !r.IsDeleted, cancellationToken);
+        // No custom role = full access, so return all assignable permissions as selected
+        IReadOnlyList<string> permissions = customRole?.Permissions.ToList()
+            ?? PermissionConstants.AegisAdminAssignablePermissions.ToList();
+
         return new AegisUserDto(
             AegisUser.Id,
             AegisUser.FirstName,
@@ -101,6 +110,7 @@ public class GetAegisUserByIdQueryHandler : IRequestHandler<GetAegisUserByIdQuer
             AegisUser.LastAegisActivityAt,
             AegisUser.CreatedAt,
             AegisUser.UpdatedAt,
-            createdByName);
+            createdByName,
+            permissions);
     }
 }

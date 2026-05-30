@@ -67,10 +67,10 @@ public class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription>
             .IsRequired()
             .HasDefaultValue(false);
 
-        // Configure relationship with Business
+        // Configure relationship with Business — one-to-many
         builder.HasOne(s => s.Business)
-            .WithOne(m => m.Subscription)
-            .HasForeignKey<Subscription>(s => s.BusinessId)
+            .WithMany(m => m.Subscriptions)
+            .HasForeignKey(s => s.BusinessId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(s => s.PlatformSubscription)
@@ -80,7 +80,6 @@ public class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription>
 
         // Add indexes for performance with proper naming
         builder.HasIndex(s => s.BusinessId)
-            .IsUnique()
             .HasDatabaseName("IX_Subscriptions_BusinessId");
         builder.HasIndex(s => s.PlatformSubscriptionId)
             .HasDatabaseName("IX_Subscriptions_PlatformSubscriptionId");

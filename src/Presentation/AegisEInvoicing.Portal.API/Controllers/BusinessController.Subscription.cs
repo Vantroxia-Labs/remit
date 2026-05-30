@@ -1,11 +1,10 @@
-﻿using AegisEInvoicing.Portal.API.Attributes;
+using AegisEInvoicing.Portal.API.Attributes;
 using AegisEInvoicing.Portal.API.Models;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.CancelSubscription;
 using AegisEInvoicing.Application.Features.BusinessManagement.DTOs;
 using AegisEInvoicing.Application.Features.BusinessManagement.Queries.GetBusinessSubscription;
 using AegisEInvoicing.Domain.Constants;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -18,13 +17,7 @@ public partial class BusinessController
     /// <param name="businessId">Business Id</param>
     /// <returns>Update result with subscription status</returns>
     /// <returns></returns>
-    [HttpGet("get-subscription/{businessId}")]
-    [SwaggerOperation(Summary = "Returns subscription tied to business",
-        Description = "Fetch Subscription Tied to a Business.")]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<BusinessSubscriptionDto>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<BusinessSubscriptionDto>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<BusinessSubscriptionDto>))]
-    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin)]
+    [HttpGet("get-subscription/{businessId}")]    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin)]
     public async Task<IActionResult> GetSubscription([FromRoute] Guid? businessId = null, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Fetch Subscription Tied to a Business.");
@@ -39,9 +32,7 @@ public partial class BusinessController
         return Success(result, string.Empty);
     }
 
-    [HttpPost("cancel-subscription")]
-    [SwaggerOperation(Description = "This endpoint allows business admin to cancel subscription anytime")]
-    [ProducesResponseType(typeof(ApiResponse<CancelSubscriptionResult>), StatusCodes.Status200OK)]
+    [HttpPost("cancel-subscription")]    [ProducesResponseType(typeof(ApiResponse<CancelSubscriptionResult>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [RequireRole(RoleConstants.AegisAdmin)]

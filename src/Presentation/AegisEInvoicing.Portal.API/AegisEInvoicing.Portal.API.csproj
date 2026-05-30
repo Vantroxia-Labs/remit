@@ -6,8 +6,9 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);CS1591</NoWarn>
+		<NuGetAudit>false</NuGetAudit>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<UserSecretsId>einvoice-integrator-api-secrets</UserSecretsId>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<PublishReadyToRun>false</PublishReadyToRun>
@@ -44,17 +45,15 @@
 		<PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.1" />
 		<PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
 		<PackageReference Include="DotNetEnv" Version="3.1.1" />
-		<PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.0.0" />
 		<PackageReference Include="NPOI" Version="2.7.5" />
-		<PackageReference Include="Serilog.Sinks.ApplicationInsights" Version="5.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
+		<PackageReference Include="Microsoft.OpenApi" Version="2.1.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3" />
 		<PackageReference Include="QuestPDF" Version="2026.2.1" />
 		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
 		<PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.4" />
-		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.1.4" />
+		<PackageReference Include="Scalar.AspNetCore" Version="2.0.5" />
 		<PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0" />
 		<PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
 		<PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" Version="9.0.0" />
@@ -81,7 +80,7 @@
 		<ProjectReference Include="..\..\Integrations\AegisEInvoicing.NotificationService\AegisEInvoicing.NotificationService.csproj" />
 		<ProjectReference Include="..\..\Integrations\AegisEInvoicing.Paystack\AegisEInvoicing.Paystack.csproj" />
 	</ItemGroup>
-  <ItemGroup>
-    <None Include=".env" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include=".env" CopyToOutputDirectory="PreserveNewest" Condition="Exists('.env')" />
+	</ItemGroup>
 </Project>

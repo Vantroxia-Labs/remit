@@ -3,6 +3,7 @@ using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.CreateAndS
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.SignInvoice;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.TransmitInvoice;
 using AegisEInvoicing.Application.Features.InvoiceManagement.Commands.ValidateInvoice;
+using AegisEInvoicing.Domain.Constants;
 using AegisEInvoicing.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,7 @@ namespace AegisEInvoicing.Application.Features.InvoiceManagement.Commands.Submit
 /// Handles the submission of an existing invoice through the pipeline:
 /// Validate ? Sign ? Transmit
 /// </summary>
+
 public class SubmitExistingInvoiceCommandHandler : IRequestHandler<SubmitExistingInvoiceCommand, CreateAndSubmitInvoiceResult>
 {
     private readonly IMediator _mediator;
@@ -46,8 +48,9 @@ public class SubmitExistingInvoiceCommandHandler : IRequestHandler<SubmitExistin
         {
             // First, verify the invoice exists and get its IRN
             var invoice = await _context.Invoices
+                .AsNoTracking()
                 .Where(i => i.Id == request.InvoiceId)
-                .Select(i => new { i.Id, i.Irn })
+                .Select(i => new { i.Id, i.Irn, i.InvoiceKind })
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (invoice == null)
@@ -58,6 +61,8 @@ public class SubmitExistingInvoiceCommandHandler : IRequestHandler<SubmitExistin
                 result.FailedAt = "validate";
                 return result;
             }
+
+
 
             result.InvoiceId = invoice.Id;
             result.IRN = invoice.Irn.Value;

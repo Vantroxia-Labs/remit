@@ -3,12 +3,10 @@ using AegisEInvoicing.Portal.API.Attributes;
 using AegisEInvoicing.Portal.API.Models;
 using AegisEInvoicing.Application.Features.UserManagement.Commands.AegisUserCommands;
 using AegisEInvoicing.Application.Features.UserManagement.Queries.GetAegisUserById;
-using AegisEInvoicing.Application.Features.UserManagement.Queries.GetAegisUsers;
-using AegisEInvoicing.Domain.Entities.UserManagement;
+using AegisEInvoicing.Application.Features.UserManagement.Queries.GetAegisUsers;using AegisEInvoicing.Domain.Entities.UserManagement;
 using AegisEInvoicing.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -30,14 +28,7 @@ public class AegisUserManagementController : BaseApiController
     /// <param name="request">Aegis user creation request</param>
     /// <returns>Created Aegis user information</returns>
     [HttpPost("Aegis-users")]
-    [RequireAegisAdmin]
-    [SwaggerOperation(
-        Summary = "Create Aegis platform user",
-        Description = "Creates a new Aegis platform user with platform-level access. Password change is enforced on first login. Aegis admin privileges required.",
-        OperationId = "CreateAegisUser",
-        Tags = new[] { "Aegis User Management" }
-    )]
-    [ProducesResponseType(typeof(ApiResponse<CreateAegisUserResponse>), StatusCodes.Status201Created)]
+    [RequireAegisAdmin]    [ProducesResponseType(typeof(ApiResponse<CreateAegisUserResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateAegisUser([FromBody] CreateAegisUserRequest request)
@@ -50,7 +41,8 @@ public class AegisUserManagementController : BaseApiController
             request.AegisRole,
             request.PhoneNumber,
             request.AegisEmployeeId,
-            request.AegisDepartment);
+            request.AegisDepartment,
+            request.Permissions);
 
         var result = await Mediator.Send(command);
 
@@ -84,9 +76,7 @@ public class AegisUserManagementController : BaseApiController
     /// <param name="userId">Aegis User ID to activate</param>
     /// <returns>Activation result</returns>
     [HttpPost("users/{userId}/activate")]
-    [RequireAegisAdmin]
-    [SwaggerOperation(Summary = "Activate Aegis user", Description = "Activates a Aegis platform user account. Aegis admin privileges required.", OperationId = "ActivateAegisUser", Tags = new[] { "Aegis User Management" })]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [RequireAegisAdmin]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> ActivateAegisUser([FromRoute] Guid userId)
@@ -113,9 +103,7 @@ public class AegisUserManagementController : BaseApiController
     /// <param name="request">Deactivation request with reason</param>
     /// <returns>Deactivation result</returns>
     [HttpPost("users/{userId}/deactivate")]
-    [RequireAegisAdmin]
-    [SwaggerOperation(Summary = "Deactivate Aegis user", Description = "Deactivates a Aegis platform user account with a reason. Aegis admin privileges required.", OperationId = "DeactivateAegisUser", Tags = new[] { "Aegis User Management" })]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [RequireAegisAdmin]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeactivateAegisUser([FromRoute] Guid userId, [FromBody] DeactivateAegisUserRequest request)
@@ -142,9 +130,7 @@ public class AegisUserManagementController : BaseApiController
     /// <param name="request">Role update request</param>
     /// <returns>Role update result</returns>
     [HttpPut("users/{userId}/role")]
-    [RequireAegisAdmin]
-    [SwaggerOperation(Summary = "Update Aegis user role", Description = "Updates the role of a Aegis platform user. Aegis admin privileges required.", OperationId = "UpdateAegisUserRole", Tags = new[] { "Aegis User Management" })]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [RequireAegisAdmin]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdateAegisUserRole([FromRoute] Guid userId, [FromBody] UpdateAegisUserRoleRequest request)
@@ -171,9 +157,7 @@ public class AegisUserManagementController : BaseApiController
     /// <param name="request">Profile update request</param>
     /// <returns>Profile update result</returns>
     [HttpPut("users/{userId}/profile")]
-    [RequireAegisAdmin]
-    [SwaggerOperation(Summary = "Update Aegis user profile", Description = "Updates profile information for a Aegis platform user. Aegis admin privileges required.", OperationId = "UpdateAegisUserProfile", Tags = new[] { "Aegis User Management" })]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [RequireAegisAdmin]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdateAegisUserProfile([FromRoute] Guid userId, [FromBody] UpdateAegisUserProfileRequest request)
@@ -207,9 +191,7 @@ public class AegisUserManagementController : BaseApiController
     /// <param name="request">Password reset request</param>
     /// <returns>Password reset result</returns>
     [HttpPost("users/{userId}/reset-password")]
-    [RequireAegisAdmin]
-    [SwaggerOperation(Summary = "Reset Aegis user password", Description = "Resets the password for a Aegis platform user. Aegis admin privileges required.", OperationId = "ResetAegisUserPassword", Tags = new[] { "Aegis User Management" })]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [RequireAegisAdmin]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> ResetAegisUserPassword([FromRoute] Guid userId, [FromBody] ResetAegisUserPasswordRequest request)
@@ -236,9 +218,7 @@ public class AegisUserManagementController : BaseApiController
     /// <param name="request">Deletion request with reason</param>
     /// <returns>Deletion result</returns>
     [HttpDelete("users/{userId}")]
-    [RequireAegisAdmin]
-    [SwaggerOperation(Summary = "Delete Aegis user", Description = "Permanently deletes a Aegis platform user account with a reason. Aegis admin privileges required.", OperationId = "DeleteAegisUser", Tags = new[] { "Aegis User Management" })]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [RequireAegisAdmin]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteAegisUser([FromRoute] Guid userId, [FromBody] DeleteAegisUserRequest request)
@@ -277,9 +257,7 @@ public class AegisUserManagementController : BaseApiController
     /// <param name="pageSize">Page size (default: 20, max: 100)</param>
     /// <returns>Paginated list of Aegis users</returns>
     [HttpGet("Aegis-users")]
-    [RequireAegisAdmin]
-    [SwaggerOperation(Summary = "Get all Aegis users", Description = "Retrieves paginated list of Aegis platform users with filtering and sorting. Aegis admin privileges required.", OperationId = "GetAegisUsers", Tags = new[] { "Aegis User Management" })]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<object>>), StatusCodes.Status200OK)]
+    [RequireAegisAdmin]    [ProducesResponseType(typeof(ApiResponse<IEnumerable<object>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAegisUsers(
@@ -337,9 +315,7 @@ public class AegisUserManagementController : BaseApiController
     /// <param name="userId">Aegis user ID to retrieve</param>
     /// <returns>Detailed Aegis user information</returns>
     [HttpGet("Aegis-users/{userId}")]
-    [RequireAegisAdmin]
-    [SwaggerOperation(Summary = "Get Aegis user by ID", Description = "Retrieves detailed information about a specific Aegis platform user. Aegis admin privileges required.", OperationId = "GetAegisUserById", Tags = new[] { "Aegis User Management" })]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [RequireAegisAdmin]    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAegisUserById([FromRoute] Guid userId)
@@ -354,6 +330,34 @@ public class AegisUserManagementController : BaseApiController
 
         return Success(result, "Aegis user retrieved successfully");
     }
+
+    /// <summary>
+    /// Updates the permission set for an Aegis staff user (platform administrators only)
+    /// Passing an empty list removes all permission restrictions (full AegisAdmin access)
+    /// </summary>
+    /// <param name="userId">Aegis user ID to update</param>
+    /// <param name="request">New permissions list</param>
+    /// <returns>Update result</returns>
+    [HttpPut("users/{userId}/permissions")]
+    [RequireAegisAdmin]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateAegisUserPermissions([FromRoute] Guid userId, [FromBody] UpdateAegisUserPermissionsRequest request)
+    {
+        var command = new UpdateAegisUserPermissionsCommand(userId, request.Permissions ?? []);
+        var result = await Mediator.Send(command);
+
+        if (!result.IsSuccess)
+        {
+            var statusCode = result.Message.Contains("admin") || result.Message.Contains("Only Aegis")
+                ? StatusCodes.Status403Forbidden
+                : StatusCodes.Status400BadRequest;
+            return Error(result.Message, statusCode);
+        }
+
+        return Success<object?>(null, result.Message);
+    }
 }
 
 // Request/Response models for Aegis User Management
@@ -365,7 +369,8 @@ public record CreateAegisUserRequest(
     AegisRole AegisRole,
     string? PhoneNumber,
     string? AegisEmployeeId,
-    string? AegisDepartment);
+    string? AegisDepartment,
+    List<string>? Permissions = null);
 
 public record DeactivateAegisUserRequest(string Reason);
 
@@ -382,6 +387,7 @@ public record UpdateAegisUserProfileRequest(
 
 public record ResetAegisUserPasswordRequest(string NewPassword);
 
+public record UpdateAegisUserPermissionsRequest(List<string>? Permissions = null);
 
 public record CreateAegisUserResponse(
     Guid UserId,

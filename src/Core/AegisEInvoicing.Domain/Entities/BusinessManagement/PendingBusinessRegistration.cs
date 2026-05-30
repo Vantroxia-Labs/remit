@@ -1,4 +1,5 @@
 using AegisEInvoicing.Domain.Common.Implementation;
+using System.Text.Json;
 
 namespace AegisEInvoicing.Domain.Entities.BusinessManagement;
 
@@ -15,6 +16,11 @@ public class PendingBusinessRegistration : AuditableEntity
     public string BusinessName { get; private set; } = null!;
     public string? Tin { get; private set; }
     public Guid PlatformSubscriptionId { get; private set; }
+    /// <summary>
+    /// JSON-serialised array of all selected plan IDs (supports multi-plan sign-up).
+    /// When null, falls back to the single <see cref="PlatformSubscriptionId"/>.
+    /// </summary>
+    public string? SelectedPlanIds { get; private set; }
     public BillingCycle BillingCycle { get; private set; }
     public PendingRegistrationStatus Status { get; private set; }
     public string PaystackReference { get; private set; } = null!;
@@ -32,6 +38,7 @@ public class PendingBusinessRegistration : AuditableEntity
         string businessName,
         string? tin,
         Guid platformSubscriptionId,
+        string? selectedPlanIds,
         BillingCycle billingCycle,
         string paystackReference)
     {
@@ -42,6 +49,7 @@ public class PendingBusinessRegistration : AuditableEntity
         BusinessName = businessName;
         Tin = tin;
         PlatformSubscriptionId = platformSubscriptionId;
+        SelectedPlanIds = selectedPlanIds;
         BillingCycle = billingCycle;
         PaystackReference = paystackReference;
         Status = PendingRegistrationStatus.AwaitingPayment;
@@ -55,7 +63,7 @@ public class PendingBusinessRegistration : AuditableEntity
         string adminPhone,
         string businessName,
         string? tin,
-        Guid platformSubscriptionId,
+        IReadOnlyList<Guid> platformSubscriptionIds,
         BillingCycle billingCycle,
         string paystackReference)
     {
@@ -63,6 +71,11 @@ public class PendingBusinessRegistration : AuditableEntity
             throw new ArgumentException("Admin email is required", nameof(adminEmail));
         if (string.IsNullOrWhiteSpace(businessName))
             throw new ArgumentException("Business name is required", nameof(businessName));
+        if (platformSubscriptionIds == null || platformSubscriptionIds.Count == 0)
+            throw new ArgumentException("At least one subscription plan must be selected.", nameof(platformSubscriptionIds));
+
+        var primaryId = platformSubscriptionIds[0];
+        var jsonIds = JsonSerializer.Serialize(platformSubscriptionIds);
 
         return new PendingBusinessRegistration(
             adminFirstName,
@@ -71,9 +84,24 @@ public class PendingBusinessRegistration : AuditableEntity
             adminPhone,
             businessName,
             tin,
-            platformSubscriptionId,
+            primaryId,
+            jsonIds,
             billingCycle,
             paystackReference);
+    }
+
+    /// <summary>
+    /// Returns all selected plan IDs. Falls back to <see cref="PlatformSubscriptionId"/> if
+    /// <see cref="SelectedPlanIds"/> was not persisted (legacy registrations).
+    /// </summary>
+    public IReadOnlyList<Guid> GetSelectedPlanIds()
+    {
+        if (!string.IsNullOrWhiteSpace(SelectedPlanIds))
+        {
+            try { return JsonSerializer.Deserialize<List<Guid>>(SelectedPlanIds) ?? [PlatformSubscriptionId]; }
+            catch { /* fall through */ }
+        }
+        return [PlatformSubscriptionId];
     }
 
     public void MarkPaid(DateTimeOffset paidAt)

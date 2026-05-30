@@ -41,8 +41,8 @@ public class RefreshTokenCommandHandler(
         var refreshToken = await _context.RefreshTokens
             .Include(rt => rt.User)
                 .ThenInclude(u => u.Business!)
-                    .ThenInclude(b => b.Subscription)
-                        .ThenInclude(s => s!.PlatformSubscription)
+                    .ThenInclude(b => b.Subscriptions)
+                        .ThenInclude(s => s.PlatformSubscription)
             .FirstOrDefaultAsync(rt => rt.Token == token, cancellationToken);
 
         return refreshToken?.IsActive == true ? refreshToken : null;
@@ -138,7 +138,7 @@ public class RefreshTokenCommandHandler(
             BranchId = user.BranchId,
             IsAegisUser = user.IsAegisUser,
             AegisRole = user.AegisRole?.ToString(),
-            SubscriptionTier = user.Business?.Subscription?.PlatformSubscription?.Tier.ToString()
+            SubscriptionTier = user.Business?.GetPrimarySubscription()?.PlatformSubscription?.Tier.ToString()
         };
 
         return RefreshTokenResult.Successful(

@@ -2,11 +2,11 @@ using AegisEInvoicing.Portal.API.Models;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.ActivateRegistration;
 using AegisEInvoicing.Application.Features.BusinessManagement.Queries.GetSubscriptionPlans;
 using AegisEInvoicing.Paystack.Interfaces;
+using AegisEInvoicing.Paystack.Models.Requests;
 using AegisEInvoicing.Paystack.Models.Webhook;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 using System.Text.Json;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
@@ -21,15 +21,56 @@ public class PaymentController(
     ILogger<PaymentController> logger) : BaseApiController
 {
     /// <summary>
+    /// Initialize a payment transaction for subscription or other payments
+    /// </summary>
+    [HttpPost("initialize")]
+    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<PaymentInitializationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> InitializePayment(
+        [FromBody] PaymentInitializationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var reference = string.IsNullOrWhiteSpace(request.Reference) 
+            ? paystackService.GenerateReference() 
+            : request.Reference;
+
+        var paystackRequest = new InitializeTransactionRequest
+        {
+            Email = request.Email,
+            Amount = request.Amount,
+            Currency = request.Currency ?? "NGN",
+            Reference = reference,
+            CallbackUrl = request.CallbackUrl,
+            Metadata = request.Metadata is not null
+                ? new PaystackMetadata
+                {
+                    PendingRegistrationId = request.Metadata.PendingRegistrationId,
+                    PlanId = request.Metadata.PlanId,
+                    BillingCycle = request.Metadata.BillingCycle,
+                    BusinessName = request.Metadata.BusinessName,
+                    AdminEmail = request.Metadata.AdminEmail
+                }
+                : null
+        };
+
+        var result = await paystackService.InitializeTransactionAsync(paystackRequest, cancellationToken);
+
+        if (!result.Status || result.Data is null)
+            return Error(result.Message);
+
+        return Success(new PaymentInitializationResponse(
+            AuthorizationUrl: result.Data.AuthorizationUrl,
+            AccessCode: result.Data.AccessCode,
+            Reference: result.Data.Reference),
+            "Payment initialized successfully. Redirect user to authorization URL.");
+    }
+
+    /// <summary>
     /// Paystack webhook — called by Paystack when a payment event occurs.
     /// Activates pending business registrations on charge.success.
     /// </summary>
     [HttpPost("webhook")]
-    [AllowAnonymous]
-    [SwaggerOperation(
-        Summary = "Paystack Webhook",
-        Description = "Receives Paystack webhook events. Validates the signature and processes charge.success to activate pending business registrations.")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> PaystackWebhook(CancellationToken cancellationToken = default)
     {
@@ -83,11 +124,7 @@ public class PaymentController(
     /// Can be used by the frontend to poll payment status after redirect from Paystack.
     /// </summary>
     [HttpGet("verify/{reference}")]
-    [AllowAnonymous]
-    [SwaggerOperation(
-        Summary = "Verify Payment",
-        Description = "Verifies a Paystack payment by reference. If the payment is successful and a pending registration exists, it will be activated.")]
-    [ProducesResponseType(typeof(ApiResponse<PaymentVerificationResponse>), StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<PaymentVerificationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> VerifyPayment(string reference, CancellationToken cancellationToken = default)
     {
@@ -133,9 +170,7 @@ public class PaymentController(
     /// Returns available subscription plans with pricing
     /// </summary>
     [HttpGet("plans")]
-    [AllowAnonymous]
-    [SwaggerOperation(Summary = "Get Subscription Plans", Description = "Returns all available subscription plans with monthly and annual pricing.")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<SubscriptionPlanDto>>), StatusCodes.Status200OK)]
+    [AllowAnonymous]    [ProducesResponseType(typeof(ApiResponse<IEnumerable<SubscriptionPlanDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPlans(CancellationToken cancellationToken = default)
     {
         var result = await mediator.Send(new GetSubscriptionPlansQuery(), cancellationToken);
@@ -165,3 +200,23 @@ public record PaymentVerificationResponse(
     bool IsSuccessful,
     Guid? BusinessId,
     string Message);
+
+public record PaymentInitializationRequest(
+    string Email,
+    long Amount, // Amount in kobo (NGN 100 = 10000 kobo)
+    string? Currency = "NGN",
+    string? Reference = null,
+    string? CallbackUrl = null,
+    PaymentMetadata? Metadata = null);
+
+public record PaymentMetadata(
+    string? PendingRegistrationId = null,
+    string? PlanId = null,
+    string? BillingCycle = null,
+    string? BusinessName = null,
+    string? AdminEmail = null);
+
+public record PaymentInitializationResponse(
+    string AuthorizationUrl,
+    string AccessCode,
+    string Reference);

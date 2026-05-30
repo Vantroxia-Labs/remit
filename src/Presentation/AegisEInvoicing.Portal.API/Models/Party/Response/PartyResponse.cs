@@ -29,6 +29,11 @@ public class AddressResponse
     /// Postal or zip code (optional)
     /// </summary>
     public string? PostalCode { get; set; }
+
+    /// <summary>
+    /// LGA code from FIRS/NRS (e.g. "NG-AB-ANO")
+    /// </summary>
+    public string? Lga { get; set; }
 }
 
 /// <summary>
@@ -106,6 +111,11 @@ public class PartySummaryResponse
     /// Email address of the party
     /// </summary>
     public string Email { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Phone number of the party
+    /// </summary>
+    public string Phone { get; set; } = string.Empty;
 
     /// <summary>
     /// Tax identification number (TIN) of the party

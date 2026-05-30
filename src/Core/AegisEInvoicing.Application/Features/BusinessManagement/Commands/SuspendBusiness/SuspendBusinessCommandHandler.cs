@@ -22,17 +22,18 @@ public class SuspendBusinessCommandHandler(IApplicationDbContext context,
             if (!_currentUser.UserId.HasValue && !_currentUser.IsPlatformAdmin)
                 return new SuspendBusinessResult(false, "Invalid user authentication/permission");
 
-            var getBusiness = await _context.Businesses.Include(s => s.Subscription).FirstOrDefaultAsync(b => b.Id == request.BusinessId);
+            var getBusiness = await _context.Businesses.Include(s => s.Subscriptions).FirstOrDefaultAsync(b => b.Id == request.BusinessId);
 
             if (getBusiness is null)
                 return new SuspendBusinessResult(false, "Business not found");
 
-            var subscription = getBusiness.Subscription;
+            foreach (var sub in getBusiness.Subscriptions.Where(s => s.Status != Domain.Entities.BusinessManagement.SubscriptionStatus.Suspended))
+            {
+                sub.Suspend(_currentUser.UserId.GetValueOrDefault(), "Business deactivated by admin");
+                _context.Subscriptions.Update(sub);
+            }
 
-            subscription?.Suspend(_currentUser.UserId.GetValueOrDefault(), "Test reason");
             getBusiness.Deactivate(_currentUser.UserId);
-
-            _context.Subscriptions.Update(subscription!);
             _context.Businesses.Update(getBusiness);
 
             await _context.SaveChangesAsync(cancellationToken);

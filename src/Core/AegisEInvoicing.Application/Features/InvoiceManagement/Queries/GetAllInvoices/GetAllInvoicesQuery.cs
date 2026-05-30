@@ -12,6 +12,7 @@ public record GetAllInvoicesQuery : IRequest<PaginatedList<InvoiceDto>>
     public DateOnly? StartDate { get; init; }
     public DateOnly? EndDate { get; init; }
     public string? SearchTerm { get; init; }
+    public AppEnvironmentMode? EnvironmentMode { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
     public string? OrderBy { get; init; }

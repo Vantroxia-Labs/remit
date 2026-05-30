@@ -14,7 +14,7 @@ public record RegisterBusinessCommand(
     string AdminEmail,
     string AdminPhone,
     string BusinessName,
-    Guid PlatformSubscriptionId,
+    IReadOnlyList<Guid> PlatformSubscriptionIds,
     BillingCycle BillingCycle,
     string? Tin = null) : IRequest<RegisterBusinessResult>;
 

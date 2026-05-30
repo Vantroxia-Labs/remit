@@ -18,6 +18,11 @@ public class PlatformRole : AuditableAggregateRoot
     public bool IsActive { get; private set; }
     public bool IsSystemRole { get; private set; }
     public int SortOrder { get; private set; }
+    /// <summary>
+    /// Null = platform-wide system role (managed by Aegis only).
+    /// Non-null = custom role created by that business's ClientAdmin.
+    /// </summary>
+    public Guid? BusinessId { get; private set; }
 
     public IReadOnlyCollection<string> Permissions => _permissions.AsReadOnly();
 
@@ -26,7 +31,8 @@ public class PlatformRole : AuditableAggregateRoot
         string description,
         string category,
         int sortOrder,
-        bool isSystemRole = false)
+        bool isSystemRole = false,
+        Guid? businessId = null)
     {
         Name = name;
         Description = description;
@@ -34,6 +40,7 @@ public class PlatformRole : AuditableAggregateRoot
         SortOrder = sortOrder;
         IsActive = true;
         IsSystemRole = isSystemRole;
+        BusinessId = businessId;
     }
 
     public static PlatformRole Create(
@@ -59,6 +66,39 @@ public class PlatformRole : AuditableAggregateRoot
         return role;
     }
 
+    /// <summary>
+    /// Creates a custom role scoped to a specific business.
+    /// ClientAdmins call this to build their own permission sets.
+    /// Only permissions from PermissionConstants.ClientAdminAssignablePermissions are allowed.
+    /// </summary>
+    public static PlatformRole CreateBusinessRole(
+        string name,
+        string description,
+        Guid businessId,
+        Guid createdBy,
+        IEnumerable<string>? permissions = null)
+    {
+        ValidateInputs(name, description, category: "Custom");
+
+        var role = new PlatformRole(name, description, category: "Custom", sortOrder: 99, isSystemRole: false, businessId: businessId);
+
+        if (permissions != null)
+        {
+            foreach (var p in permissions)
+                role.AddPermission(p);
+        }
+
+        role.AddDomainEvent(new PlatformRoleCreatedEvent(
+            role.Id,
+            role.Name,
+            role.Description,
+            role.Category,
+            createdBy,
+            DateTimeOffset.UtcNow));
+
+        return role;
+    }
+
     public static PlatformRole CreateSystemRole(
         string name,
         string description,
@@ -68,7 +108,7 @@ public class PlatformRole : AuditableAggregateRoot
         IEnumerable<string> permissions)
     {
         var role = Create(name, description, category, sortOrder, createdBy, isSystemRole: true);
-        
+
         foreach (var permission in permissions)
         {
             role.AddPermission(permission);

@@ -85,7 +85,7 @@ public class CreateFIRSInvoiceCommandHandler(
             // Validate that the business exists and has valid FIRS configuration
             var business = await _context.Businesses
                 .FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken);
-           
+
             if (business is null)
             {
                 return new CreateFIRSInvoiceResult
@@ -114,14 +114,14 @@ public class CreateFIRSInvoiceCommandHandler(
             var createdById = currentUser?.Id ?? Guid.Empty;
             var isApiKeyAuth = _currentUserService.HasRole("ApiClient");
 
-          
+
             // Step 1: Check if party already exists or create new one
-            _logger.LogInformation("Checking for existing party with email {Email} for business {BusinessId}", 
+            _logger.LogInformation("Checking for existing party with email {Email} for business {BusinessId}",
                 request.Party.Email, businessId);
-            
+
             // Look for existing party by email within the same business
             var existingParty = await _context.Parties
-                .FirstOrDefaultAsync(p => p.TaxIdentificationNumber.Value == request.Party.TaxIdentificationNumber  && 
+                .FirstOrDefaultAsync(p => p.TaxIdentificationNumber.Value == request.Party.TaxIdentificationNumber &&
                                          p.BusinessID == businessId &&
                                          !p.IsDeleted, cancellationToken);
 
@@ -139,34 +139,34 @@ public class CreateFIRSInvoiceCommandHandler(
 
             if (partyExists)
             {
-                _logger.LogInformation("Found existing party {PartyId} with email {Email} for business {BusinessId}", 
+                _logger.LogInformation("Found existing party {PartyId} with email {Email} for business {BusinessId}",
                     existingParty!.Id, request.Party.Email, businessId);
-                
+
                 partyId = existingParty.Id;
-                
+
                 // Optionally update party information if details have changed
-                
+
                 var hasChanges = false;
-                
+
                 if (existingParty.Name != request.Party.Name)
                 {
                     existingParty.UpdateName(request.Party.Name);
                     hasChanges = true;
                 }
-                
+
                 if (existingParty.Phone != request.Party.Phone || existingParty.Email != request.Party.Email)
                 {
                     existingParty.UpdateContactInfo(request.Party.Phone, request.Party.Email);
                     hasChanges = true;
                 }
-                
+
                 if (existingParty.TaxIdentificationNumber.Value != request.Party.TaxIdentificationNumber)
                 {
                     var newTin = TIN.Create(request.Party.TaxIdentificationNumber);
                     existingParty.UpdateTaxIdentificationNumber(newTin);
                     hasChanges = true;
                 }
-                
+
                 // Check if address has changed
                 var currentAddress = existingParty.Address;
                 var newAddress = Address.Create(
@@ -175,13 +175,13 @@ public class CreateFIRSInvoiceCommandHandler(
                     request.Party.Address.State,
                     request.Party.Address.Country,
                     request.Party.Address.PostalCode ?? string.Empty);
-                
+
                 if (!AddressEquals(currentAddress, newAddress))
                 {
                     existingParty.UpdateAddress(newAddress);
                     hasChanges = true;
                 }
-                
+
                 if (hasChanges)
                 {
                     await _context.SaveChangesAsync(cancellationToken);
@@ -190,9 +190,9 @@ public class CreateFIRSInvoiceCommandHandler(
             }
             else
             {
-                _logger.LogInformation("No existing party found with email {Email}, creating new party for business {BusinessId}", 
+                _logger.LogInformation("No existing party found with email {Email}, creating new party for business {BusinessId}",
                     request.Party.Email, businessId);
-                
+
                 // Create value objects for the new party
                 var tin = TIN.Create(request.Party.TaxIdentificationNumber);
                 var address = Address.Create(
@@ -228,10 +228,10 @@ public class CreateFIRSInvoiceCommandHandler(
             var irn = await GenerateInvoiceIRNAsync(business, request, cancellationToken);
 
             var invoiceNumber = await _context.Invoices
-                .Where(i => i.Irn.Value == irn.Value &&  i.BusinessId==businessId)
+                .Where(i => i.Irn.Value == irn.Value && i.BusinessId == businessId)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if(invoiceNumber is not null)
+            if (invoiceNumber is not null)
                 return new CreateFIRSInvoiceResult
                 {
                     Success = false,
@@ -256,17 +256,18 @@ public class CreateFIRSInvoiceCommandHandler(
                 note: request.Note,
                 paymentReference: request.PaymentReference,
                 paymentTerms: request.PaymentTerms,
-                dueDate: request.DueDate);
+                dueDate: request.DueDate,
+                environmentMode: business.AppEnvironmentMode);
 
             if (string.IsNullOrEmpty(business.Certificate) ||
                 string.IsNullOrEmpty(business.PublicKey))
-                    return new CreateFIRSInvoiceResult
-                    {
-                        Success = false,
-                        Message = $"QR Code generation failed for business '{business.Name}'. " +
-                                  "The business certificate or public key is not configured. " +
-                                  "Please contact your system administrator to complete the business setup."
-                    };
+                return new CreateFIRSInvoiceResult
+                {
+                    Success = false,
+                    Message = $"QR Code generation failed for business '{business.Name}'. " +
+                              "The business certificate or public key is not configured. " +
+                              "Please contact your system administrator to complete the business setup."
+                };
 
             var qrCode = InvoiceQrService.GenerateQrCode(
                                invoice.Irn,
@@ -274,7 +275,7 @@ public class CreateFIRSInvoiceCommandHandler(
                                business.PublicKey!);
 
             invoice.SetQRCode(qrCode, []);
-            invoice.CreatedBy= createdById;
+            invoice.CreatedBy = createdById;
 
             // Add invoice items - first we need to find or create BusinessItems
             var processedItems = new List<(Guid BusinessItemId, decimal Quantity, decimal UnitPrice, DiscountFeeDto? DiscountFee, AdditionalFeeDto? AdditionalFee)>();
@@ -284,38 +285,10 @@ public class CreateFIRSInvoiceCommandHandler(
                 Guid businessItemId;
 
                 var serviceCode = ServiceCode.Create(itemDto.ServiceCode.Code, itemDto.ServiceCode.Name);
-                var taxCategory = TaxCategory.Create(itemDto.TaxCategory.Name, itemDto.TaxCategory.Percent);
-
-                // Find or create ItemCategory
-                var itemCategory = await _context.ItemCategories
-                    .FirstOrDefaultAsync(ic => ic.Name == itemDto.ItemCategory &&
-                                             ic.BusinessID == businessId &&
-                                             !ic.IsDeleted, cancellationToken);
-
-                if (itemCategory == null)
-                {
-                    _logger.LogInformation("Creating new ItemCategory {CategoryName} for business {BusinessId}",
-                        itemDto.ItemCategory, businessId);
-
-                    // Create new ItemCategory
-                    itemCategory = ItemCategory.Create(
-                        itemDto.ItemCategory,
-                        $"Auto-created category for {itemDto.ItemCategory}",
-                        businessId);
-                    await _context.ItemCategories.AddAsync(itemCategory, cancellationToken);
-                    await _context.SaveChangesAsync(cancellationToken);
-                }
-                else
-                {
-                    _logger.LogInformation("Found existing ItemCategory {CategoryId} for {CategoryName}",
-                        itemCategory.Id, itemDto.ItemCategory);
-                }
 
                 // Check if BusinessItem already exists with same name for this business
                 // Query matches the unique constraint: (BusinessID, Name) where IsDeleted = false
                 var existingBusinessItem = await _context.BusinessItems
-                    .Include(bi => bi.ItemCategories)
-                    .ThenInclude(ic => ic.ItemCategory)
                     .FirstOrDefaultAsync(bi => bi.Name == itemDto.Name &&
                                              bi.BusinessID == businessId &&
                                              !bi.IsDeleted, cancellationToken);
@@ -327,14 +300,6 @@ public class CreateFIRSInvoiceCommandHandler(
 
                     // Use existing BusinessItem
                     businessItemId = existingBusinessItem.Id;
-
-                    // Add the category to the item if it doesn't already belong to it
-                    if (!existingBusinessItem.BelongsToCategory(itemCategory.Id))
-                    {
-                        _logger.LogInformation("Adding category '{CategoryName}' to existing BusinessItem {ItemId}",
-                            itemDto.ItemCategory, existingBusinessItem.Id);
-                        existingBusinessItem.AddCategory(itemCategory.Id);
-                    }
 
                     // Optionally update if price or other details have changed
                     var hasItemChanges = false;
@@ -353,24 +318,20 @@ public class CreateFIRSInvoiceCommandHandler(
                         hasItemChanges = true;
                     }
 
-                    // Update using the Update method which handles ServiceCode, TaxCategory, Name, etc.
-                    // Note: We keep the primary ItemCategoryId as-is, new categories are added to the collection
                     if (existingBusinessItem.ServiceCode.Code != serviceCode.Code ||
                         existingBusinessItem.ServiceCode.Name != serviceCode.Name ||
-                        existingBusinessItem.TaxCategory.Name != taxCategory.Name ||
-                        existingBusinessItem.TaxCategory.Percent != taxCategory.Percent ||
                         existingBusinessItem.Name != itemDto.Name)
                     {
                         existingBusinessItem.Update(
                             itemDto.Name,
+                            ItemType.Service,
                             serviceCode,
-                            taxCategory,
-                            existingBusinessItem.ItemCategoryId, // Keep existing primary category
+                            Guid.Empty,
                             itemDto.ItemDescription);
                         hasItemChanges = true;
                     }
 
-                    if (hasItemChanges || !existingBusinessItem.BelongsToCategory(itemCategory.Id))
+                    if (hasItemChanges)
                     {
                         await _context.SaveChangesAsync(cancellationToken);
                         _logger.LogInformation("Updated existing BusinessItem {ItemId} with new details and/or categories", existingBusinessItem.Id);
@@ -385,11 +346,20 @@ public class CreateFIRSInvoiceCommandHandler(
                     var businessItem = BusinessItem.Create(
                         businessId,
                         itemDto.Name,
+                        ItemType.Service,
                         serviceCode,
-                        taxCategory,
-                        itemCategory.Id,
+                        Guid.Empty,
                         itemDto.ItemDescription,
                         itemDto.UnitPrice);
+
+                    if (itemDto.TaxCategories.Count > 0)
+                    {
+                        var taxCategories = itemDto.TaxCategories.Select(tc =>
+                            tc.IsPercentage
+                                ? BusinessItemTaxCategory.CreatePercentage(tc.Name, tc.Name, tc.Percent!.Value)
+                                : BusinessItemTaxCategory.CreateFlatFee(tc.Name, tc.Name, tc.FlatAmount!.Value)).ToList();
+                        businessItem.UpdateTaxCategories(taxCategories);
+                    }
 
                     await _context.BusinessItems.AddAsync(businessItem, cancellationToken);
                     await _context.SaveChangesAsync(cancellationToken);
@@ -595,17 +565,17 @@ public class CreateFIRSInvoiceCommandHandler(
             {
                 DbUpdateException dbEx when dbEx.InnerException?.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase) == true
                     => "Duplicate invoice detected. An invoice with this IRN or invoice number already exists in the system. Please use a unique invoice number.",
-                
+
                 DbUpdateException dbEx when dbEx.InnerException?.Message.Contains("foreign key", StringComparison.OrdinalIgnoreCase) == true
                     => "Invalid reference data. One or more referenced entities (business, party, or item) do not exist. Please verify all IDs are correct.",
-                
+
                 DbUpdateException dbEx when dbEx.InnerException?.Message.Contains("constraint", StringComparison.OrdinalIgnoreCase) == true
                     => "Data constraint violation. The invoice data violates database constraints. Please check all required fields and value ranges.",
-                
+
                 InvalidOperationException => $"Invalid operation: {ex.Message}. Please verify your request data is correct.",
-                
+
                 ArgumentException => $"Invalid argument: {ex.Message}. Please check the invoice data and ensure all required fields are properly formatted.",
-                
+
                 _ => $"An unexpected error occurred while creating the invoice: {ex.Message}. Please contact support if this persists."
             };
 
@@ -624,7 +594,7 @@ public class CreateFIRSInvoiceCommandHandler(
     {
         if (address1 == null && address2 == null) return true;
         if (address1 == null || address2 == null) return false;
-        
+
         return address1.Street == address2.Street &&
                address1.City == address2.City &&
                address1.State == address2.State &&

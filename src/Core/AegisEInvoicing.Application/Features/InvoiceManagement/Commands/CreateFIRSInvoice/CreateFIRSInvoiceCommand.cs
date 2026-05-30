@@ -41,9 +41,8 @@ public record InvoiceItemRequest
 {
     public string Name { get; init; } = null!;
     public string ItemDescription { get; init; } = null!;
-    public string ItemCategory { get; init; } = null!;
     public ServiceCodeRequest ServiceCode { get; init; } = null!;
-    public TaxCategoryRequest TaxCategory { get; init; } = null!;
+    public List<TaxCategoryRequest> TaxCategories { get; init; } = [];
     public decimal UnitPrice { get; init; }
     public decimal Quantity { get; init; }
     public DiscountFeeDto? DiscountFee { get; init; }
@@ -59,7 +58,9 @@ public record ServiceCodeRequest
 public record TaxCategoryRequest
 {
     public string Name { get; init; } = null!;
-    public decimal Percent { get; init; }
+    public bool IsPercentage { get; init; }
+    public decimal? Percent { get; init; }
+    public decimal? FlatAmount { get; init; }
 }
 
 public record BillingReferenceRequest

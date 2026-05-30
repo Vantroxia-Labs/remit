@@ -4,12 +4,14 @@ using AegisEInvoicing.Application.Features.VatScheduleManagement.Queries.GetVatS
 using AegisEInvoicing.Application.Features.VatScheduleManagement.Queries.GetVatScheduleWithItems;
 using AegisEInvoicing.Application.Features.VatScheduleManagement.VatScheduleExport;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AegisEInvoicing.Portal.API.Controllers
 {
     [ApiController]
-    [Route("api/vat-schedule")]
+    [Route("api/v{version:apiVersion}/vat-schedule")]
+    [Authorize]
     public class VatScheduleController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -20,9 +22,9 @@ namespace AegisEInvoicing.Portal.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetSchedules([FromQuery] int? year)
+        public async Task<IActionResult> GetSchedules([FromQuery] int? year, [FromQuery] AegisEInvoicing.Domain.Enums.AppEnvironmentMode? environmentMode = null)
         {
-            var query = new GetVatSchedulesQuery { Year = year };
+            var query = new GetVatSchedulesQuery(year, environmentMode);
             var result = await _mediator.Send(query);
             return Ok(result);
         }
@@ -42,12 +44,12 @@ namespace AegisEInvoicing.Portal.API.Controllers
             return Ok(result);
         }
 
-        [HttpPut("{id}/mark-filed")]
+        [HttpPatch("{id}/mark-filed")]
         public async Task<IActionResult> MarkAsFiled(Guid id)
         {
             var command = new MarkVatScheduleFiledCommand(id);
-            await _mediator.Send(command);
-            return NoContent();
+            var result = await _mediator.Send(command);
+            return Ok(result);
         }
 
         [HttpGet("{id}/export")]

@@ -21,6 +21,7 @@ public record TokenClaimsDto
     public string? AegisRole { get; set; }
     public string? SubscriptionTier { get; set; }
     public string? DeploymentMode { get; set; }
+    public bool MustChangePassword { get; set; }
 }
 
 public record LoginResult : GenericResult

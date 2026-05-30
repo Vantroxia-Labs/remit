@@ -1,4 +1,5 @@
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
+using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.ValueObjects;
 using FluentAssertions;
 using Xunit;
@@ -10,12 +11,10 @@ public class BusinessItemTests
     private readonly Guid _businessId = Guid.NewGuid();
     private readonly Guid _itemCategoryId = Guid.NewGuid();
     private readonly ServiceCode _validServiceCode;
-    private readonly TaxCategory _validTaxCategory;
 
     public BusinessItemTests()
     {
         _validServiceCode = ServiceCode.Create("SVC001", "Consulting Services");
-        _validTaxCategory = TaxCategory.Create("VAT", 7.5m);
     }
 
     [Fact]
@@ -30,8 +29,8 @@ public class BusinessItemTests
         var businessItem = BusinessItem.Create(
             _businessId,
             name,
+            ItemType.Goods,
             _validServiceCode,
-            _validTaxCategory,
             _itemCategoryId,
             description,
             unitPrice);
@@ -40,8 +39,8 @@ public class BusinessItemTests
         businessItem.Should().NotBeNull();
         businessItem.BusinessID.Should().Be(_businessId);
         businessItem.Name.Should().Be(name);
+        businessItem.ItemType.Should().Be(ItemType.Goods);
         businessItem.ServiceCode.Should().Be(_validServiceCode);
-        businessItem.TaxCategory.Should().Be(_validTaxCategory);
         businessItem.ItemCategoryId.Should().Be(_itemCategoryId);
         businessItem.ItemDescription.Should().Be(description);
         businessItem.UnitPrice.Should().Be(unitPrice);
@@ -59,8 +58,8 @@ public class BusinessItemTests
         var action = () => BusinessItem.Create(
             _businessId,
             invalidName!,
+            ItemType.Goods,
             _validServiceCode,
-            _validTaxCategory,
             _itemCategoryId,
             "Valid description",
             100.0m);
@@ -77,8 +76,8 @@ public class BusinessItemTests
         var action = () => BusinessItem.Create(
             _businessId,
             "Valid Name",
+            ItemType.Goods,
             null!,
-            _validTaxCategory,
             _itemCategoryId,
             "Valid description",
             100.0m);
@@ -95,8 +94,8 @@ public class BusinessItemTests
         var action = () => BusinessItem.Create(
             _businessId,
             "Valid Name",
+            ItemType.Goods,
             _validServiceCode,
-            _validTaxCategory,
             _itemCategoryId,
             "Valid description",
             -100.0m);
@@ -113,8 +112,8 @@ public class BusinessItemTests
         var businessItem = BusinessItem.Create(
             _businessId,
             "Free Item",
+            ItemType.Goods,
             _validServiceCode,
-            _validTaxCategory,
             _itemCategoryId,
             "Free promotional item",
             0.0m);
@@ -130,22 +129,20 @@ public class BusinessItemTests
         var businessItem = CreateTestBusinessItem();
         var newName = "Updated Item Name";
         var newServiceCode = ServiceCode.Create("SVC002", "Updated Service");
-        var newTaxCategory = TaxCategory.Create("NHIL", 2.5m);
         var newCategoryId = Guid.NewGuid();
         var newDescription = "Updated description";
 
         // Act
         businessItem.Update(
             newName,
+            ItemType.Goods,
             newServiceCode,
-            newTaxCategory,
             newCategoryId,
             newDescription);
 
         // Assert
         businessItem.Name.Should().Be(newName);
         businessItem.ServiceCode.Should().Be(newServiceCode);
-        businessItem.TaxCategory.Should().Be(newTaxCategory);
         businessItem.ItemCategoryId.Should().Be(newCategoryId);
         businessItem.ItemDescription.Should().Be(newDescription);
     }
@@ -162,8 +159,8 @@ public class BusinessItemTests
         // Act & Assert
         var action = () => businessItem.Update(
             invalidName!,
+            ItemType.Goods,
             _validServiceCode,
-            _validTaxCategory,
             _itemCategoryId,
             "Valid description");
 
@@ -181,8 +178,8 @@ public class BusinessItemTests
         // Act & Assert
         var action = () => businessItem.Update(
             "Valid Name",
+            ItemType.Goods,
             null!,
-            _validTaxCategory,
             _itemCategoryId,
             "Valid description");
 
@@ -342,8 +339,8 @@ public class BusinessItemTests
         return BusinessItem.Create(
             _businessId,
             "Test Item",
+            ItemType.Goods,
             _validServiceCode,
-            _validTaxCategory,
             _itemCategoryId,
             "Test item description",
             100000.0m);

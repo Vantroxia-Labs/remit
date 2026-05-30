@@ -1,4 +1,4 @@
-﻿using EInvoiceIntegrator.Application.Features.SystemIntegrationOperations.Commands.GenerateIrn;
+using EInvoiceIntegrator.Application.Features.SystemIntegrationOperations.Commands.GenerateIrn;
 using EInvoiceIntegrator.Application.Features.SystemIntegrationOperations.Commands.GenerateQrCode;
 using EInvoiceIntegrator.Application.Features.SystemIntegrationOperations.Commands.ValidateInvoice;
 using EInvoiceIntegrator.Domain.Constants;
@@ -7,13 +7,11 @@ using EInvoiceIntegrator.FIRSAccessPoint.Models.Requests.ValidateInvoiceData;
 using EInvoiceIntegratorSaas.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace EInvoiceIntegratorSaas.API.Controllers;
 
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
-[SwaggerTag("System Integrator Operations")]
 [Authorize]
 public class SystemIntegratorController(ILogger<SystemIntegratorController> logger) : BaseApiController
 {
@@ -26,17 +24,6 @@ public class SystemIntegratorController(ILogger<SystemIntegratorController> logg
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Validate invoice</returns>
     [HttpPost("validate-invoice")]
-    [SwaggerOperation(
-        Summary = "Validate invoice",
-        Description = "Validates invoice data to ensure proper FIRS (Federal Inland Revenue Service) compliance before submission. This endpoint checks the invoice structure, required fields, and business rules.",
-        OperationId = "ValidateInvoice"
-    )]
-    [SwaggerResponse(200, "Invoice validated successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(400, "Invalid request or validation failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied to business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Resource not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     public async Task<IActionResult> ValidateInvoice(
         [FromBody] ValidateInvoiceDataRequest request,
         CancellationToken cancellationToken = default)
@@ -68,17 +55,6 @@ public class SystemIntegratorController(ILogger<SystemIntegratorController> logg
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Generate IRN</returns>
     [HttpPost("generate-irn")]
-    [SwaggerOperation(
-        Summary = "Generate IRN (Invoice Reference Number)",
-        Description = "Generates a unique Invoice Reference Number (IRN) for FIRS compliance. The IRN is created based on the invoice number and issue date, and is required for all compliant invoices.",
-        OperationId = "GenerateIrn"
-    )]
-    [SwaggerResponse(200, "IRN generated successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(400, "Invalid request or validation failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied to business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Resource not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     public async Task<IActionResult> GenerateIrn(
         [FromBody] GenerateIrnRequest request,
         CancellationToken cancellationToken = default)
@@ -110,17 +86,6 @@ public class SystemIntegratorController(ILogger<SystemIntegratorController> logg
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Generate QRCode</returns>
     [HttpGet("generate-qrCode/{irn}")]
-    [SwaggerOperation(
-        Summary = "Generate QR code from IRN",
-        Description = "Generates a QR code based on the provided Invoice Reference Number (IRN) for FIRS compliance. The QR code can be embedded in invoice documents for easy verification and scanning.",
-        OperationId = "GenerateQrCode"
-    )]
-    [SwaggerResponse(200, "QR code generated successfully", typeof(ApiResponse<object>))]
-    [SwaggerResponse(400, "Invalid request or validation failed (e.g., invalid IRN format)", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied to business", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Resource not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     public async Task<IActionResult> GenerateQrCode(
         [FromRoute] string irn,
         CancellationToken cancellationToken = default)

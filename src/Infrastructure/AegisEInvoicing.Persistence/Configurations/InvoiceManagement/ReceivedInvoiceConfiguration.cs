@@ -186,6 +186,9 @@ public sealed class ReceivedInvoiceConfiguration : IEntityTypeConfiguration<Rece
         builder.Property(x => x.BuyerReference)
             .HasMaxLength(200);
 
+        builder.Property(x => x.PaymentReference)
+            .HasMaxLength(200);
+
         builder.Property(x => x.AccountingCost)
             .HasMaxLength(200);
 
@@ -254,6 +257,16 @@ public sealed class ReceivedInvoiceConfiguration : IEntityTypeConfiguration<Rece
         // Composite index for business and date range queries
         builder.HasIndex(x => new { x.BusinessId, x.IssueDate })
             .HasDatabaseName("IX_ReceivedInvoices_Business_IssueDate");
+
+        builder.Property(x => x.InputVatScheduleId);
+
+        builder.HasIndex(x => x.InputVatScheduleId)
+            .HasDatabaseName("IX_ReceivedInvoices_InputVatScheduleId");
+
+        builder.Property(x => x.WhtScheduleId);
+
+        builder.HasIndex(x => x.WhtScheduleId)
+            .HasDatabaseName("IX_ReceivedInvoices_WhtScheduleId");
 
         // Soft delete filter
         builder.HasQueryFilter(x => !x.IsDeleted);

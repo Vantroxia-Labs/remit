@@ -7,6 +7,7 @@ using AegisEInvoicing.Portal.API.Models.SftpUser;
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Common.Models;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.ActivateBusiness;
+using AegisEInvoicing.Application.Features.BusinessManagement.Commands.AdminCreateBusiness;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.SuspendBusiness;
 using AegisEInvoicing.Application.Features.BusinessManagement.Commands.UpdateBusiness;
 using AegisEInvoicing.Application.Features.Miscellenous.DTOs;
@@ -15,7 +16,7 @@ using AegisEInvoicing.Application.Features.PlatformSubscriptions.Queries.GetAllP
 using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.AddVirtualDirectoryToUser;
 using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.ChangeSftpPassword;
 using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.DeleteSftpUser;
-using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.EnsureCerberusUserFromDb;
+using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.EnsureSFTPGoUserFromDb;
 using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.EnsureUserDirectories;
 using AegisEInvoicing.Application.Features.SftpUserManagement.Commands.RenameSftpUser;
 using AegisEInvoicing.Application.Features.SftpUserManagement.Queries.GetAllSftpUsers;
@@ -26,7 +27,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -37,7 +37,6 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
-[SwaggerTag("Business Operations which includes onboarding, updating, fetching business")]
 [Authorize]
 [RequireRole(RoleConstants.AegisAdmin)]
 public class AegisAdminController(
@@ -47,7 +46,7 @@ public class AegisAdminController(
 {
     private readonly IMediator _mediator = mediator;
     private readonly ILogger<AegisAdminController> _logger = logger;
-   
+
 
 
     /// <summary>
@@ -56,14 +55,6 @@ public class AegisAdminController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of all available platform subscriptions</returns>
     [HttpGet("platform-subscriptions")]
-    [SwaggerOperation(
-        Summary = "Get All Platform Subscriptions (Aegis Admin Only)",
-        Description = "Retrieves all available platform subscriptions. Only KMPG platform administrators can access subscription information."
-    )]
-    [SwaggerResponse(200, "Platform subscriptions retrieved successfully", typeof(ApiResponse<IEnumerable<PlatformSubscriptionResponse>>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<object>))]
     public async Task<IActionResult> GetPlatformSubscriptionsAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("KMPG platform admin requested all platform subscriptions list");
@@ -86,7 +77,6 @@ public class AegisAdminController(
     }
 
     [HttpGet("all-platform-roles")]
-    [SwaggerOperation(Description = "This endpoint allows fetching list of platform system roles")]
     [ProducesResponseType(typeof(ApiResponse<PaginatedList<PlatformBusinessRoleSummaryDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<PaginatedList<PlatformBusinessRoleSummaryDto>>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<PaginatedList<PlatformBusinessRoleSummaryDto>>), StatusCodes.Status403Forbidden)]
@@ -103,7 +93,6 @@ public class AegisAdminController(
 
 
     [HttpGet("all-user-roles")]
-    [SwaggerOperation(Description = "This endpoint allows fetching list of user roles")]
     [ProducesResponseType(typeof(ApiResponse<PaginatedList<UserRolesSummaryDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<PaginatedList<UserRolesSummaryDto>>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<PaginatedList<UserRolesSummaryDto>>), StatusCodes.Status403Forbidden)]
@@ -120,12 +109,6 @@ public class AegisAdminController(
 
 
     [HttpPost("activate-business")]
-    [SwaggerOperation(Description = "This endpoint allows Aegis admin user to activate a business.")]
-    [SwaggerResponse(200, "Business activated successfully", typeof(ApiResponse<ReactivateBusinessResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<ReactivateBusinessResult>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<ReactivateBusinessResult>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<ReactivateBusinessResult>))]
-    [SwaggerResponse(500, "Access denied - insufficient permissions", typeof(ApiResponse<ReactivateBusinessResult>))]    
     public async Task<IActionResult> ActivateBusiness([FromBody] ReactivateBusinessCommand command)
     {
         _logger.LogInformation("KMPG platform admin about activating a business");
@@ -142,12 +125,6 @@ public class AegisAdminController(
     }
 
     [HttpPost("deactivate-business")]
-    [SwaggerOperation(Description = "This endpoint allows Aegis admin user to deactivate a business.")]
-    [SwaggerResponse(200, "Business deactivated successfully", typeof(ApiResponse<SuspendBusinessResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<SuspendBusinessResult>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<SuspendBusinessResult>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<SuspendBusinessResult>))]
-    [SwaggerResponse(500, "Access denied - insufficient permissions", typeof(ApiResponse<SuspendBusinessResult>))]
     public async Task<IActionResult> DeactivateBusiness([FromBody] SuspendBusinessCommand command)
     {
         _logger.LogInformation("KMPG platform admin about deactivating a business");
@@ -165,12 +142,6 @@ public class AegisAdminController(
 
     [HttpPatch("update-business/{businessId}")]
     [RequireRole(RoleConstants.AegisAdmin)]
-    [SwaggerOperation(
-        Summary = "Update Business by (Aegis Admin Only)",
-        Description = "Update business to EInvoice Integrator platform. Only KMPG platform administrators can perform business update. KMPG manages all FIRS interactions for SaaS/API solutions and activates business subscriptions.")]
-    [SwaggerResponse(200, "Update successful", typeof(ApiResponse<OnboardBusinessResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<OnboardBusinessResponse>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<OnboardBusinessResponse>))]
     public async Task<IActionResult> UpdateBusiness([FromBody] UpdateBusinessRequest request, Guid businessId,
         CancellationToken cancellationToken = default)
     {
@@ -183,7 +154,7 @@ public class AegisAdminController(
             request.RegisteredAddress.Country,
             request.RegisteredAddress.PostalCode);
 
-        var command = new UpdateBusinessCommand(businessId, address, request.InvoicePrefix, request.Industry, request.ContactEmail, request.ContactPhone, request.Description);
+        var command = new UpdateBusinessCommand(businessId, address, request.InvoicePrefix ?? string.Empty, request.Industry, request.ContactEmail, request.ContactPhone, request.Description);
 
         var result = await _mediator.Send(command, cancellationToken);
 
@@ -203,22 +174,15 @@ public class AegisAdminController(
 
         return Success(response, "Business successfully updated to EInvoice Integrator platform");
     }
-    
+
     // SFTP User Management Endpoints
-    
+
     /// <summary>
     /// Get all SFTP users from database (Aegis Admin Only)
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of all SFTP users</returns>
     [HttpGet("sftp-users")]
-    [SwaggerOperation(
-        Summary = "Get All SFTP Users (Aegis Admin Only)",
-        Description = "Retrieves all SFTP users from the database. Only KMPG administrators can access this information."
-    )]
-    [SwaggerResponse(200, "SFTP users retrieved successfully", typeof(ApiResponse<IEnumerable<Application.Features.SftpUserManagement.Queries.GetAllSftpUsers.SftpUserDto>>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<object>))]
     public async Task<IActionResult> GetSftpUsersAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("KMPG platform admin requested all SFTP users list");
@@ -238,14 +202,6 @@ public class AegisAdminController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Operation result</returns>
     [HttpPost("sftp-users/change-password")]
-    [SwaggerOperation(
-        Summary = "Change SFTP User Password (Aegis Admin Only)",
-        Description = "Changes SFTP user password in database. Only KMPG administrators can perform this operation."
-    )]
-    [SwaggerResponse(200, "Password changed successfully", typeof(ApiResponse<SftpOperationResponse>))]
-    [SwaggerResponse(400, "Invalid request or password change failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<object>))]
     public async Task<IActionResult> ChangeSftpPasswordAsync([FromBody] ChangeSftpPasswordRequest request, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Changing password for SFTP user: {Username}", request.Username);
@@ -255,31 +211,23 @@ public class AegisAdminController(
 
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("Failed to change password for SFTP user {Username}: {Message}", 
+            _logger.LogWarning("Failed to change password for SFTP user {Username}: {Message}",
                 request.Username, result.Message);
             return BadRequest(Error(result.Message));
         }
 
         _logger.LogInformation("Successfully changed password for SFTP user: {Username}", request.Username);
-        return Success(new SftpOperationResponse { Success = true, Message = result.Message }, 
+        return Success(new SftpOperationResponse { Success = true, Message = result.Message },
             result.Message);
     }
 
     /// <summary>
-    /// Rename SFTP user in Cerberus and database (Aegis Admin Only)
+    /// Rename SFTP user in SFTPGo and database (Aegis Admin Only)
     /// </summary>
     /// <param name="request">Request containing current and new username</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Operation result</returns>
     [HttpPost("sftp-users/rename")]
-    [SwaggerOperation(
-        Summary = "Rename SFTP User (Aegis Admin Only)",
-        Description = "Renames SFTP user in both CerberusService and database. Only KMPG administrators can perform this operation."
-    )]
-    [SwaggerResponse(200, "User renamed successfully", typeof(ApiResponse<SftpOperationResponse>))]
-    [SwaggerResponse(400, "Invalid request or rename failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<object>))]
     public async Task<IActionResult> RenameSftpUserAsync([FromBody] RenameSftpUserRequest request, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Renaming SFTP user from {Username} to {NewUsername}", request.Username, request.NewUsername);
@@ -289,31 +237,23 @@ public class AegisAdminController(
 
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("Failed to rename SFTP user from {Username} to {NewUsername}: {Message}", 
+            _logger.LogWarning("Failed to rename SFTP user from {Username} to {NewUsername}: {Message}",
                 request.Username, request.NewUsername, result.Message);
             return BadRequest(Error(result.Message));
         }
 
         _logger.LogInformation("Successfully renamed SFTP user from {Username} to {NewUsername}", request.Username, request.NewUsername);
-        return Success(new SftpOperationResponse { Success = true, Message = result.Message }, 
+        return Success(new SftpOperationResponse { Success = true, Message = result.Message },
             result.Message);
     }
 
     /// <summary>
-    /// Delete SFTP user from Cerberus and database (Aegis Admin Only)
+    /// Delete SFTP user from SFTPGo and database (Aegis Admin Only)
     /// </summary>
     /// <param name="username">Username to delete</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Operation result</returns>
     [HttpDelete("sftp-users/{username}")]
-    [SwaggerOperation(
-        Summary = "Delete SFTP User (Aegis Admin Only)",
-        Description = "Deletes SFTP user from both CerberusService and database. Only KMPG administrators can perform this operation."
-    )]
-    [SwaggerResponse(200, "User deleted successfully", typeof(ApiResponse<SftpOperationResponse>))]
-    [SwaggerResponse(400, "Invalid request or deletion failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<object>))]
     public async Task<IActionResult> DeleteSftpUserAsync(string username, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Deleting SFTP user: {Username}", username);
@@ -323,32 +263,30 @@ public class AegisAdminController(
 
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("Failed to delete SFTP user {Username}: {Message}", 
+            _logger.LogWarning("Failed to delete SFTP user {Username}: {Message}",
                 username, result.Message);
             return BadRequest(Error(result.Message));
         }
 
         _logger.LogInformation("Successfully deleted SFTP user: {Username}", username);
-        return Success(new SftpOperationResponse { Success = true, Message = result.Message }, 
+        return Success(new SftpOperationResponse { Success = true, Message = result.Message },
             result.Message);
     }
 
     // SFTP Directory Management Endpoints
 
     /// <summary>
-    /// If a user exists in the SFTPUser table but not in Cerberus, create it in Cerberus and set up directories/mappings.
+    /// If a user exists in the SFTPUser table but not in SFTPGo, create it in SFTPGo and set up directories/mappings.
     /// </summary>
     /// 
-    [HttpGet("sftp-users/{username}/cerberus-sync")] 
-    [SwaggerOperation(Summary = "Ensure User Exists in Cerberus", Description = "Creates the user in Cerberus if missing, based on SFTPUser table entry. Also sets up directories and mappings.")]
-    [SwaggerResponse(200, "User ensured in Cerberus", typeof(ApiResponse<SftpOperationResponse>))]
+    [HttpGet("sftp-users/{username}/SFTPGo-sync")]
     [AllowAnonymous]
-    public async Task<IActionResult> EnsureUserExistsInCerberus(string username)
+    public async Task<IActionResult> EnsureUserExistsInSFTPGo(string username)
     {
         if (string.IsNullOrWhiteSpace(username))
             return BadRequest(Error("username is required"));
 
-        var result = await _mediator.Send(new EnsureCerberusUserFromDbCommand(username));
+        var result = await _mediator.Send(new EnsureSFTPGoUserFromDbCommand(username));
         if (result.Failed)
             return BadRequest(Error(result.Errors.FirstOrDefault() ?? "Failed"));
 
@@ -363,8 +301,6 @@ public class AegisAdminController(
     /// Ensure SFTP directories for user (Aegis Admin Only)
     /// </summary>
     [HttpGet("sftp-users/{username}/directories/ensure")]
-    [SwaggerOperation(Summary = "Ensure SFTP Directories", Description = "Ensures user's SFTP directories exist (handled automatically by SFTPGo)")]
-    [SwaggerResponse(200, "Directories ensured", typeof(ApiResponse<SftpOperationResponse>))]
     public async Task<IActionResult> EnsureUserDirectories(string username)
     {
         if (string.IsNullOrWhiteSpace(username))
@@ -376,5 +312,69 @@ public class AegisAdminController(
 
         return Success(new SftpOperationResponse { Success = true, Message = "Directories ensured" }, "Directories ensured");
     }
+
+    /// <summary>
+    /// Create a business on behalf of a client — Aegis Admin only.
+    /// Payment reference and amount are recorded for audit; no Paystack redirect is initiated.
+    /// </summary>
+    [HttpPost("create-business")]
+    [RequirePermission(PermissionConstants.CreateBusiness)]
+    [ProducesResponseType(typeof(ApiResponse<AdminCreateBusinessResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateBusinessAsync([FromBody] AdminCreateBusinessRequest request, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Aegis admin creating business {BusinessName} for {Email}", request.BusinessName, request.AdminEmail);
+
+        var command = new AdminCreateBusinessCommand(
+            request.AdminFirstName,
+            request.AdminLastName,
+            request.AdminEmail,
+            request.AdminPhone,
+            request.BusinessName,
+            request.BusinessDescription,
+            request.PlatformSubscriptionIds,
+            request.BillingCycle,
+            request.PaymentReference,
+            request.PaymentAmountNaira,
+            request.Tin,
+            request.Industry,
+            request.BusinessRegistrationNumber,
+            request.ServiceId,
+            request.NRSBusinessId);
+
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("Failed to create business {BusinessName}: {Message}", request.BusinessName, result.Message);
+            return Error(result.Message);
+        }
+
+        _logger.LogInformation("Business {BusinessId} created by Aegis admin", result.BusinessId);
+        return Success(new AdminCreateBusinessResponse { BusinessId = result.BusinessId!.Value, Message = result.Message }, result.Message);
+    }
+}
+
+public record AdminCreateBusinessRequest(
+    string AdminFirstName,
+    string AdminLastName,
+    string AdminEmail,
+    string AdminPhone,
+    string BusinessName,
+    string BusinessDescription,
+    IReadOnlyList<Guid> PlatformSubscriptionIds,
+    BillingCycle BillingCycle,
+    string PaymentReference,
+    decimal PaymentAmountNaira,
+    string? Tin = null,
+    string? Industry = null,
+    string? BusinessRegistrationNumber = null,
+    string? ServiceId = null,
+    string? NRSBusinessId = null);
+
+public class AdminCreateBusinessResponse
+{
+    public Guid BusinessId { get; init; }
+    public string Message { get; init; } = string.Empty;
 }
 

@@ -10,10 +10,9 @@ public class LogoutCommandValidator : AbstractValidator<LogoutCommand>
     public LogoutCommandValidator()
     {
         RuleFor(x => x.RefreshToken)
-            .NotEmpty()
-            .WithMessage("Refresh token is required")
             .MaximumLength(500)
-            .WithMessage("Refresh token must not exceed 500 characters");
+            .WithMessage("Refresh token must not exceed 500 characters")
+            .When(x => !string.IsNullOrEmpty(x.RefreshToken));
 
         RuleFor(x => x.IpAddress)
             .NotEmpty()

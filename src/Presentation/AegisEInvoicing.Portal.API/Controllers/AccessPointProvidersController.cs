@@ -1,142 +1,151 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using AegisEInvoicing.Portal.API.Attributes;
 using AegisEInvoicing.Portal.API.Models;
 using AegisEInvoicing.Portal.API.Models.AccessPointProvider;
+using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Common.Models;
 using AegisEInvoicing.Application.Features.AccessPointProviders.Commands.Create;
 using AegisEInvoicing.Application.Features.AccessPointProviders.Commands.Delete;
 using AegisEInvoicing.Application.Features.AccessPointProviders.Commands.Update;
+using AegisEInvoicing.Application.Features.AccessPointProviders.Commands.SetBusinessAppProvider;
+using AegisEInvoicing.Application.Features.AccessPointProviders.Commands.SetBusinessEnvironmentMode;
 using AegisEInvoicing.Application.Features.AccessPointProviders.DTOs;
 using AegisEInvoicing.Application.Features.AccessPointProviders.Queries;
 using AegisEInvoicing.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
 /// <summary>
-/// Controller for Aegis user management operations
-/// All operations enforce platform admin access only - Aegis users are not tied to any business
+/// Manages Access Point Provider (APP) configurations and per-business provider/environment settings.
+/// Provider CRUD is restricted to AegisAdmin; business-level switching is available to ClientAdmin.
 /// </summary>
 [ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/[controller]")]
-[SwaggerTag("Includes operation for creating, updating, fetching list of access point provides")]
-[Authorize]
-public class AccessPointProvidersController(IMediator mediator, ILogger<AccessPointProvidersController> logger) : BaseApiController
+[Route("api/v{version:apiVersion}/access-point-providers")][Authorize]
+public class AccessPointProvidersController(
+    ILogger<AccessPointProvidersController> logger,
+    IEnumerable<IAccessPointProviderClient> adapters) : BaseApiController
 {
-    private readonly IMediator _mediator = mediator;
-    private readonly ILogger<AccessPointProvidersController> _logger = logger;
+    // ─── Provider CRUD (AegisAdmin only) ─────────────────────────────────────
 
-    [HttpGet]
-    [SwaggerOperation(
-        Summary = "Get list of access point providers",
-        Description = "Retrieves a paginated list of all access point providers. Available to Aegis Admins and Client Admins.",
-        OperationId = "GetAccessPointProvider",
-        Tags = new[] { "Access Point Providers" }
-    )]
-    [SwaggerResponse(200, "Return a list of all access providers", typeof(ApiResponse<PaginatedList<AccessPointProvidersDto>>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<PaginatedList<AccessPointProvidersDto>>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<PaginatedList<AccessPointProvidersDto>>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<PaginatedList<AccessPointProvidersDto>>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin)]
-    public async Task<IActionResult> GetAccessPointProvider([FromQuery] GetAccessPointProvidersQuery request)
+    [HttpGet("adapter-options")]    public IActionResult GetAdapterOptions()
     {
-        _logger.LogInformation("About fetching list of access point providers");
+        var options = adapters.Select(a => new { adapterKey = a.ProviderCode, displayName = a.DisplayName });
+        return Success(options, "Adapter options");
+    }
 
+    [HttpGet]    public async Task<IActionResult> GetAccessPointProviders([FromQuery] GetAccessPointProvidersQuery request)
+    {
         var result = await Mediator.Send(request);
+        return Success(result, "Access point providers");
+    }
 
-        return Success(result, "List of access providers");
+    [HttpGet("{id:guid}")]
+    [RequireRole(RoleConstants.AegisAdmin)]
+    public async Task<IActionResult> GetAccessPointProviderById(Guid id)
+    {
+        var result = await Mediator.Send(new GetAccessPointProviderByIdQuery(id));
+        if (result is null)
+            return Error("Access point provider not found", StatusCodes.Status404NotFound);
+        return Success(result, "Access point provider retrieved");
     }
 
     [HttpPost]
-    [SwaggerOperation(
-        Summary = "Create a new access point provider",
-        Description = "Creates a new access point provider configuration with the specified details. Only Aegis Admins can perform this operation.",
-        OperationId = "CreateAccessPointProvider",
-        Tags = new[] { "Access Point Providers" }
-    )]
-    [SwaggerResponse(200, "Access point provider created successfully", typeof(ApiResponse<CreateAccessPointProvidersResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireAegisAdmin]
+    [RequireRole(RoleConstants.AegisAdmin)]
     public async Task<IActionResult> CreateAccessPointProvider([FromBody] AccessPointProviderRequest request)
     {
-        _logger.LogInformation("KMPG platform admin about creating access point providers");
-
-        var command = new CreateAccessPointProvidersCommand(request.Name, request.Description, request.Environment, request.BaseUrl,request.ApiKey, request.ApiSecret);
+        var command = new CreateAccessPointProvidersCommand(
+            request.Name,
+            request.Description,
+            request.AdapterKey,
+            request.BaseUrl,
+            request.CredentialsJson,
+            request.SandboxBaseUrl,
+            request.SandboxCredentialsJson);
 
         var result = await Mediator.Send(command);
 
         if (!result.IsSuccess)
-        {
-            _logger.LogWarning("Failed to create access point providers: {Message}", result.Message);
-            return BadRequest(Error(result.Message));
-        }
+            return Error(result.Message, StatusCodes.Status400BadRequest);
 
-        return Success(result, result.Message);
+        return Created($"/api/v1/access-point-providers/{result.Id}", new { isSuccess = true, message = result.Message, id = result.Id });
     }
 
-    [HttpPatch("{configurationId}")]
-    [SwaggerOperation(
-        Summary = "Update an existing access point provider",
-        Description = "Updates an access point provider configuration identified by the configuration ID. Only Aegis Admins can perform this operation.",
-        OperationId = "UpdateAccessPointProvider",
-        Tags = new[] { "Access Point Providers" }
-    )]
-    [SwaggerResponse(200, "Access point provider updated successfully", typeof(ApiResponse<UpdateAccessPointProvidersResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Access point provider not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireAegisAdmin]
+    [HttpPatch("{configurationId:guid}")]
+    [RequireRole(RoleConstants.AegisAdmin)]
     public async Task<IActionResult> UpdateAccessPointProvider(Guid configurationId, [FromBody] UpdateAccessPointProviderRequest request)
     {
-        _logger.LogInformation("KMPG platform admin about updating access point providers");
-
-        var command = new UpdateAccessPointProvidersCommand(configurationId, request.Name, request.Description, request.Environment, request.BaseUrl, request.ApiKey, request.ApiSecret);
+        var command = new UpdateAccessPointProvidersCommand(
+            configurationId,
+            request.Name,
+            request.Description,
+            request.BaseUrl,
+            request.CredentialsJson,
+            request.SandboxBaseUrl,
+            request.SandboxCredentialsJson);
 
         var result = await Mediator.Send(command);
 
         if (!result.IsSuccess)
+            return Error(result.Message, StatusCodes.Status400BadRequest);
+
+        return Success(new { isSuccess = true, message = result.Message }, result.Message);
+    }
+
+    [HttpDelete("{configurationId:guid}")]
+    [RequireRole(RoleConstants.AegisAdmin)]
+    public async Task<IActionResult> DeleteAccessPointProvider(Guid configurationId)
+    {
+        var result = await Mediator.Send(new DeleteAccessPointProvidersCommand(configurationId));
+
+        if (!result.IsSuccess)
+            return Error(result.Message, StatusCodes.Status400BadRequest);
+
+        return Success(new { isSuccess = true, message = result.Message }, result.Message);
+    }
+
+    [HttpGet("businesses/{businessId:guid}/settings")]    public async Task<IActionResult> GetBusinessAppSettings(Guid businessId)
+    {
+        var result = await Mediator.Send(new GetBusinessAppSettingsQuery(businessId));
+
+        if (result is null)
+            return NotFound(Error("Business not found or access denied."));
+
+        return Success(result, "Business APP settings");
+    }
+
+    [HttpPatch("businesses/{businessId:guid}/provider")]
+    [RequirePermission(PermissionConstants.ManageBusinessSettings)]
+    public async Task<IActionResult> SetBusinessAppProvider(
+        Guid businessId,
+        [FromBody] SetBusinessAppProviderRequest request)
+    {
+        var command = new SetBusinessAppProviderCommand(businessId, request.AdapterKey);
+        var result = await Mediator.Send(command);
+
+        if (!result.IsSuccess)
         {
-            _logger.LogWarning("Failed to update access point providers: {Message}", result.Message);
+            logger.LogWarning("Failed to set APP provider for business {BusinessId}: {Message}", businessId, result.Message);
             return BadRequest(Error(result.Message));
         }
 
         return Success(result, result.Message);
     }
 
-    [HttpDelete("{configurationId}")]
-    [SwaggerOperation(
-        Summary = "Delete an access point provider",
-        Description = "Deletes an access point provider configuration identified by the configuration ID. Only Aegis Admins can perform this operation.",
-        OperationId = "DeleteAccessPointProvider",
-        Tags = new[] { "Access Point Providers" }
-    )]
-    [SwaggerResponse(200, "Access point provider deleted successfully", typeof(ApiResponse<DeleteAccessPointProvidersResult>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Access point provider not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-    [RequireAegisAdmin]
-    public async Task<IActionResult> DeleteAccessPointProvider(Guid configurationId)
+    [HttpPatch("businesses/{businessId:guid}/environment")]
+    [RequirePermission(PermissionConstants.ManageBusinessSettings)]
+    public async Task<IActionResult> SetBusinessEnvironmentMode(
+        Guid businessId,
+        [FromBody] SetBusinessEnvironmentModeRequest request)
     {
-        _logger.LogInformation("KMPG platform admin about deleting access point providers");
-
-        var command = new DeleteAccessPointProvidersCommand(configurationId);
-
+        var command = new SetBusinessEnvironmentModeCommand(businessId, request.EnvironmentMode);
         var result = await Mediator.Send(command);
 
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("Failed to delete access point providers: {Message}", result.Message);
+            logger.LogWarning("Failed to set environment mode for business {BusinessId}: {Message}", businessId, result.Message);
             return BadRequest(Error(result.Message));
         }
 

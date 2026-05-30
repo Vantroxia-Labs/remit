@@ -18,9 +18,6 @@ public class BusinessConfiguration : IEntityTypeConfiguration<Business>
 
         builder.Property(e => e.AdminUserId);
 
-        // Configure SubscriptionId as nullable Guid
-        builder.Property(e => e.SubscriptionId);
-
         // Configure FlowRuleId as nullable Guid (for backward compatibility)
         builder.Property(e => e.FlowRuleId);
 
@@ -61,6 +58,11 @@ public class BusinessConfiguration : IEntityTypeConfiguration<Business>
                 .HasColumnName("address_postal_code")
                 .HasMaxLength(20)
                 .IsRequired();
+
+            address.Property(a => a.Lga)
+                .HasColumnName("address_lga")
+                .HasMaxLength(20)
+                .IsRequired(false);
         });
 
         // Configure TIN as owned type
@@ -169,12 +171,11 @@ public class BusinessConfiguration : IEntityTypeConfiguration<Business>
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false); // Make the foreign key optional
 
-        // Subscription relationship
-        builder.HasOne(b => b.Subscription)
+        // Subscription relationship — one business can have many subscriptions (one per plan tier)
+        builder.HasMany(b => b.Subscriptions)
             .WithOne(s => s.Business)
-            .HasForeignKey<Subscription>(s => s.BusinessId)
-            .OnDelete(DeleteBehavior.Restrict)
-            .IsRequired(false); // Make the foreign key optional
+            .HasForeignKey(s => s.BusinessId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // FlowRules relationship - One Business can have many FlowRules
         builder.HasMany(b => b.FlowRules)
@@ -196,6 +197,15 @@ public class BusinessConfiguration : IEntityTypeConfiguration<Business>
             .WithOne(bf => bf.Business)
             .HasForeignKey<BusinessFIRSApiConfiguration>(bf => bf.BusinessId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // APP Provider switching — nullable string, matches IAccessPointProviderClient.ProviderCode
+        builder.Property(e => e.ActiveAdapterKey)
+            .HasMaxLength(100);
+
+        builder.Property(e => e.AppEnvironmentMode)
+            .HasConversion<string>()
+            .HasMaxLength(50)
+            .HasDefaultValue(AegisEInvoicing.Domain.Enums.AppEnvironmentMode.Sandbox);
 
         // Indexes
         builder.HasIndex(e => e.Name).IsUnique();

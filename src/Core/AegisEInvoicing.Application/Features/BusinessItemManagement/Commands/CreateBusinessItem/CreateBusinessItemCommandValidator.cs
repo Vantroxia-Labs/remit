@@ -1,4 +1,5 @@
 using FluentValidation;
+using AegisEInvoicing.Domain.Enums;
 
 namespace AegisEInvoicing.Application.Features.BusinessItemManagement.Commands.CreateBusinessItem;
 
@@ -23,46 +24,45 @@ public class CreateBusinessItemCommandValidator : AbstractValidator<CreateBusine
             .WithMessage("Unit price must be greater than or equal to 0")
             .LessThan(1000000000)
             .WithMessage("Unit price must be less than 1,000,000,000");
-
-     
-        RuleFor(x => x.ItemCategoryId)
-            .NotEmpty()
-            .WithMessage("Item category ID is required");
+        RuleFor(x => x.ItemType)
+            .IsInEnum()
+            .WithMessage("Item type must be either Goods or Service");
 
         RuleFor(x => x.ServiceCode)
             .NotNull()
-            .WithMessage("Service code is required");
+            .WithMessage("Code is required");
 
         When(x => x.ServiceCode != null, () =>
         {
             RuleFor(x => x.ServiceCode.Code)
                 .NotEmpty()
-                .WithMessage("Service code is required")
+                .WithMessage("Code is required")
                 .MaximumLength(50)
-                .WithMessage("Service code must not exceed 50 characters");
+                .WithMessage("Code must not exceed 50 characters");
 
             RuleFor(x => x.ServiceCode.Name)
                 .NotEmpty()
-                .WithMessage("Service code name is required")
+                .WithMessage("Code description is required")
                 .MaximumLength(200)
-                .WithMessage("Service code name must not exceed 200 characters");
+                .WithMessage("Code description must not exceed 200 characters");
         });
 
-        RuleFor(x => x.TaxCategory)
-            .NotNull()
-            .WithMessage("Tax category is required");
-
-        When(x => x.TaxCategory != null, () =>
+        RuleForEach(x => x.TaxCategories).ChildRules(tc =>
         {
-            RuleFor(x => x.TaxCategory.Name)
-                .NotEmpty()
-                .WithMessage("Tax category name is required")
-                .MaximumLength(100)
-                .WithMessage("Tax category name must not exceed 100 characters");
-
-            RuleFor(x => x.TaxCategory.Percent)
-                .InclusiveBetween(0, 100)
-                .WithMessage("Tax percentage must be between 0 and 100");
+            tc.RuleFor(x => x.Code).NotEmpty().WithMessage("Tax category code is required");
+            tc.RuleFor(x => x.Name).NotEmpty().WithMessage("Tax category name is required");
+            tc.When(x => x.IsPercentage, () =>
+            {
+                tc.RuleFor(x => x.Percent)
+                    .NotNull().WithMessage("Percent is required for percentage tax")
+                    .InclusiveBetween(0, 100).WithMessage("Percent must be between 0 and 100");
+            });
+            tc.When(x => !x.IsPercentage, () =>
+            {
+                tc.RuleFor(x => x.FlatAmount)
+                    .NotNull().WithMessage("Flat amount is required for flat fee tax")
+                    .GreaterThanOrEqualTo(0).WithMessage("Flat amount must be non-negative");
+            });
         });
     }
 }

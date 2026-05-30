@@ -51,6 +51,12 @@ public sealed class GetReceivedInvoicesQueryHandler : IRequestHandler<GetReceive
                 .Include(ri => ri.Business)
                 .Where(ri => !ri.IsDeleted && ri.BusinessId == businessId.Value);
 
+            // TODO: Filter by EnvironmentMode once property is added to ReceivedInvoice entity
+            // if (request.EnvironmentMode.HasValue)
+            // {
+            //     query = query.Where(ri => ri.EnvironmentMode == request.EnvironmentMode.Value);
+            // }
+
             if (request.StartDate.HasValue)
             {
                 query = query.Where(ri => ri.IssueDate >= request.StartDate.Value);

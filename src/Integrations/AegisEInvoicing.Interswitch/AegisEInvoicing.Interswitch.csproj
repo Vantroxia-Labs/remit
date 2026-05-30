@@ -19,4 +19,9 @@
     <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\AegisEInvoicing.Application\AegisEInvoicing.Application.csproj" />
+    <ProjectReference Include="..\..\Core\AegisEInvoicing.Domain\AegisEInvoicing.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

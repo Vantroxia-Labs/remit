@@ -1,4 +1,6 @@
-﻿namespace AegisEInvoicing.FIRSAccessPoint.Models.Responses.GetAllLocalGovernments;
+﻿using System.Text.Json.Serialization;
+
+namespace AegisEInvoicing.FIRSAccessPoint.Models.Responses.GetAllLocalGovernments;
 
 public sealed record GetAllLocalGovernmentsResponse : GenericResponse
 {
@@ -7,7 +9,12 @@ public sealed record GetAllLocalGovernmentsResponse : GenericResponse
 
 public sealed record LocalGovernment
 {
-    public string Id { get; set; } = null!;
+    [JsonPropertyName("name")]
     public string Name { get; set; } = null!;
-    public string StateId { get; set; } = null!;
+
+    [JsonPropertyName("code")]
+    public string Code { get; set; } = null!;
+
+    [JsonPropertyName("state_code")]
+    public string StateCode { get; set; } = null!;
 }

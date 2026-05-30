@@ -7,7 +7,6 @@ using AegisEInvoicing.Application.Features.BusinessFIRSApiConfiguration.Queries.
 using AegisEInvoicing.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -16,9 +15,7 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/business-firs-configuration")]
-[Authorize]
-[SwaggerTag("Business FIRS API Configuration management - Assign, update, and manage FIRS API configurations for businesses")]
-public class BusinessFIRSApiConfigurationController : BaseApiController
+[Authorize]public class BusinessFIRSApiConfigurationController : BaseApiController
 {
     private readonly ILogger<BusinessFIRSApiConfigurationController> _logger;
 
@@ -31,16 +28,7 @@ public class BusinessFIRSApiConfigurationController : BaseApiController
     /// Get current business FIRS API configuration
     /// </summary>
     /// <returns>Business FIRS API configuration details</returns>
-    [HttpGet("current")]
-    [SwaggerOperation(
-        Summary = "Get current business FIRS API configuration",
-        Description = "Retrieves the current FIRS API configuration assigned to the authenticated business"
-    )]
-    [RequireRole(RoleConstants.ClientAdmin)]
-    [SwaggerResponse(200, "Configuration retrieved successfully", typeof(ApiResponse<BusinessFIRSApiConfigurationDetailDto>))]
-    [SwaggerResponse(404, "Configuration not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Unauthorized", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> GetCurrentConfiguration(CancellationToken cancellationToken = default)
+    [HttpGet("current")]    [RequireRole(RoleConstants.ClientAdmin)]    public async Task<IActionResult> GetCurrentConfiguration(CancellationToken cancellationToken = default)
     {
         var query = new GetBusinessFIRSConfigurationQuery();
         var result = await Mediator.Send(query, cancellationToken);
@@ -66,15 +54,7 @@ public class BusinessFIRSApiConfigurationController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of business FIRS API configurations</returns>
     [HttpGet]
-    [RequireRole(RoleConstants.AegisAdmin)]
-    [SwaggerOperation(
-        Summary = "Get all business FIRS API configurations (KMPG Admin only)",
-        Description = "Retrieves a paginated list of all business FIRS API configurations with optional filtering"
-    )]
-    [SwaggerResponse(200, "Configurations retrieved successfully", typeof(ApiResponse<PaginatedList<BusinessFIRSApiConfigurationDto>>))]
-    [SwaggerResponse(401, "Unauthorized", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Forbidden - KMPG Admin role required", typeof(ApiResponse<object>))]
-    public async Task<IActionResult> GetAllConfigurations(
+    [RequireRole(RoleConstants.AegisAdmin)]    public async Task<IActionResult> GetAllConfigurations(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? businessName = null,

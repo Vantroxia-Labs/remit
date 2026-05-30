@@ -299,21 +299,27 @@ public class CreateInvoiceItemDtoValidator : AbstractValidator<CreateInvoiceItem
             .WithMessage("Item description must not exceed 500 characters")
             .MustBeSafeText(500);
 
-        // VAPT: Validate item category - only alphanumeric
-        RuleFor(x => x.ItemCategory)
-            .NotEmpty()
-            .WithMessage("Item category is required")
-            .MustBeAlphanumeric(100, allowSpecialChars: false);
-
         RuleFor(x => x.ServiceCode)
             .NotNull()
             .WithMessage("Service code is required")
             .SetValidator(new ServiceCodeRequestValidator());
 
-        RuleFor(x => x.TaxCategory)
-            .NotNull()
-            .WithMessage("Tax category is required")
-            .SetValidator(new TaxCategoryRequestValidator());
+        RuleForEach(x => x.TaxCategories).ChildRules(tc =>
+        {
+            tc.RuleFor(t => t.Name).NotEmpty().WithMessage("Tax category name is required");
+            tc.When(t => t.IsPercentage, () =>
+            {
+                tc.RuleFor(t => t.Percent)
+                    .NotNull().WithMessage("Percent is required for percentage tax")
+                    .InclusiveBetween(0, 100).WithMessage("Tax percentage must be between 0 and 100");
+            });
+            tc.When(t => !t.IsPercentage, () =>
+            {
+                tc.RuleFor(t => t.FlatAmount)
+                    .NotNull().WithMessage("Flat amount is required for flat fee tax")
+                    .GreaterThanOrEqualTo(0).WithMessage("Flat amount must be non-negative");
+            });
+        });
 
         // VAPT: Validate unit price - must be non-negative and within reasonable bounds
         RuleFor(x => x.UnitPrice)
@@ -371,9 +377,18 @@ public class TaxCategoryRequestValidator : AbstractValidator<TaxCategoryRequest>
             .WithMessage("Tax category name must not exceed 500 characters")
             .MustBeAlphanumeric(500, allowSpecialChars: true);
 
-        // VAPT: Validate tax percentage - must be within valid range
-        RuleFor(x => x.Percent)
-            .InclusiveBetween(0, 100)
-            .WithMessage("Tax percentage must be between 0 and 100");
+        // Validate percentage or flat amount based on IsPercentage flag
+        When(x => x.IsPercentage, () =>
+        {
+            RuleFor(x => x.Percent)
+                .NotNull().WithMessage("Percent is required for percentage tax")
+                .InclusiveBetween(0, 100).WithMessage("Tax percentage must be between 0 and 100");
+        });
+        When(x => !x.IsPercentage, () =>
+        {
+            RuleFor(x => x.FlatAmount)
+                .NotNull().WithMessage("Flat amount is required for flat fee tax")
+                .GreaterThanOrEqualTo(0).WithMessage("Flat amount must be non-negative");
+        });
     }
 }

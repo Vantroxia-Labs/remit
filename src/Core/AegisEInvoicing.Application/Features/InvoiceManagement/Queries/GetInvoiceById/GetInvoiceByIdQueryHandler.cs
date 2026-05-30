@@ -2,6 +2,7 @@ using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
 using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.ValueObjects;
+using AegisEInvoicing.Application.Features.BusinessItemManagement.DTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,7 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
     private readonly ILogger<GetInvoiceByIdQueryHandler> _logger;
 
     public GetInvoiceByIdQueryHandler(
-        IApplicationDbContext context, 
+        IApplicationDbContext context,
         ICurrentUserService currentUserService,
         ILogger<GetInvoiceByIdQueryHandler> logger)
     {
@@ -32,7 +33,6 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                 .AsNoTracking()
                 .Include(i => i.InvoiceLine)
                     .ThenInclude(il => il.BusinessItem)
-                        .ThenInclude(bi => bi.ItemCategory)
                 .Include(i => i.Business)
                 .Include(i => i.Party)
                 .Include(i => i.CreatedByUser)
@@ -66,10 +66,10 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
             // Log any missing related entities for debugging
             if (invoice.Party is null)
                 _logger.LogWarning("Invoice {InvoiceId} has null Party reference", invoice.Id);
-            
+
             var itemsWithNullBusinessItem = invoice.InvoiceLine.Where(il => il.BusinessItem is null).Count();
             if (itemsWithNullBusinessItem > 0)
-                _logger.LogWarning("Invoice {InvoiceId} has {Count} invoice items with null BusinessItem reference", 
+                _logger.LogWarning("Invoice {InvoiceId} has {Count} invoice items with null BusinessItem reference",
                     invoice.Id, itemsWithNullBusinessItem);
 
             var invoiceDto = new InvoiceDetailsDto
@@ -92,6 +92,11 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                 CurrentInvoiceStatus = invoice.InvoiceStatus,
                 FirsResponseMessage = FirsResponse(invoice.FIRSSubmissionResponseMessage, invoice.InvoiceStatus),
                 InvoiceStatus = [.. invoice.InvoiceApprovalHistory.Select(x => x.InvoiceStatus).OrderBy(x => x)],
+                InvoiceCode = invoice.InvoiceCode,
+                PartyName = invoice.Party?.Name,
+                TotalAmount = invoice.InvoiceLine.Sum(il => (decimal)(il.Quantity * il.UnitPriceSnapshot)),
+                TotalTaxAmount = invoice.InvoiceLine.Sum(il => 
+                    (il.BusinessItem?.TaxCategories ?? []).Sum(tc => tc.CalculateTax(il.Quantity * il.UnitPriceSnapshot))),
                 FIRSSubmissionId = invoice.FIRSSubmissionId,
                 SubmittedToFIRSAt = invoice.SubmittedToFIRSAt,
                 FIRSubmissionResponse = invoice.FIRSSubmissionResponseMessage,
@@ -103,34 +108,40 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                     InvoiceId = item.InvoiceId,
                     ItemCode = item.BusinessItem?.ItemId ?? string.Empty,
                     ServiceCode = item.BusinessItem?.ServiceCode ?? ServiceCode.Create("UNKNOWN", "Unknown Service"),
-                    TaxCategory = item.BusinessItem?.TaxCategory ?? TaxCategory.Create("Unknown", 0),
-                    Category = item.BusinessItem?.ItemCategory?.Name ?? "Unknown",
+                    Category = item.BusinessItem?.ServiceCode?.Name ?? "",
                     ItemDescription = item.BusinessItem?.ItemDescription ?? string.Empty,
                     DiscountFee = item.DiscountFee,
                     AdditionalFee = item.AdditionalFee,
-                    UnitPrice = item.BusinessItem?.UnitPrice ?? 0.0m,
+                    UnitPrice = item.UnitPriceSnapshot,
                     Quantity = item.Quantity,
-                    TotalPrice = item.Quantity * (item.BusinessItem?.UnitPrice ?? 0.0m)
+                    TotalPrice = item.Quantity * item.UnitPriceSnapshot,
+                    TaxCategories = (item.BusinessItem?.TaxCategories ?? []).Select(tc => new BusinessItemTaxCategoryDto(
+                        tc.Code,
+                        tc.Name,
+                        tc.IsPercentage,
+                        tc.Percent,
+                        tc.FlatAmount)).ToList()
                 })],
                 Party = invoice.Party != null ? new PartyDto
                 {
                     Name = invoice.Party.Name ?? string.Empty,
                     Tin = invoice.Party.TaxIdentificationNumber,
                     Email = invoice.Party.Email ?? string.Empty,
-                    Phone = invoice.Party.Phone ?? string.Empty,                    
+                    Phone = invoice.Party.Phone ?? string.Empty,
                     Address = invoice.Party.Address != null ? Address.Create(
                                 invoice.Party.Address.Street ?? string.Empty,
                                 invoice.Party.Address.City ?? string.Empty,
                                 invoice.Party.Address.State ?? string.Empty,
                                 invoice.Party.Address.Country ?? string.Empty,
-                                invoice.Party.Address.PostalCode ?? string.Empty)
-                            : Address.Create(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
+                                invoice.Party.Address.PostalCode ?? string.Empty,
+                                invoice.Party.Address.Lga)
+                            : Address.Create(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
                 } : new PartyDto
                 {
                     Name = "Unknown Party",
                     Email = string.Empty,
                     Phone = string.Empty,
-                    Address = Address.Create(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
+                    Address = Address.Create(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
                 },
                 InvoiceApprovalHistories = invoice.InvoiceApprovalHistory?.Select(ah => new InvoiceApprovalHistoryDto
                 {

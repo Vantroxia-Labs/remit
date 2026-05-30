@@ -123,9 +123,6 @@ public class OnboardBusinessCommandHandler(
             await _context.Subscriptions.AddAsync(subscription, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
-            business.AssignSubscription(subscription.Id, _currentUser.UserId.Value);
-            await _context.SaveChangesAsync(cancellationToken);
-
             // Generate API key for the business
             string? apiKey = null;
             try
@@ -140,7 +137,7 @@ public class OnboardBusinessCommandHandler(
                 // The business can still be onboarded and API key can be generated later
             }
 
-            // Create SFTP user in Cerberus and file system - Only for SaaS subscriptions
+            // Create SFTP user in SFTPGo and file system - Only for SaaS subscriptions
             string? sftpPassword = null;
             if (PlatformSubscription?.Tier == Domain.Entities.SubscriptionTier.SaaS)
             {

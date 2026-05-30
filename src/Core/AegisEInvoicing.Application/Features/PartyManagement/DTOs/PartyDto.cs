@@ -37,21 +37,24 @@ public record AddressDto(
     string City,
     string State,
     string Country,
-    string? PostalCode);
+    string? PostalCode,
+    string? Lga);
 
 public record CreateAddressDto(
     string Street,
     string City,
     string State,
     string Country,
-    string? PostalCode);
+    string? PostalCode,
+    string? Lga = null);
 
 public record UpdateAddressDto(
     string Street,
     string City,
     string State,
     string Country,
-    string? PostalCode);
+    string? PostalCode,
+    string? Lga = null);
 
 public record CreatePartyDto(
     string Name,

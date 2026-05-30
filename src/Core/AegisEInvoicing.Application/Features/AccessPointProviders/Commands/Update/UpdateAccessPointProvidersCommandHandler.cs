@@ -5,39 +5,49 @@ using Microsoft.Extensions.Logging;
 
 namespace AegisEInvoicing.Application.Features.AccessPointProviders.Commands.Update;
 
-public class UpdateAccessPointProvidersCommandHandler(IApplicationDbContext context,
-    ICurrentUserService currentUser, IEncryptionService encryptionService, ILogger<UpdateAccessPointProvidersCommandHandler> logger) : IRequestHandler<UpdateAccessPointProvidersCommand, UpdateAccessPointProvidersResult>
+public class UpdateAccessPointProvidersCommandHandler(
+    IApplicationDbContext context,
+    ICurrentUserService currentUser,
+    IEncryptionService encryptionService,
+    ILogger<UpdateAccessPointProvidersCommandHandler> logger)
+    : IRequestHandler<UpdateAccessPointProvidersCommand, UpdateAccessPointProvidersResult>
 {
-    private readonly IApplicationDbContext _context = context;
-    private readonly ICurrentUserService _currentUser = currentUser;
-    private readonly IEncryptionService _encryptionService = encryptionService;
-    private readonly ILogger<UpdateAccessPointProvidersCommandHandler> _logger = logger;
-    public async Task<UpdateAccessPointProvidersResult> Handle(UpdateAccessPointProvidersCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateAccessPointProvidersResult> Handle(
+        UpdateAccessPointProvidersCommand request,
+        CancellationToken cancellationToken)
     {
-        try
-        {
-            if (!_currentUser.UserId.HasValue && !_currentUser.IsPlatformAdmin)
-                return new UpdateAccessPointProvidersResult(false, "Invalid user authentication/permission");
+        if (!currentUser.IsPlatformAdmin)
+            return new UpdateAccessPointProvidersResult(false, "Only AegisAdmin users may manage APP provider configurations.");
 
-            string encryptedApiKey = await _encryptionService.EncryptAsync(request.apiKey);
-            string encryptedApiSecret = await _encryptionService.EncryptAsync(request.apiSecret);
+        var config = await context.AppProviderConfigurations
+            .FirstOrDefaultAsync(p => p.Id == request.ConfigurationId && !p.IsDeleted, cancellationToken);
 
-            var getConfiguration = await _context.FIRSApiConfigurations.FirstOrDefaultAsync(f => f.Id == request.configurationId, cancellationToken);
+        if (config is null)
+            return new UpdateAccessPointProvidersResult(false, "Access point provider configuration not found.");
 
-            if (getConfiguration is null)
-                return new UpdateAccessPointProvidersResult(false, $"FIRS configuration does not exists.");
+        // Encrypt only if new credentials were supplied; otherwise pass null to keep existing
+        var encryptedCredentials = string.IsNullOrWhiteSpace(request.CredentialsJson)
+            ? null
+            : await encryptionService.EncryptAsync(request.CredentialsJson);
 
-            getConfiguration.UpdateCredentials(request.name, request.description, encryptedApiKey, encryptedApiSecret, request.env, request.baseUrl);
+        var encryptedSandbox = string.IsNullOrWhiteSpace(request.SandboxCredentialsJson)
+            ? null
+            : await encryptionService.EncryptAsync(request.SandboxCredentialsJson);
 
-            _context.FIRSApiConfigurations.Update(getConfiguration);
-            await _context.SaveChangesAsync(cancellationToken);
+        config.Update(
+            request.Name,
+            request.Description,
+            request.BaseUrl,
+            encryptedCredentials,
+            request.SandboxBaseUrl,
+            encryptedSandbox);
 
-            return new UpdateAccessPointProvidersResult(true, "FIRS configuration updated successful");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, ex.Message);
-            return new UpdateAccessPointProvidersResult(false, "Something went wrong.");
-        }
+        await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "AppProviderConfiguration updated: Id={Id}, AdapterKey={AdapterKey}",
+            config.Id, config.AdapterKey);
+
+        return new UpdateAccessPointProvidersResult(true, "Access point provider updated successfully.");
     }
 }

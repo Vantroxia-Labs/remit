@@ -14,7 +14,6 @@ public class GetVatRemittanceReportQueryHandler(
     [
         InvoiceStatus.TRANSMITTED,
         InvoiceStatus.ACKNOWLEDGED,
-        InvoiceStatus.COMPLETELYTRANSMITTED,
     ];
 
     public async Task<VatRemittanceReportDto> Handle(GetVatRemittanceReportQuery request, CancellationToken cancellationToken)
@@ -38,7 +37,7 @@ public class GetVatRemittanceReportQueryHandler(
                 UnitPrice = line.UnitPriceSnapshot,
                 DiscountAmount = line.DiscountFee != null ? (decimal?)line.DiscountFee.Amount : null,
                 AdditionalFeeAmount = line.AdditionalFee != null ? (decimal?)line.AdditionalFee.Amount : null,
-                TaxPercent = line.BusinessItem.TaxCategory != null ? (decimal)line.BusinessItem.TaxCategory.Percent : 0m,
+                TaxPercent = 0m,
             }))
             .ToListAsync(cancellationToken);
 

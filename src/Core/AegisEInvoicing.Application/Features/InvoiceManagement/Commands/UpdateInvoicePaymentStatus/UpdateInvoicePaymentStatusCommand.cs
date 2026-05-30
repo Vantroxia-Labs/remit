@@ -6,4 +6,6 @@ namespace AegisEInvoicing.Application.Features.InvoiceManagement.Commands.Update
 
 public record UpdateInvoicePaymentStatusCommand(
     Guid InvoiceId,
-    PaymentStatus PaymentStatus) : IRequest<UpdateInvoicePaymentStatusResult>, ITransactionalCommand;
+    PaymentStatus PaymentStatus,
+    string? Reference,
+    decimal? Amount) : IRequest<UpdateInvoicePaymentStatusResult>, ITransactionalCommand;

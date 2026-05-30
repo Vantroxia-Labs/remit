@@ -54,7 +54,8 @@ public class GetPartyByIdQueryHandler : IRequestHandler<GetPartyByIdQuery, GetPa
                     party.Address.City,
                     party.Address.State,
                     party.Address.Country,
-                    party.Address.PostalCode),
+                    party.Address.PostalCode,
+                    party.Address.Lga),
                 party.CreatedAt,
                 party.UpdatedAt,
                 party.CreatedBy,
@@ -71,7 +72,7 @@ public class GetPartyByIdQueryHandler : IRequestHandler<GetPartyByIdQuery, GetPa
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while retrieving party {PartyId}: {Message}", request.Id, ex.Message);
-           throw new UnprocessableEntityException("Party cannot be returned at this time. Please try again later.");
+            throw new UnprocessableEntityException("Party cannot be returned at this time. Please try again later.");
         }
     }
 }

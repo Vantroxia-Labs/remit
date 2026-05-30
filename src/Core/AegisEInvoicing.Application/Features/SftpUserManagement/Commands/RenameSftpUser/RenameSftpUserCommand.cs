@@ -4,7 +4,7 @@ using MediatR;
 namespace AegisEInvoicing.Application.Features.SftpUserManagement.Commands.RenameSftpUser;
 
 /// <summary>
-/// Command to rename an SFTP user in both Cerberus and database
+/// Command to rename an SFTP user in both SFTPGo and database
 /// </summary>
 public class RenameSftpUserCommand : IRequest<RenameSftpUserResult>, ITransactionalCommand
 {

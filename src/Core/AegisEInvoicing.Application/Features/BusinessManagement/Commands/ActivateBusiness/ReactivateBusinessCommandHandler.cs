@@ -22,17 +22,18 @@ public class ReactivateBusinessCommandHandler(IApplicationDbContext context,
             if (!_currentUser.UserId.HasValue && !_currentUser.IsPlatformAdmin)
                 return new ReactivateBusinessResult(false, "Invalid user authentication/permission");
 
-            var getBusiness = await _context.Businesses.Include(s => s.Subscription).FirstOrDefaultAsync(b => b.Id == request.BusinessId, cancellationToken);
+            var getBusiness = await _context.Businesses.Include(s => s.Subscriptions).FirstOrDefaultAsync(b => b.Id == request.BusinessId, cancellationToken);
 
             if (getBusiness is null)
                 return new ReactivateBusinessResult(false, "Business not found");
 
-            var subscription = getBusiness.Subscription;
+            foreach (var sub in getBusiness.Subscriptions.Where(s => s.Status != AegisEInvoicing.Domain.Entities.BusinessManagement.SubscriptionStatus.Active))
+            {
+                sub.Activate(_currentUser.UserId.GetValueOrDefault());
+                _context.Subscriptions.Update(sub);
+            }
 
-            subscription?.Activate(_currentUser.UserId.GetValueOrDefault());
             getBusiness.Activate(_currentUser.UserId);
-
-            _context.Subscriptions.Update(subscription!);
             _context.Businesses.Update(getBusiness);
 
             await _context.SaveChangesAsync(cancellationToken);

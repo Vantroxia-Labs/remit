@@ -1,6 +1,2 @@
-﻿namespace AegisEInvoicing.Portal.API.Controllers
-{
-    internal class UpdateAccessPointProvidersResult
-    {
-    }
-}
+// This file is intentionally empty — UpdateAccessPointProvidersResult is defined in
+// AegisEInvoicing.Application.Features.AccessPointProviders.Commands.Update.

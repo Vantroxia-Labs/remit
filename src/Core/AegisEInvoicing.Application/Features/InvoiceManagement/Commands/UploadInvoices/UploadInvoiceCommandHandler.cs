@@ -27,7 +27,7 @@ public class UploadInvoiceCommandHandler(
     private readonly IFlowRuleMatchingService _flowRuleMatchingService = flowRuleMatchingService;
     private readonly ILogger<UploadInvoiceCommandHandler> _logger = logger;
 
-public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, CancellationToken cancellationToken)
+    public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, CancellationToken cancellationToken)
     {
         if (request?.UploadInvoiceRequest == null || !request.UploadInvoiceRequest.Any())
             return (UploadInvoiceResult)UploadInvoiceResult.BadRequest(ResponseMessages.INVALID_INVOICE_DATA);
@@ -103,13 +103,13 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
 
         return new UploadInvoiceResult
         {
-             IsSuccess = result.IsSuccess,
-             TotalObjects = result.TotalInvoices,
-             SuccessfulUploads = result.SuccessCount,
-             FailedUploads = result.FailureCount,
-             FailedUploadDetails = result.FailedInvoices.ToDictionary(f => f.Reference,f => f.Error),
-             StatusCodes = HttpStatusCodes.OK.ToInt(),
-             Message = "Bulk Data Processed"
+            IsSuccess = result.IsSuccess,
+            TotalObjects = result.TotalInvoices,
+            SuccessfulUploads = result.SuccessCount,
+            FailedUploads = result.FailureCount,
+            FailedUploadDetails = result.FailedInvoices.ToDictionary(f => f.Reference, f => f.Error),
+            StatusCodes = HttpStatusCodes.OK.ToInt(),
+            Message = "Bulk Data Processed"
         };
     }
 
@@ -189,7 +189,8 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
                         partyId,
                         irn,
                         business.InvoicePrefix,
-                        invoiceItems);
+                        invoiceItems,
+                        business.AppEnvironmentMode);
 
                     var qrCode = InvoiceQrService.GenerateQrCode(
                                invoice.Irn,
@@ -504,25 +505,6 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
             cacheContext.PartyCache[party.Email.ToLowerInvariant()] = party.Id;
         }
 
-        // Preload all item categories
-        var categoryNames = invoices
-            .SelectMany(i => i.InvoiceItems)
-            .Where(item => item.ItemCategory != null)
-            .Select(item => item.ItemCategory.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var existingCategories = await _context.ItemCategories
-            .Where(c => categoryNames.Contains(c.Name) && c.BusinessID == _currentUser.BusinessId)
-            .AsNoTracking()
-            .Select(c => new { c.Name, c.Id })
-            .ToListAsync(cancellationToken);
-
-        foreach (var category in existingCategories)
-        {
-            cacheContext.CategoryCache[category.Name] = category.Id;
-        }
-
         return cacheContext;
     }
 
@@ -531,11 +513,12 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
         Guid partyId,
         IRN irn,
         string invoicePrefix,
-        List<InvoiceItemData> invoiceItems)
+        List<InvoiceItemData> invoiceItems,
+        AppEnvironmentMode environmentMode = AppEnvironmentMode.Production)
     {
         // Parse InvoiceKind if provided
         Domain.Enums.InvoiceKind? invoiceKind = null;
-        if (!string.IsNullOrWhiteSpace(request.InvoiceKind) && 
+        if (!string.IsNullOrWhiteSpace(request.InvoiceKind) &&
             Enum.TryParse<Domain.Enums.InvoiceKind>(request.InvoiceKind, true, out var parsedKind))
         {
             invoiceKind = parsedKind;
@@ -556,7 +539,8 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
             note: request.Note,
             paymentReference: request.PaymentReference,
             paymentTerms: request.PaymentTerms,
-            dueDate: DateOnly.Parse(request.DueDate));
+            dueDate: DateOnly.Parse(request.DueDate),
+            environmentMode: environmentMode);
 
         foreach (var itemData in invoiceItems)
         {
@@ -661,54 +645,32 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
             .Select(item => new
             {
                 Item = item,
-                CategoryName = item.ItemCategory?.Trim() ?? throw new ArgumentException("Item category is required"),
                 ItemName = item.Name?.Trim() ?? throw new ArgumentException("Item name is required")
             })
             .ToList();
-
-        // Ensure all categories exist
-        foreach (var item in itemsToProcess)
-        {
-            if (!cacheContext.CategoryCache.TryGetValue(item.CategoryName, out var categoryId))
-            {
-                var newCategory = ItemCategory.Create(
-                    item.CategoryName,
-                    $"Category for {item.CategoryName}",
-                    _currentUser.BusinessId!.Value);
-
-                _context.ItemCategories.Add(newCategory);
-                await _context.SaveChangesAsync(cancellationToken);
-
-                cacheContext.CategoryCache[item.CategoryName] = newCategory.Id;
-                categoryId = newCategory.Id;
-            }
-        }
 
         // Build lookup keys for business items
         var lookupKeys = itemsToProcess
             .Select(x => new BusinessItemKey(
                 x.ItemName,
-                x.Item.UnitPrice,
-                cacheContext.CategoryCache[x.CategoryName]))
+                x.Item.UnitPrice))
             .Distinct()
             .ToList();
 
         // Load existing business items
         var itemNames = lookupKeys.Select(k => k.Name).Distinct().ToList();
-        var categoryIds = lookupKeys.Select(k => k.CategoryId).Distinct().ToList();
 
         var existingBusinessItems = await _context.BusinessItems
             .Where(bi => itemNames.Contains(bi.Name) &&
-                        categoryIds.Contains(bi.ItemCategoryId) &&
                         bi.BusinessID == _currentUser.BusinessId)
             .AsNoTracking()
-            .Select(bi => new { bi.Name, bi.UnitPrice, bi.ItemCategoryId, bi.Id })
+            .Select(bi => new { bi.Name, bi.UnitPrice, bi.Id })
             .ToListAsync(cancellationToken);
 
         var businessItemsDict = new Dictionary<BusinessItemKey, Guid>();
         foreach (var item in existingBusinessItems)
         {
-            var key = new BusinessItemKey(item.Name, item.UnitPrice, item.ItemCategoryId);
+            var key = new BusinessItemKey(item.Name, item.UnitPrice);
             businessItemsDict[key] = item.Id;
         }
 
@@ -718,25 +680,30 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
         foreach (var itemToProcess in itemsToProcess)
         {
             var item = itemToProcess.Item;
-            var categoryId = cacheContext.CategoryCache[itemToProcess.CategoryName];
-            var key = new BusinessItemKey(itemToProcess.ItemName, item.UnitPrice, categoryId);
+            var key = new BusinessItemKey(itemToProcess.ItemName, item.UnitPrice);
 
             if (!businessItemsDict.TryGetValue(key, out var businessItemId))
             {
                 if (item.ServiceCode == null)
                     throw new ArgumentException($"Service code is required for item: {item.Name}");
 
-                if (item.TaxCategory == null)
-                    throw new ArgumentException($"Tax category is required for item: {item.Name}");
-
                 var newBusinessItem = BusinessItem.Create(
                     _currentUser.BusinessId!.Value,
                     item.Name,
+                    ItemType.Service,
                     ServiceCode.Create(item.ServiceCode.Code, item.Name),
-                    TaxCategory.Create(item.TaxCategory.Name, item.TaxCategory.Percent),
-                    categoryId,
+                    Guid.Empty,
                     item.ItemDescription,
                     item.UnitPrice);
+
+                if (item.TaxCategories is { Count: > 0 })
+                {
+                    var taxCats = item.TaxCategories.Select(tc =>
+                        tc.IsPercentage
+                            ? BusinessItemTaxCategory.CreatePercentage(tc.Name, tc.Name, tc.Percent!.Value)
+                            : BusinessItemTaxCategory.CreateFlatFee(tc.Name, tc.Name, tc.FlatAmount!.Value)).ToList();
+                    newBusinessItem.UpdateTaxCategories(taxCats);
+                }
 
                 newBusinessItems.Add(newBusinessItem);
                 businessItemsDict[key] = newBusinessItem.Id;
@@ -750,8 +717,8 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
                 businessItemId,
                 item.Quantity,
                 item.UnitPrice, // Snapshot the price at invoice creation time
-                item.DiscountFee != null ? DiscountFee.Create(item.DiscountFee.Amount, (FeeStandardUnit)Enum.Parse(typeof(FeeStandardUnit),item.DiscountFee.FeeStandardUnit)) : null,
-                item.AdditionalFee != null ? AdditionalFee.Create(item.AdditionalFee.Amount, (FeeStandardUnit)Enum.Parse(typeof(FeeStandardUnit), item.AdditionalFee.FeeStandardUnit)) : null) );
+                item.DiscountFee != null ? DiscountFee.Create(item.DiscountFee.Amount, (FeeStandardUnit)Enum.Parse(typeof(FeeStandardUnit), item.DiscountFee.FeeStandardUnit)) : null,
+                item.AdditionalFee != null ? AdditionalFee.Create(item.AdditionalFee.Amount, (FeeStandardUnit)Enum.Parse(typeof(FeeStandardUnit), item.AdditionalFee.FeeStandardUnit)) : null));
         }
 
         if (newBusinessItems.Count > 0)
@@ -769,29 +736,26 @@ public async Task<UploadInvoiceResult> Handle(UploadInvoiceCommand request, Canc
     private record InvoiceSequenceInfo(string Prefix, int SequenceNumber);
     private record InvoiceItemData(Guid BusinessItemId, decimal Quantity, decimal UnitPrice, DiscountFee? DiscountFee, AdditionalFee? AdditionalFee);
 
-    private sealed record BusinessItemKey(string Name, decimal UnitPrice, Guid CategoryId)
+    private sealed record BusinessItemKey(string Name, decimal UnitPrice)
     {
         public bool Equals(BusinessItemKey? other)
         {
             if (other is null) return false;
             return string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase) &&
-                   UnitPrice == other.UnitPrice &&
-                   CategoryId == other.CategoryId;
+                   UnitPrice == other.UnitPrice;
         }
 
         public override int GetHashCode()
         {
             return HashCode.Combine(
                 Name.ToLowerInvariant(),
-                UnitPrice,
-                CategoryId);
+                UnitPrice);
         }
     }
 
     private class CacheContext
     {
         public Dictionary<string, Guid> PartyCache { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public Dictionary<string, Guid> CategoryCache { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
     private class BulkUploadInvoiceResult

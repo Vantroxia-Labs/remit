@@ -3,6 +3,8 @@ using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Entities.UserManagement;
 using AegisEInvoicing.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
+// Note: AppEnvironmentMode (Sandbox/Production) is still an enum — it is a two-state toggle,
+// not a registry, so enum is the correct type.
 
 namespace AegisEInvoicing.Domain.Entities.BusinessManagement;
 
@@ -23,7 +25,6 @@ public class Business : AuditableAggregateRoot
     public string Industry { get; private set; } = null!;
 
     public List<BusinessItem> BusinessItems { get; private set; } = [];
-    public List<ItemCategory> ItemCategories { get; private set; } = [];
     public List<Party> Parties { get; private set; } = [];
     public List<Invoice> Invoices { get; private set; } = [];
 
@@ -35,7 +36,19 @@ public class Business : AuditableAggregateRoot
     public Guid? AdminUserId { get; private set; }
 
     //Subscription Management
-    public Guid? SubscriptionId { get; private set; }
+    private readonly List<Subscription> _subscriptions = [];
+    public IReadOnlyCollection<Subscription> Subscriptions => _subscriptions.AsReadOnly();
+
+    /// <summary>
+    /// Payment reference recorded when an Aegis admin creates a business on behalf of a client (audit trail).
+    /// Null for self-service registrations (Paystack handles payment tracking).
+    /// </summary>
+    public string? AdminPaymentReference { get; private set; }
+
+    /// <summary>
+    /// Amount paid (₦) recorded when an Aegis admin creates a business. Null for self-service registrations.
+    /// </summary>
+    public decimal? AdminPaymentAmountNaira { get; private set; }
 
     public Guid? BusinessFIRSApiConfigurationId { get; private set; }
 
@@ -47,20 +60,34 @@ public class Business : AuditableAggregateRoot
     public string ServiceId { get; private set; } = null!; // FIRS-assigned 8-character ID for IRN generation    
     public string? OAuth2Token { get; private set; }
     public DateTimeOffset? TokenExpiresAt { get; private set; }
-    
+
     // API Access
     public string? ApiKey { get; private set; } // API key for SaaS API access
     public DateTimeOffset? ApiKeyGeneratedAt { get; private set; }
     public DateTimeOffset? ApiKeyLastUsedAt { get; private set; }
     public bool IsApiKeyActive { get; private set; } = false;
 
-    // Navigation properties  
+    // Navigation properties
     public User? AdminUser { get; private set; }
-    public Subscription? Subscription { get; private set; }
     public BusinessFIRSApiConfiguration? BusinessFIRSApiConfiguration { get; private set; }
 
     public string? PublicKey { get; private set; }
-    public string? Certificate {  get; private set; }
+    public string? Certificate { get; private set; }
+
+    // APP (Access Point Provider) switching
+    /// <summary>
+    /// The adapter key this business has selected as its Access Point Provider.
+    /// Must match IAccessPointProviderClient.ProviderCode on a registered adapter.
+    /// Null means use the platform default (first registered adapter / "interswitch").
+    /// </summary>
+    public string? ActiveAdapterKey { get; private set; }
+
+    /// <summary>
+    /// Whether this business operates in Sandbox or Production mode.
+    /// Determines which credential set (sandbox/production) is loaded from AppProviderConfiguration.
+    /// Defaults to Sandbox.
+    /// </summary>
+    public AppEnvironmentMode AppEnvironmentMode { get; private set; } = AppEnvironmentMode.Sandbox;
 
     // Licensing (On-Premise Deployments)
     public DeploymentMode DeploymentMode { get; private set; } = DeploymentMode.Cloud; // Default to Cloud (Aegis-hosted)
@@ -148,7 +175,12 @@ public class Business : AuditableAggregateRoot
         string contactEmail,
         Address address,
         Guid updatedBy,
-        string? contactPhone = null)
+        string? contactPhone = null,
+        string? industry = null,
+        string? serviceId = null,
+        string? businessRegistrationNumber = null,
+        TIN? taxIdentificationNumber = null,
+        Guid? firsBusinessId = null)
     {
         ValidateInputs(string.Empty, description, invoicePrefix, BusinessRegistrationNumber, contactEmail, true);
 
@@ -157,6 +189,16 @@ public class Business : AuditableAggregateRoot
         ContactEmail = contactEmail;
         RegisteredAddress = address;
         ContactPhone = contactPhone ?? "";
+        if (!string.IsNullOrWhiteSpace(industry))
+            Industry = industry;
+        if (!string.IsNullOrWhiteSpace(serviceId))
+            ServiceId = serviceId;
+        if (!string.IsNullOrWhiteSpace(businessRegistrationNumber))
+            BusinessRegistrationNumber = businessRegistrationNumber;
+        if (taxIdentificationNumber != null)
+            TaxIdentificationNumber = taxIdentificationNumber;
+        if (firsBusinessId.HasValue && firsBusinessId.Value != Guid.Empty)
+            FIRSBusinessId = firsBusinessId.Value;
         UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.Now;
     }
@@ -282,25 +324,16 @@ public class Business : AuditableAggregateRoot
 
     public bool HasActiveSubscription()
     {
-        return SubscriptionId.HasValue && (Subscription?.IsActive() ?? false);
-    }    
-
-    public void AssignSubscription(Guid subscriptionId, Guid assignedBy)
-    {
-        if (SubscriptionId.HasValue)
-            throw new InvalidOperationException("Business already has a subscription assigned");
-
-        SubscriptionId = subscriptionId;
-        UpdatedBy = assignedBy;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        return _subscriptions.Any(s => s.IsActive());
     }
 
-    public void UpdateSubscription(Guid newSubscriptionId, Guid updatedBy)
-    {
-        if (!SubscriptionId.HasValue)
-            throw new InvalidOperationException("Business does not have a subscription to update. Use AssignSubscription instead.");
+    public Subscription? GetPrimarySubscription() =>
+        _subscriptions.FirstOrDefault(s => s.IsActive()) ?? _subscriptions.OrderByDescending(s => s.EndDate).FirstOrDefault();
 
-        SubscriptionId = newSubscriptionId;
+    public void SetAdminPayment(string paymentReference, decimal amountNaira, Guid updatedBy)
+    {
+        AdminPaymentReference = paymentReference;
+        AdminPaymentAmountNaira = amountNaira;
         UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
@@ -344,6 +377,27 @@ public class Business : AuditableAggregateRoot
     {
         BusinessFIRSApiConfigurationId = firsApiConfigurationId;
         UpdatedBy = assignedBy;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    /// Sets the active Access Point Provider for this business by adapter key.
+    /// Pass null to revert to the platform default.
+    /// </summary>
+    public void SetAdapterKey(string? adapterKey, Guid updatedBy)
+    {
+        ActiveAdapterKey = adapterKey?.Trim().ToLowerInvariant();
+        UpdatedBy = updatedBy;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    /// Switches the business between Sandbox and Production APP credential sets.
+    /// </summary>
+    public void SetEnvironmentMode(AppEnvironmentMode mode, Guid updatedBy)
+    {
+        AppEnvironmentMode = mode;
+        UpdatedBy = updatedBy;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

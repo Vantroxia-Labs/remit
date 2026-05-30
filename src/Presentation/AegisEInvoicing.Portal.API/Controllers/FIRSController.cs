@@ -7,7 +7,6 @@ using AegisEInvoicing.FIRSAccessPoint.Interfaces;
 using AegisEInvoicing.FIRSAccessPoint.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 using System.Text;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
@@ -19,9 +18,7 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// </summary>
 [ApiController]
 //[Authorize]
-[Route("api/v{version:apiVersion}/[controller]")]
-[SwaggerTag("FIRS Integration Operations")]
-[TenantAgnostic("FIRS integration is a shared service used by all tenants")]
+[Route("api/v{version:apiVersion}/[controller]")][TenantAgnostic("FIRS integration is a shared service used by all tenants")]
 public partial class FIRSController(IFIRSHttpClient firsClient, ILogger<FIRSController> logger) : BaseApiController
 {
     private readonly IFIRSHttpClient _firsClient = firsClient ?? throw new ArgumentNullException(nameof(firsClient));
@@ -29,16 +26,7 @@ public partial class FIRSController(IFIRSHttpClient firsClient, ILogger<FIRSCont
 
     #region SampleTestCode
   //  [HttpGet("downloadsample")]
-  //  [SwaggerOperation(
-  //    Summary = "Download invoice",
-  //    Description = "Downloads Invoice"
-  //)]
-  //  [SwaggerResponse(200, "Invoice downloaded successfully", typeof(ApiResponse<object>))]
-  //  [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-  //  [SwaggerResponse(403, "Access denied to this business", typeof(ApiResponse<object>))]
-  //  [SwaggerResponse(404, "Invoice not found", typeof(ApiResponse<object>))]
-  //  [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
-  //  public async Task<IActionResult> DownloadSampleInvoice(
+  //  //  //  //  //  //  //  public async Task<IActionResult> DownloadSampleInvoice(
   //   string irn,
   //    CancellationToken cancellationToken = default)
   //  {

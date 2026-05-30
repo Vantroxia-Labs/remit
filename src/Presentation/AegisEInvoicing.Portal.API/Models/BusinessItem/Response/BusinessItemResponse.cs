@@ -1,3 +1,5 @@
+using AegisEInvoicing.Domain.Enums;
+
 namespace AegisEInvoicing.Portal.API.Models.BusinessItem.Response;
 
 /// <summary>
@@ -21,24 +23,14 @@ public class BusinessItemResponse
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Service code information
+    /// Item type: Goods or Service
+    /// </summary>
+    public ItemType ItemType { get; set; }
+
+    /// <summary>
+    /// Product code (Goods) or Service code (Services)
     /// </summary>
     public ServiceCodeResponse ServiceCode { get; set; } = null!;
-
-    /// <summary>
-    /// Tax category information
-    /// </summary>
-    public TaxCategoryResponse TaxCategory { get; set; } = null!;
-
-    /// <summary>
-    /// Item category ID
-    /// </summary>
-    public Guid ItemCategoryId { get; set; }
-
-    /// <summary>
-    /// Item category name
-    /// </summary>
-    public string? ItemCategoryName { get; set; }
 
     /// <summary>
     /// Description of the item
@@ -79,20 +71,25 @@ public class BusinessItemResponse
     /// User ID who last updated the item
     /// </summary>
     public Guid? UpdatedBy { get; set; }
+
+    /// <summary>
+    /// Tax categories applicable to this item
+    /// </summary>
+    public List<TaxCategoryItemResponse> TaxCategories { get; set; } = [];
 }
 
 /// <summary>
-/// Service code response model
+/// Service/Product code response model
 /// </summary>
 public class ServiceCodeResponse
 {
     /// <summary>
-    /// Service code
+    /// Code value
     /// </summary>
     public string Code { get; set; } = null!;
 
     /// <summary>
-    /// Service code name
+    /// Code description
     /// </summary>
     public string Name { get; set; } = null!;
 }
@@ -100,17 +97,22 @@ public class ServiceCodeResponse
 /// <summary>
 /// Tax category response model
 /// </summary>
-public class TaxCategoryResponse
+public class TaxCategoryItemResponse
 {
-    /// <summary>
-    /// Tax category name
-    /// </summary>
+    /// <summary>FIRS tax category code</summary>
+    public string Code { get; set; } = null!;
+
+    /// <summary>Display name</summary>
     public string Name { get; set; } = null!;
 
-    /// <summary>
-    /// Tax percentage
-    /// </summary>
-    public decimal Percent { get; set; }
+    /// <summary>True = percentage-based; False = flat fee</summary>
+    public bool IsPercentage { get; set; }
+
+    /// <summary>Rate (0–100) when IsPercentage is true</summary>
+    public decimal? Percent { get; set; }
+
+    /// <summary>Fixed amount when IsPercentage is false</summary>
+    public decimal? FlatAmount { get; set; }
 }
 
 /// <summary>
@@ -134,19 +136,14 @@ public class BusinessItemSummaryResponse
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Service code name
+    /// Item type: Goods or Service
+    /// </summary>
+    public ItemType ItemType { get; set; }
+
+    /// <summary>
+    /// Code value
     /// </summary>
     public string ServiceCodeName { get; set; } = null!;
-
-    /// <summary>
-    /// Tax category name
-    /// </summary>
-    public string TaxCategoryName { get; set; } = null!;
-
-    /// <summary>
-    /// Item category name
-    /// </summary>
-    public string ItemCategoryName { get; set; } = null!;
 
     /// <summary>
     /// Unit price

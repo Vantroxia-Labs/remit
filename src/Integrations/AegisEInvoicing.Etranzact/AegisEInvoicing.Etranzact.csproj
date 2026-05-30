@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>13</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <RootNamespace>AegisEInvoicing.Etranzact</RootNamespace>
+    <AssemblyName>AegisEInvoicing.Etranzact</AssemblyName>
+    <Description>eTranzact e-invoice integration - HMAC-SHA256 authentication, invoice validation, signing, and transmission.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AegisEInvoicingTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.3" />
+    <PackageReference Include="Polly" Version="8.6.5" />
+    <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
+    <PackageReference Include="Polly.Contrib.WaitAndRetry" Version="1.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.3" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\AegisEInvoicing.Application\AegisEInvoicing.Application.csproj" />
+  </ItemGroup>
+
+</Project>

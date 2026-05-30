@@ -74,7 +74,6 @@ public sealed class InvoiceValidationBackgroundService : BackgroundService
             .Include(i => i.Party)
             .Include(i => i.InvoiceLine)
                 .ThenInclude(il => il.BusinessItem)
-                .ThenInclude(bi => bi.ItemCategory)
             .Where(i => i.InvoiceStatus == InvoiceStatus.APPROVED)
             .Take(BatchSize)
             .ToListAsync(cancellationToken);

@@ -29,7 +29,7 @@ public class AddressRequest
     public string State { get; set; } = string.Empty;
 
     /// <summary>
-    /// Country name
+    /// Country code (ISO alpha-2, e.g. "NG")
     /// </summary>
     [Required(ErrorMessage = "Country is required")]
     [StringLength(2, ErrorMessage = "Country must be follow ISO standards(2 Characters)")]
@@ -40,4 +40,10 @@ public class AddressRequest
     /// </summary>
     [StringLength(20, ErrorMessage = "Postal code cannot exceed 20 characters")]
     public string? PostalCode { get; set; }
+
+    /// <summary>
+    /// LGA code from FIRS/NRS (e.g. "NG-AB-ANO")
+    /// </summary>
+    [StringLength(20, ErrorMessage = "LGA code cannot exceed 20 characters")]
+    public string? Lga { get; set; }
 }

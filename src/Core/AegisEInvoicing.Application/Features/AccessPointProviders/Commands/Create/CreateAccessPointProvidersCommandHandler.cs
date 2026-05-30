@@ -6,27 +6,51 @@ using Microsoft.Extensions.Logging;
 
 namespace AegisEInvoicing.Application.Features.AccessPointProviders.Commands.Create;
 
-public class CreateAccessPointProvidersCommandHandler(IApplicationDbContext context,
-    ICurrentUserService currentUser, IEncryptionService encryptionService, ILogger<CreateAccessPointProvidersCommandHandler> logger) : IRequestHandler<CreateAccessPointProvidersCommand, CreateAccessPointProvidersResult>
+public class CreateAccessPointProvidersCommandHandler(
+    IApplicationDbContext context,
+    ICurrentUserService currentUser,
+    IEncryptionService encryptionService,
+    ILogger<CreateAccessPointProvidersCommandHandler> logger)
+    : IRequestHandler<CreateAccessPointProvidersCommand, CreateAccessPointProvidersResult>
 {
-    private readonly IApplicationDbContext _context = context;
-    private readonly ICurrentUserService _currentUser = currentUser;
-    private readonly IEncryptionService _encryptionService = encryptionService;
-    private readonly ILogger<CreateAccessPointProvidersCommandHandler> _logger = logger;
-
-    public async Task<CreateAccessPointProvidersResult> Handle(CreateAccessPointProvidersCommand request, CancellationToken cancellationToken)
+    public async Task<CreateAccessPointProvidersResult> Handle(
+        CreateAccessPointProvidersCommand request,
+        CancellationToken cancellationToken)
     {
-        if (!_currentUser.UserId.HasValue && !_currentUser.IsPlatformAdmin)
-            return new CreateAccessPointProvidersResult(false, "Invalid user authentication/permission");
+        if (!currentUser.IsPlatformAdmin)
+            return new CreateAccessPointProvidersResult(false, "Only AegisAdmin users may manage APP provider configurations.");
 
-        string encryptedApiKey = await _encryptionService.EncryptAsync(request.ApiKey);
-        string encryptedApiSecret = await _encryptionService.EncryptAsync(request.ApiSecret);
+        var normalizedKey = request.AdapterKey.Trim().ToLowerInvariant();
 
-        var configuration = FIRSApiConfiguration.CreateForSaaS(request.Name, request.Description, encryptedApiKey, encryptedApiSecret, request.Environment, request.BaseUrl);
+        var exists = await context.AppProviderConfigurations
+            .AnyAsync(p => p.AdapterKey == normalizedKey && !p.IsDeleted, cancellationToken);
 
-        await _context.FIRSApiConfigurations.AddAsync(configuration, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+        if (exists)
+            return new CreateAccessPointProvidersResult(false,
+                $"A configuration for adapter '{normalizedKey}' already exists.");
 
-        return new CreateAccessPointProvidersResult(true, "FIRS configuration request successful");
+        var encryptedCredentials = await EncryptOptional(request.CredentialsJson, encryptionService);
+        var encryptedSandbox     = await EncryptOptional(request.SandboxCredentialsJson, encryptionService);
+
+        var configuration = AppProviderConfiguration.Create(
+            request.Name,
+            request.Description,
+            normalizedKey,
+            request.BaseUrl,
+            encryptedCredentials,
+            request.SandboxBaseUrl,
+            encryptedSandbox);
+
+        await context.AppProviderConfigurations.AddAsync(configuration, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "AppProviderConfiguration created: AdapterKey={AdapterKey}, Name={Name}",
+            normalizedKey, request.Name);
+
+        return new CreateAccessPointProvidersResult(true, "Access point provider created successfully.", configuration.Id);
     }
+
+    private static async Task<string?> EncryptOptional(string? value, IEncryptionService svc)
+        => string.IsNullOrWhiteSpace(value) ? null : await svc.EncryptAsync(value);
 }

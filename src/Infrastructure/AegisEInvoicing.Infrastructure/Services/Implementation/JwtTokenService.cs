@@ -81,9 +81,10 @@ public class JwtTokenService : IJwtTokenService
             claims.Add(new Claim("DeploymentMode", user.Business.DeploymentMode.ToString()));
 
             // Add SubscriptionTier if user has an active subscription
-            if (user.Business.Subscription?.PlatformSubscription is not null)
+            var primarySub = user.Business.GetPrimarySubscription();
+            if (primarySub?.PlatformSubscription is not null)
             {
-                claims.Add(new Claim("SubscriptionTier", user.Business.Subscription.PlatformSubscription.Tier.ToString()));
+                claims.Add(new Claim("SubscriptionTier", primarySub.PlatformSubscription.Tier.ToString()));
             }
         }
 

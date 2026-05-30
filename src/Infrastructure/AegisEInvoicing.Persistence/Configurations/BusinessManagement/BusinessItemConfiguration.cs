@@ -1,4 +1,5 @@
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
+using AegisEInvoicing.Domain.Enums;
 using AegisEInvoicing.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -28,9 +29,6 @@ public class BusinessItemConfiguration : IEntityTypeConfiguration<BusinessItem>
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(x => x.ItemCategoryId)
-            .IsRequired();
-
         builder.Property(x => x.ItemDescription)
             .IsRequired()
             .HasMaxLength(1000);
@@ -43,7 +41,13 @@ public class BusinessItemConfiguration : IEntityTypeConfiguration<BusinessItem>
             .IsRequired();
 
         // Value object configurations
-        
+
+        // ItemType as string column for readability
+        builder.Property(x => x.ItemType)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
         // ServiceCode as owned entity
         builder.OwnsOne(x => x.ServiceCode, sc =>
         {
@@ -58,39 +62,11 @@ public class BusinessItemConfiguration : IEntityTypeConfiguration<BusinessItem>
                 .HasMaxLength(200);
         });
 
-        // TaxCategory as owned entity
-        builder.OwnsOne(x => x.TaxCategory, tc =>
-        {
-            tc.Property(p => p.Name)
-                .HasColumnName("TaxCategoryName")
-                .IsRequired()
-                .HasMaxLength(500);
-
-            tc.Property(p => p.Percent)
-                .HasColumnName("TaxCategoryPercent")
-                .IsRequired()
-                .HasPrecision(5, 2);
-        });
-
         // Navigation properties
         builder.HasOne(x => x.Business)
             .WithMany(b => b.BusinessItems)
             .HasForeignKey(x => x.BusinessID)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(x => x.ItemCategory)
-            .WithMany()
-            .HasForeignKey(x => x.ItemCategoryId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Many-to-many relationship with ItemCategory through junction entity
-        builder.HasMany(x => x.ItemCategories)
-            .WithOne(ic => ic.BusinessItem)
-            .HasForeignKey(ic => ic.BusinessItemId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // Ignore computed navigation properties to prevent auto-generated junction table
-        builder.Ignore(x => x.Categories);
 
         // One-to-many relationship with InvoiceItems
         builder.HasMany(x => x.InvoiceItems)
@@ -109,13 +85,7 @@ public class BusinessItemConfiguration : IEntityTypeConfiguration<BusinessItem>
         builder.HasIndex(x => x.Name)
             .HasDatabaseName("IX_BusinessItems_Name");
 
-        builder.HasIndex(x => x.ItemCategoryId)
-            .HasDatabaseName("IX_BusinessItems_ItemCategoryId");
-
         // Composite indexes for common queries
-        builder.HasIndex(x => new { x.BusinessID, x.ItemCategoryId })
-            .HasDatabaseName("IX_BusinessItems_BusinessId_ItemCategoryId");
-
         builder.HasIndex(x => new { x.BusinessID, x.Name })
             .IsUnique()
             .HasDatabaseName("IX_BusinessItems_BusinessId_Name")
@@ -145,6 +115,19 @@ public class BusinessItemConfiguration : IEntityTypeConfiguration<BusinessItem>
 
         // Add soft delete query filter
         builder.HasQueryFilter(x => !x.IsDeleted);
+
+        // TaxCategories as owned collection
+        builder.OwnsMany(x => x.TaxCategories, taxCat =>
+        {
+            taxCat.ToTable("BusinessItemTaxCategories");
+            taxCat.WithOwner().HasForeignKey("BusinessItemId");
+            taxCat.HasKey("BusinessItemId", "Code");
+            taxCat.Property(p => p.Code).HasMaxLength(50).IsRequired();
+            taxCat.Property(p => p.Name).HasMaxLength(200).IsRequired();
+            taxCat.Property(p => p.IsPercentage).IsRequired();
+            taxCat.Property(p => p.Percent).HasPrecision(18, 4);
+            taxCat.Property(p => p.FlatAmount).HasPrecision(18, 2);
+        });
 
         // Ignore domain events
         builder.Ignore(x => x.DomainEvents);

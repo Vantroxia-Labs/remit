@@ -4,7 +4,7 @@ using MediatR;
 namespace AegisEInvoicing.Application.Features.SftpUserManagement.Commands.ChangeSftpPassword;
 
 /// <summary>
-/// Command to change an SFTP user password in both Cerberus and database
+/// Command to change an SFTP user password in both SFTPGo and database
 /// </summary>
 public class ChangeSftpPasswordCommand : IRequest<ChangeSftpPasswordResult>, ITransactionalCommand
 {

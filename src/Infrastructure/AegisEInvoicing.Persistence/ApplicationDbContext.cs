@@ -5,6 +5,7 @@ using AegisEInvoicing.Domain.Entities;
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Entities.UserManagement;
+using AegisEInvoicing.Domain.Entities.VendorManagement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -29,7 +30,9 @@ public sealed class ApplicationDbContext(
     public DbSet<IntegrationLog> IntegrationLogs => Set<IntegrationLog>();
     public DbSet<Business> Businesses => Set<Business>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<InvoiceDraft> InvoiceDrafts => Set<InvoiceDraft>();
     public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
+    public DbSet<InvoicePayment> InvoicePayments => Set<InvoicePayment>();
     public DbSet<InvoiceApprovalHistory> InvoiceApprovalHistories => Set<InvoiceApprovalHistory>();
     public DbSet<InvoiceBillingReference> BillingReferences => Set<InvoiceBillingReference>();
     public DbSet<InvoiceDispatchDocumentReference> DispatchDocumentReferences => Set<InvoiceDispatchDocumentReference>();
@@ -40,12 +43,11 @@ public sealed class ApplicationDbContext(
     public DbSet<Party> Parties => Set<Party>();
     public DbSet<BusinessItem> BusinessItems => Set<BusinessItem>();
     public DbSet<BusinessItemPriceHistory> BusinessItemPriceHistories => Set<BusinessItemPriceHistory>();
-    public DbSet<BusinessItemItemCategory> BusinessItemItemCategory => Set<BusinessItemItemCategory>();
-    public DbSet<ItemCategory> ItemCategories => Set<ItemCategory>();
     public DbSet<ReceivedInvoice> ReceivedInvoices => Set<ReceivedInvoice>();
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<FlowRule> FlowRules => Set<FlowRule>();
     public DbSet<FIRSApiConfiguration> FIRSApiConfigurations => Set<FIRSApiConfiguration>();
+    public DbSet<AppProviderConfiguration> AppProviderConfigurations => Set<AppProviderConfiguration>();
     public DbSet<BusinessFIRSApiConfiguration> BusinessFIRSApiConfigurations => Set<BusinessFIRSApiConfiguration>();
     public DbSet<BusinessOnboarding> BusinessOnboardings => Set<BusinessOnboarding>();
     public DbSet<SystemConfiguration> SystemConfigurations => Set<SystemConfiguration>();
@@ -67,6 +69,15 @@ public sealed class ApplicationDbContext(
     public DbSet<PendingBusinessRegistration> PendingBusinessRegistrations => Set<PendingBusinessRegistration>();
     public DbSet<VatSchedule> VatSchedules => Set<VatSchedule>();
     public DbSet<VatScheduleItem> VatScheduleItems => Set<VatScheduleItem>();
+    public DbSet<InputVatScheduleItem> InputVatScheduleItems => Set<InputVatScheduleItem>();
+    public DbSet<WhtSchedule> WhtSchedules => Set<WhtSchedule>();
+    public DbSet<WhtScheduleItem> WhtScheduleItems => Set<WhtScheduleItem>();
+
+    // Vendor Management
+    public DbSet<VendorGroup> VendorGroups => Set<VendorGroup>();
+    public DbSet<Vendor> Vendors => Set<Vendor>();
+    public DbSet<InvoiceBroadcast> InvoiceBroadcasts => Set<InvoiceBroadcast>();
+    public DbSet<InvoiceBroadcastVendor> InvoiceBroadcastVendors => Set<InvoiceBroadcastVendor>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

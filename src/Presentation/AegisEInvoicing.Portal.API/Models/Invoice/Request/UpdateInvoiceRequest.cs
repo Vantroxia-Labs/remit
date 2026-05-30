@@ -18,4 +18,6 @@ public class UpdateInvoiceRequest
     public List<CreateInvoiceItemDto> InvoiceItems { get; init; } = [];
 }
 
-public record UpdateInvoicePaymentStatusRequest(PaymentStatus PaymentStatus);
+public record UpdateInvoicePaymentStatusRequest(PaymentStatus PaymentStatus, string? Reference, decimal? Amount);
+
+public record UpdateReceivedInvoicePaymentStatusRequest(string PaymentStatus, string? Reference, decimal? Amount);

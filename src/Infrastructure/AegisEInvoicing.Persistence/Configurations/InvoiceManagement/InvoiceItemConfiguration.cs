@@ -22,8 +22,16 @@ public class InvoiceItemConfiguration : IEntityTypeConfiguration<InvoiceItem>
         builder.Property(x => x.InvoiceId)
             .IsRequired();
 
+        // Nullable: null for vendor-submitted free-text line items (broadcast invoices)
         builder.Property(x => x.BusinessItemId)
-            .IsRequired();
+            .IsRequired(false);
+
+        // Free-text fields for vendor-submitted line items
+        builder.Property(x => x.FreeTextDescription)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.UnitOfMeasure)
+            .HasMaxLength(50);
 
         // Basic properties configuration
         builder.Property(x => x.Quantity)
@@ -31,7 +39,7 @@ public class InvoiceItemConfiguration : IEntityTypeConfiguration<InvoiceItem>
             .HasPrecision(18, 4);
 
         // Value object configurations
-        
+
         // DiscountFee as owned entity (optional)
         builder.OwnsOne(x => x.DiscountFee, discount =>
         {
@@ -67,6 +75,7 @@ public class InvoiceItemConfiguration : IEntityTypeConfiguration<InvoiceItem>
         builder.HasOne(x => x.BusinessItem)
             .WithMany(bi => bi.InvoiceItems)
             .HasForeignKey(x => x.BusinessItemId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Indexes

@@ -24,7 +24,7 @@ public class UpdateBusinessSubscriptionCommandHandler : IRequestHandler<UpdateBu
         try
         {
             var business = await _context.Businesses
-                .Include(b => b.Subscription)
+                .Include(b => b.Subscriptions)
                 .FirstOrDefaultAsync(b => b.Id == request.BusinessId, cancellationToken);
 
             if (business == null)

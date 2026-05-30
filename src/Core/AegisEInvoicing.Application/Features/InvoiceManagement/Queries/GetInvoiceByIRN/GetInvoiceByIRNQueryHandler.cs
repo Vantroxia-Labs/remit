@@ -15,7 +15,7 @@ public class GetInvoiceByIRNQueryHandler : IRequestHandler<GetInvoiceByIRNQuery,
     private readonly ILogger<GetInvoiceByIRNQueryHandler> _logger;
 
     public GetInvoiceByIRNQueryHandler(
-        IApplicationDbContext context, 
+        IApplicationDbContext context,
         ICurrentUserService currentUserService,
         ILogger<GetInvoiceByIRNQueryHandler> logger)
     {
@@ -39,7 +39,7 @@ public class GetInvoiceByIRNQueryHandler : IRequestHandler<GetInvoiceByIRNQuery,
             }
 
             // Validate user has business access
-            if (request.BusinessId==Guid.Empty)
+            if (request.BusinessId == Guid.Empty)
             {
                 return new GetInvoiceByIRNResult
                 {
@@ -48,7 +48,7 @@ public class GetInvoiceByIRNQueryHandler : IRequestHandler<GetInvoiceByIRNQuery,
                 };
             }
 
-            _logger.LogInformation("Retrieving invoice with IRN: {IRN} for business: {BusinessId}", 
+            _logger.LogInformation("Retrieving invoice with IRN: {IRN} for business: {BusinessId}",
                 request.IRN, request.BusinessId);
 
             // Build the query with business validation
@@ -56,7 +56,6 @@ public class GetInvoiceByIRNQueryHandler : IRequestHandler<GetInvoiceByIRNQuery,
                 .AsNoTracking()
                 .Include(i => i.InvoiceLine)
                     .ThenInclude(il => il.BusinessItem)
-                        .ThenInclude(bi => bi.ItemCategory)
                 .Include(i => i.Business)
                 .Include(i => i.Party)
                 .Include(i => i.CreatedByUser)
@@ -80,9 +79,9 @@ public class GetInvoiceByIRNQueryHandler : IRequestHandler<GetInvoiceByIRNQuery,
 
             if (invoice is null)
             {
-                _logger.LogWarning("Invoice with IRN: {IRN} not found for business: {BusinessId}", 
+                _logger.LogWarning("Invoice with IRN: {IRN} not found for business: {BusinessId}",
                     request.IRN, request.BusinessId);
-                
+
                 return new GetInvoiceByIRNResult
                 {
                     Success = false,
@@ -119,23 +118,22 @@ public class GetInvoiceByIRNQueryHandler : IRequestHandler<GetInvoiceByIRNQuery,
                 {
                     Id = item.Id,
                     InvoiceId = item.InvoiceId,
-                    ItemCode = item.BusinessItem.ItemId,
-                    ServiceCode = item.BusinessItem.ServiceCode,
-                    TaxCategory = item.BusinessItem.TaxCategory,
-                    Category = item.BusinessItem.ItemCategory.Name,
-                    ItemDescription = item.BusinessItem.ItemDescription,
+                    ItemCode = item.BusinessItem!.ItemId,
+                    ServiceCode = item.BusinessItem!.ServiceCode,
+                    Category = item.BusinessItem!.ServiceCode?.Name ?? "",
+                    ItemDescription = item.BusinessItem!.ItemDescription,
                     DiscountFee = item.DiscountFee,
                     AdditionalFee = item.AdditionalFee,
-                    UnitPrice = item.BusinessItem.UnitPrice,
+                    UnitPrice = item.BusinessItem!.UnitPrice,
                     Quantity = item.Quantity,
-                    TotalPrice = item.Quantity * item.BusinessItem.UnitPrice
+                    TotalPrice = item.Quantity * item.BusinessItem!.UnitPrice
                 }).ToList(),
                 Party = new PartyDto
                 {
                     Name = invoice.Party.Name,
                     Tin = invoice.Party.TaxIdentificationNumber,
                     Email = invoice.Party.Email,
-                    Phone = invoice.Party.Phone,                    
+                    Phone = invoice.Party.Phone,
                     Address = Address.Create(invoice.Party.Address.Street,
                                 invoice.Party.Address.City,
                                 invoice.Party.Address.State,

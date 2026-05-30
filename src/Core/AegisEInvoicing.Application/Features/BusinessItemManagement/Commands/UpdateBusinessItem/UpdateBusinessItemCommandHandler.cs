@@ -2,6 +2,7 @@ using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Application.Features.BusinessItemManagement.DTOs;
 using AegisEInvoicing.Application.Features.UserManagement.Queries.GetPlatformRoles;
 using AegisEInvoicing.Domain.Constants;
+using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Exceptions;
 using AegisEInvoicing.Domain.ValueObjects;
 using MediatR;
@@ -51,28 +52,22 @@ public class UpdateBusinessItemCommandHandler : IRequestHandler<UpdateBusinessIt
             throw new NotFoundException("Business item not found");
         }
 
-        // Verify item category exists if it's being updated
-        var categoryExists = await _context.ItemCategories
-            .AnyAsync(ic => ic.Id == request.ItemCategoryId
-            && ic.BusinessID == _currentUser.BusinessId.Value
-            , cancellationToken);
-
-        if (!categoryExists)
-        {
-            _logger.LogWarning("Attempt to update business item {BusinessItemId} with non-existent item category {ItemCategoryId}", request.Id, request.ItemCategoryId);
-            throw new NotFoundException("Item Category not found");
-        }
-
         var serviceCode = ServiceCode.Create(request.ServiceCode.Code, request.ServiceCode.Name);
-        var taxCategory = TaxCategory.Create(request.TaxCategory.Name, request.TaxCategory.Percent);
 
         // Update non-price properties
         businessItem.Update(
             request.Name,
+            request.ItemType,
             serviceCode,
-            taxCategory,
-            request.ItemCategoryId,
+            Guid.Empty,
             request.ItemDescription);
+
+        // Update tax categories
+        var taxCategories = request.TaxCategories.Select(tc =>
+            tc.IsPercentage
+                ? BusinessItemTaxCategory.CreatePercentage(tc.Code, tc.Name, tc.Percent!.Value)
+                : BusinessItemTaxCategory.CreateFlatFee(tc.Code, tc.Name, tc.FlatAmount!.Value)).ToList();
+        businessItem.UpdateTaxCategories(taxCategories);
 
         // Handle price change separately - requires approval
         if ((businessItem.UnitPrice != request.UnitPrice) && !_currentUser.Roles.Contains(RoleConstants.ClientAdmin))
@@ -87,7 +82,7 @@ public class UpdateBusinessItemCommandHandler : IRequestHandler<UpdateBusinessIt
             businessItem.ApplyApprovedPrice(request.UnitPrice);
         }
 
-            _context.BusinessItems.Update(businessItem);
+        _context.BusinessItems.Update(businessItem);
         await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Successfully updated business item {BusinessItemId}", request.Id);

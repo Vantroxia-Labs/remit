@@ -2,6 +2,7 @@
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using AegisEInvoicing.Domain.Entities.UserManagement;
+using AegisEInvoicing.Domain.Entities.VendorManagement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -17,10 +18,13 @@ public interface IApplicationDbContext
     DbSet<IntegrationLog> IntegrationLogs { get; }
     DbSet<Business> Businesses { get; }
     DbSet<Invoice> Invoices { get; }
+    DbSet<InvoiceDraft> InvoiceDrafts { get; }
     DbSet<InvoiceItem> InvoiceItems { get; }
+    DbSet<InvoicePayment> InvoicePayments { get; }
     DbSet<Branch> Branches { get; }
     DbSet<FlowRule> FlowRules { get; }
     DbSet<FIRSApiConfiguration> FIRSApiConfigurations { get; }
+    DbSet<AppProviderConfiguration> AppProviderConfigurations { get; }
     DbSet<BusinessFIRSApiConfiguration> BusinessFIRSApiConfigurations { get; }
     DbSet<BusinessOnboarding> BusinessOnboardings { get; }
     DbSet<SystemConfiguration> SystemConfigurations { get; }
@@ -30,10 +34,8 @@ public interface IApplicationDbContext
     DbSet<InvoiceTransmissionQueue> InvoiceTransmissionQueues { get; }
     DbSet<InvoiceApprovalHistory> InvoiceApprovalHistories { get; }
     DbSet<Party> Parties { get; }
-    DbSet<ItemCategory> ItemCategories { get; }
     DbSet<BusinessItem> BusinessItems { get; }
     DbSet<BusinessItemPriceHistory> BusinessItemPriceHistories { get; }
-    DbSet<BusinessItemItemCategory> BusinessItemItemCategory { get; }
     DbSet<ReceivedInvoice> ReceivedInvoices { get; }
 
     // User Management entities
@@ -48,6 +50,15 @@ public interface IApplicationDbContext
     DbSet<PendingBusinessRegistration> PendingBusinessRegistrations { get; }
     DbSet<VatSchedule> VatSchedules { get; }
     DbSet<VatScheduleItem> VatScheduleItems { get; }
+    DbSet<InputVatScheduleItem> InputVatScheduleItems { get; }
+    DbSet<WhtSchedule> WhtSchedules { get; }
+    DbSet<WhtScheduleItem> WhtScheduleItems { get; }
+
+    // Vendor Management
+    DbSet<VendorGroup> VendorGroups { get; }
+    DbSet<Vendor> Vendors { get; }
+    DbSet<InvoiceBroadcast> InvoiceBroadcasts { get; }
+    DbSet<InvoiceBroadcastVendor> InvoiceBroadcastVendors { get; }
 
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

@@ -96,17 +96,18 @@ public class CreateAegisUserCommandValidator : AbstractValidator<CreateAegisUser
             return false;
 
         var domain = parts[1].ToLowerInvariant();
-        
+
         // For Aegis users, enforce corporate email domains
         var acceptedAegisDomains = new[]
         {
-            "Aegis.com", "ng.Aegis.com", "Aegis.co.uk", "Aegis.ca", "Aegis.com.au", "Aegis.de", 
-            "Aegis.nl", "Aegis.fr", "Aegis.it", "Aegis.es", "Aegis.ch",
-            "Aegis.ie", "Aegis.be", "Aegis.at", "Aegis.dk", "Aegis.se",
-            "Aegis.no", "Aegis.fi", "Aegis.pl", "Aegis.cz", "Aegis.hu",
-            "Aegis.co.za", "Aegis.com.sg", "Aegis.co.jp", "Aegis.co.kr",
-            "Aegis.com.cn", "Aegis.co.in", "Aegis.com.br", "Aegis.com.ar",
-            "Aegis.com.mx", "Aegis.cl", "Aegis.co.nz"
+            "aegis.com", "ng.aegis.com", "aegis.co.uk", "aegis.ca", "aegis.com.au", "aegis.de",
+            "aegis.nl", "aegis.fr", "aegis.it", "aegis.es", "aegis.ch",
+            "aegis.ie", "aegis.be", "aegis.at", "aegis.dk", "aegis.se",
+            "aegis.no", "aegis.fi", "aegis.pl", "aegis.cz", "aegis.hu",
+            "aegis.co.za", "aegis.com.sg", "aegis.co.jp", "aegis.co.kr",
+            "aegis.com.cn", "aegis.co.in", "aegis.com.br", "aegis.com.ar",
+            "aegis.com.mx", "aegis.cl", "aegis.co.nz",
+            "aegisnrs.com", "ng.aegisnrs.com"
         };
 
         return acceptedAegisDomains.Contains(domain);

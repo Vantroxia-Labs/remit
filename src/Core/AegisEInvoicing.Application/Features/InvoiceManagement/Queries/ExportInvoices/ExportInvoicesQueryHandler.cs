@@ -33,11 +33,10 @@ public class ExportInvoicesQueryHandler(
                     .ThenInclude(p => p.Address)
                 .Include(i => i.InvoiceLine)
                     .ThenInclude(il => il.BusinessItem)
-                        .ThenInclude(bi => bi.ItemCategory)
                 .Where(i => i.BusinessId == _currentUser.BusinessId);
 
             // Apply filters
-              query = query.Where(i => i.BusinessId == _currentUser.BusinessId!.Value);
+            query = query.Where(i => i.BusinessId == _currentUser.BusinessId!.Value);
 
             if (request.InvoiceStatus.HasValue)
                 query = query.Where(i => i.InvoiceStatus == request.InvoiceStatus.Value);
@@ -114,7 +113,7 @@ public class ExportInvoicesQueryHandler(
         CreateHeaders(worksheet);
 
         // Populate data - each invoice item gets its own row, grouped by PaymentReference
-            int row = 4; // Data starts at row 4
+        int row = 4; // Data starts at row 4
 
         foreach (var invoice in invoices)
         {
@@ -269,7 +268,7 @@ public class ExportInvoicesQueryHandler(
         worksheet.Cells[3, 25].Value = "Description";
         worksheet.Cells[3, 26].Value = "Name";
         worksheet.Cells[3, 27].Value = "ItemDescription";
-        worksheet.Cells[3, 28].Value = "ItemCategory";
+        worksheet.Cells[3, 28].Value = "ServiceCodeName";
         worksheet.Cells[3, 29].Value = "Code";
         worksheet.Cells[3, 30].Value = "Name";
         worksheet.Cells[3, 31].Value = "Name";
@@ -333,14 +332,14 @@ public class ExportInvoicesQueryHandler(
         if (item != null)
         {
             var businessItem = item.BusinessItem;
-            worksheet.Cells[row, 26].Value = businessItem.Name;
-            worksheet.Cells[row, 27].Value = businessItem.ItemDescription;
-            worksheet.Cells[row, 28].Value = businessItem.ItemCategory?.Name ?? "";
-            worksheet.Cells[row, 29].Value = businessItem.ServiceCode.Code;
-            worksheet.Cells[row, 30].Value = businessItem.ServiceCode.Name;
-            worksheet.Cells[row, 31].Value = businessItem.TaxCategory.Name;
-            worksheet.Cells[row, 32].Value = businessItem.TaxCategory.Percent;
-            worksheet.Cells[row, 33].Value = businessItem.UnitPrice;
+            worksheet.Cells[row, 26].Value = businessItem!.Name;
+            worksheet.Cells[row, 27].Value = businessItem!.ItemDescription;
+            worksheet.Cells[row, 28].Value = businessItem!.ServiceCode?.Name ?? "";
+            worksheet.Cells[row, 29].Value = businessItem!.ServiceCode!.Code;
+            worksheet.Cells[row, 30].Value = businessItem!.ServiceCode!.Name;
+            worksheet.Cells[row, 31].Value = businessItem!.ItemType.ToString();
+            worksheet.Cells[row, 32].Value = "";
+            worksheet.Cells[row, 33].Value = businessItem!.UnitPrice;
             worksheet.Cells[row, 34].Value = item.Quantity;
             worksheet.Cells[row, 35].Value = item.DiscountFee?.Amount ?? 0;
             worksheet.Cells[row, 36].Value = item.DiscountFee?.Code.ToString() ?? "";

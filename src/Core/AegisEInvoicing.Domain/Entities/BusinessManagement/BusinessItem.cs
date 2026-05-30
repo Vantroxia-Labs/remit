@@ -1,5 +1,6 @@
 ﻿using AegisEInvoicing.Domain.Common.Implementation;
 using AegisEInvoicing.Domain.Entities.InvoiceManagement;
+using AegisEInvoicing.Domain.Enums;
 
 namespace AegisEInvoicing.Domain.Entities.BusinessManagement;
 
@@ -7,28 +8,15 @@ public class BusinessItem : AuditableAggregateRoot
 {
     public string ItemId { get; private set; } = null!;
     public string Name { get; private set; } = null!;
+    public ItemType ItemType { get; private set; }
     public ServiceCode ServiceCode { get; private set; } = null!;
-    public TaxCategory TaxCategory { get; private set; } = null!;
-    
-    // Primary category (kept for backward compatibility - this is the "main" category)
-    public Guid ItemCategoryId { get; private set; }
-    
+
     public string ItemDescription { get; private set; } = null!;
     public decimal UnitPrice { get; private set; }
     public Guid BusinessID { get; private set; }
 
     // Navigation property
     public Business Business { get; private set; } = null!;
-    
-    // Primary category navigation (for backward compatibility)
-    public ItemCategory ItemCategory { get; private set; } = null!;
-
-    // Many-to-many relationship with ItemCategory (new feature)
-    private readonly List<BusinessItemItemCategory> _itemCategories = [];
-    public IReadOnlyCollection<BusinessItemItemCategory> ItemCategories => _itemCategories.AsReadOnly();
-
-    // Computed property for easier access to all categories
-    public IEnumerable<ItemCategory> Categories => _itemCategories.Select(ic => ic.ItemCategory);
 
     // Collections
     private readonly List<InvoiceItem> _invoiceItems = [];
@@ -37,16 +25,19 @@ public class BusinessItem : AuditableAggregateRoot
     private readonly List<BusinessItemPriceHistory> _priceHistory = [];
     public IReadOnlyCollection<BusinessItemPriceHistory> PriceHistory => _priceHistory.AsReadOnly();
 
+    private readonly List<BusinessItemTaxCategory> _taxCategories = [];
+    public IReadOnlyCollection<BusinessItemTaxCategory> TaxCategories => _taxCategories.AsReadOnly();
+
     private BusinessItem() { } // Required for EF Core
 
     /// <summary>
-    /// Factory method for creating a new BusinessItem with a single category.
+    /// Factory method for creating a new BusinessItem.
     /// </summary>
     public static BusinessItem Create(
         Guid businessId,
         string name,
+        ItemType itemType,
         ServiceCode serviceCode,
-        TaxCategory taxCategory,
         Guid itemCategoryId,
         string itemDescription,
         decimal unitPrice)
@@ -60,23 +51,16 @@ public class BusinessItem : AuditableAggregateRoot
         if (unitPrice < 0)
             throw new ArgumentOutOfRangeException(nameof(unitPrice), "UnitPrice cannot be negative.");
 
-        var item = new BusinessItem
+        return new BusinessItem
         {
             ItemId = new ItemId().FullId,
             BusinessID = businessId,
             Name = name,
+            ItemType = itemType,
             ServiceCode = serviceCode,
-            TaxCategory = taxCategory,
-            ItemCategoryId = itemCategoryId,
             ItemDescription = itemDescription,
             UnitPrice = unitPrice
         };
-        
-        // Also add to the many-to-many collection
-        var itemCategory = BusinessItemItemCategory.Create(item.Id, itemCategoryId);
-        item._itemCategories.Add(itemCategory);
-        
-        return item;
     }
 
     /// <summary>
@@ -84,8 +68,8 @@ public class BusinessItem : AuditableAggregateRoot
     /// </summary>
     public void Update(
         string name,
+        ItemType itemType,
         ServiceCode serviceCode,
-        TaxCategory taxCategory,
         Guid itemCategoryId,
         string itemDescription)
     {
@@ -96,9 +80,8 @@ public class BusinessItem : AuditableAggregateRoot
             throw new ArgumentException("ServiceCode cannot be empty.", nameof(serviceCode));
 
         Name = name;
+        ItemType = itemType;
         ServiceCode = serviceCode;
-        TaxCategory = taxCategory;
-        ItemCategoryId = itemCategoryId;
         ItemDescription = itemDescription;
     }
 
@@ -159,69 +142,12 @@ public class BusinessItem : AuditableAggregateRoot
     }
 
     /// <summary>
-    /// Update the primary category of the item.
-    /// Also ensures the category is in the many-to-many collection.
+    /// Replaces the entire tax category collection.
+    /// Pass an empty enumerable to clear all tax categories.
     /// </summary>
-    public void UpdateCategory(Guid categoryId)
+    public void UpdateTaxCategories(IEnumerable<BusinessItemTaxCategory> taxCategories)
     {
-        if (categoryId == Guid.Empty)
-            throw new ArgumentException("Category cannot be empty.", nameof(categoryId));
-
-        ItemCategoryId = categoryId;
-        
-        // Ensure the category is also in the many-to-many collection
-        if (!_itemCategories.Any(ic => ic.ItemCategoryId == categoryId))
-        {
-            var itemCategory = BusinessItemItemCategory.Create(Id, categoryId);
-            _itemCategories.Add(itemCategory);
-        }
-    }
-
-    /// <summary>
-    /// Adds a category to this business item (many-to-many relationship).
-    /// </summary>
-    public void AddCategory(Guid categoryId)
-    {
-        if (categoryId == Guid.Empty)
-            throw new ArgumentException("Category ID cannot be empty", nameof(categoryId));
-
-        // Check if category is already associated
-        if (_itemCategories.Any(ic => ic.ItemCategoryId == categoryId))
-            return; // Already exists, no need to add
-
-        var itemCategory = BusinessItemItemCategory.Create(Id, categoryId);
-        _itemCategories.Add(itemCategory);
-    }
-
-    /// <summary>
-    /// Removes a category from this business item.
-    /// Cannot remove the primary category.
-    /// </summary>
-    public void RemoveCategory(Guid categoryId)
-    {
-        if (categoryId == ItemCategoryId)
-            throw new InvalidOperationException("Cannot remove the primary category. Update the primary category first.");
-
-        var itemCategory = _itemCategories.FirstOrDefault(ic => ic.ItemCategoryId == categoryId);
-        if (itemCategory != null)
-        {
-            _itemCategories.Remove(itemCategory);
-        }
-    }
-
-    /// <summary>
-    /// Checks if this item belongs to a specific category.
-    /// </summary>
-    public bool BelongsToCategory(Guid categoryId)
-    {
-        return _itemCategories.Any(ic => ic.ItemCategoryId == categoryId);
-    }
-
-    /// <summary>
-    /// Gets all category IDs this item belongs to.
-    /// </summary>
-    public IEnumerable<Guid> GetCategoryIds()
-    {
-        return _itemCategories.Select(ic => ic.ItemCategoryId);
+        _taxCategories.Clear();
+        _taxCategories.AddRange(taxCategories);
     }
 }

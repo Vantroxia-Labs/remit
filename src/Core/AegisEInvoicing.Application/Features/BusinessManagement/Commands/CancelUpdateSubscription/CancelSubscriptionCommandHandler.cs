@@ -19,16 +19,17 @@ public class CancelSubscriptionCommandHandler(IApplicationDbContext context,
             if (!_currentUser.BusinessId.HasValue)
                 return new CancelSubscriptionResult(false, "User authentication required");
 
-            var getBusiness = await _context.Businesses.Include(s => s.Subscription).FirstOrDefaultAsync(i => i.Id == _currentUser.BusinessId);
+            var getBusiness = await _context.Businesses.Include(s => s.Subscriptions).FirstOrDefaultAsync(i => i.Id == _currentUser.BusinessId);
 
             if(getBusiness is null)
                 return new CancelSubscriptionResult(false, "Business does not exist.");
 
-            var subscription = getBusiness.Subscription;
-
-            subscription?.Cancel(_currentUser.UserId.GetValueOrDefault(), string.IsNullOrWhiteSpace(request.reason) ? "Cancelled by Merchant Admin" : request.reason);
-
-            _context.Subscriptions.Update(subscription!);
+            var reason = string.IsNullOrWhiteSpace(request.reason) ? "Cancelled by Merchant Admin" : request.reason;
+            foreach (var sub in getBusiness.Subscriptions.Where(s => s.Status != AegisEInvoicing.Domain.Entities.BusinessManagement.SubscriptionStatus.Cancelled))
+            {
+                sub.Cancel(_currentUser.UserId.GetValueOrDefault(), reason);
+                _context.Subscriptions.Update(sub);
+            }
             await _context.SaveChangesAsync(cancellationToken);
 
             return new CancelSubscriptionResult(true, $"Subscription updated successfully.");

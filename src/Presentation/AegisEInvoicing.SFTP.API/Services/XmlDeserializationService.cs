@@ -28,8 +28,8 @@ public class XmlDeserializationService : IXmlDeserializationService
     }
 
     public async Task<CreateInvoiceRequest?> DeserializeInvoiceRequestAsync(
-        string xmlContent, 
-        string fileName, 
+        string xmlContent,
+        string fileName,
         CancellationToken cancellationToken = default)
     {
         try
@@ -40,7 +40,7 @@ public class XmlDeserializationService : IXmlDeserializationService
             var validationResult = await ValidateXmlStructureAsync(xmlContent, fileName);
             if (!validationResult.IsValid)
             {
-                _logger.LogWarning("XML structure validation failed for {FileName}: {Errors}", 
+                _logger.LogWarning("XML structure validation failed for {FileName}: {Errors}",
                     fileName, string.Join(", ", validationResult.Errors));
                 return null;
             }
@@ -54,7 +54,7 @@ public class XmlDeserializationService : IXmlDeserializationService
                 ValidationType = ValidationType.None,
                 CheckCharacters = false
             };
-            
+
             XDocument xmlDoc;
             using (var stringReader = new StringReader(sanitizedXmlContent))
             using (var xmlReader = XmlReader.Create(stringReader, xmlReaderSettings))
@@ -91,7 +91,7 @@ public class XmlDeserializationService : IXmlDeserializationService
                 var businessValidation = await ValidateInvoiceRequestAsync(invoiceRequest, fileName);
                 if (!businessValidation.IsValid)
                 {
-                    _logger.LogWarning("Business rule validation failed for {FileName}: {Errors}", 
+                    _logger.LogWarning("Business rule validation failed for {FileName}: {Errors}",
                         fileName, JsonSerializer.Serialize(businessValidation.Errors));
                     return null;
                 }
@@ -119,7 +119,7 @@ public class XmlDeserializationService : IXmlDeserializationService
         {
             // Sanitize XML content first
             var sanitizedXmlContent = SanitizeXmlContent(xmlContent);
-            
+
             // Basic XML parsing validation with better settings
             var xmlReaderSettings = new XmlReaderSettings
             {
@@ -128,14 +128,14 @@ public class XmlDeserializationService : IXmlDeserializationService
                 ValidationType = ValidationType.None,
                 CheckCharacters = false  // Allow problematic characters
             };
-            
+
             XDocument xmlDoc;
             using (var stringReader = new StringReader(sanitizedXmlContent))
             using (var xmlReader = XmlReader.Create(stringReader, xmlReaderSettings))
             {
                 xmlDoc = XDocument.Load(xmlReader);
             }
-            
+
             if (xmlDoc.Root == null)
             {
                 return XmlValidationResult.Failure("XML document has no root element");
@@ -164,10 +164,10 @@ public class XmlDeserializationService : IXmlDeserializationService
                 warnings.Add($"Schema version '{schemaVersion}' may not be fully supported. Supported versions: {string.Join(", ", _supportedSchemaVersions)}");
             }
 
-            var result = errors.Count == 0 
+            var result = errors.Count == 0
                 ? XmlValidationResult.Success(schemaVersion, documentType)
                 : XmlValidationResult.Failure(errors);
-            
+
             result.Warnings = warnings;
 
             _logger.LogDebug("XML structure validation completed for {FileName}. Valid: {IsValid}, Errors: {ErrorCount}, Warnings: {WarningCount}",
@@ -197,7 +197,7 @@ public class XmlDeserializationService : IXmlDeserializationService
             // Use data annotations validation
             var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(invoiceRequest);
             var dataAnnotationResults = new List<DataAnnotationValidationResult>();
-            
+
             if (!ValidationExtensions.TryValidateObjectRecursively(invoiceRequest, validationContext, dataAnnotationResults))
             {
                 foreach (var result in dataAnnotationResults)
@@ -210,10 +210,10 @@ public class XmlDeserializationService : IXmlDeserializationService
             // Custom business rule validations
             ValidateBusinessRules(invoiceRequest, errors, warnings);
 
-            var validationResult = errors.Count == 0 
-                ? ServiceValidationResult.Success() 
+            var validationResult = errors.Count == 0
+                ? ServiceValidationResult.Success()
                 : ServiceValidationResult.Failure(errors);
-            
+
             validationResult.Warnings = warnings;
 
             _logger.LogDebug("Business rule validation completed for {FileName}. Valid: {IsValid}, Errors: {ErrorCount}, Warnings: {WarningCount}",
@@ -234,7 +234,7 @@ public class XmlDeserializationService : IXmlDeserializationService
         {
             var sanitizedXmlContent = SanitizeXmlContent(xmlContent);
             var xmlDoc = XDocument.Parse(sanitizedXmlContent);
-            
+
             // Try different possible locations for AegisBusinessId (preferred) or BusinessId (backward compatibility)
             var businessIdElement = xmlDoc.Descendants()
                 .FirstOrDefault(e =>
@@ -435,12 +435,12 @@ public class XmlDeserializationService : IXmlDeserializationService
     private List<ApiCreateInvoiceItemDto> ParseInvoiceItems(XElement parentElement)
     {
         var items = new List<ApiCreateInvoiceItemDto>();
-        
+
         // First try to find invoiceItems container, then look for item elements inside it
         var invoiceItemsContainer = parentElement.Descendants()
             .FirstOrDefault(e => e.Name.LocalName.Equals("InvoiceItems", StringComparison.OrdinalIgnoreCase));
         List<XElement> itemElements;
-        
+
         if (invoiceItemsContainer != null)
         {
             // Look for item elements within invoiceItems container
@@ -470,11 +470,10 @@ public class XmlDeserializationService : IXmlDeserializationService
                 {
                     Name = GetElementValue(itemElement, "Name") ?? "Invoice Item",
                     ItemDescription = GetElementValue(itemElement, "Description") ?? GetElementValue(itemElement, "ItemDescription") ?? "Invoice item description",
-                    ItemCategory = GetElementValue(itemElement, "Category") ?? GetElementValue(itemElement, "ItemCategory") ?? "General",
                     UnitPrice = decimal.TryParse(GetElementValue(itemElement, "UnitPrice"), out var price) ? price : 0,
                     Quantity = int.TryParse(GetElementValue(itemElement, "Quantity"), out var qty) ? qty : 1,
                     ServiceCode = ParseServiceCode(itemElement),
-                    TaxCategory = ParseTaxCategory(itemElement),
+                    TaxCategories = [ParseTaxCategory(itemElement)],
                     DiscountFee = ParseDiscountFee(itemElement),
                     AdditionalFee = ParseAdditionalFee(itemElement)
                 };
@@ -614,7 +613,7 @@ public class XmlDeserializationService : IXmlDeserializationService
     {
         var serviceElement = parentElement.Descendants()
             .FirstOrDefault(e => e.Name.LocalName.Equals("ServiceCode", StringComparison.OrdinalIgnoreCase));
-        
+
         return new ServiceCodeRequest
         {
             Code = GetElementValue(serviceElement, "Code") ?? "9999",
@@ -626,10 +625,11 @@ public class XmlDeserializationService : IXmlDeserializationService
     {
         var taxElement = parentElement.Descendants()
             .FirstOrDefault(e => e.Name.LocalName.Equals("TaxCategory", StringComparison.OrdinalIgnoreCase));
-        
+
         return new TaxCategoryRequest
         {
             Name = GetElementValue(taxElement, "Name") ?? "Standard Rate",
+            IsPercentage = true,
             Percent = decimal.TryParse(GetElementValue(taxElement, "Percent"), out var percent) ? percent : 7.5m
         };
     }
@@ -674,7 +674,7 @@ public class XmlDeserializationService : IXmlDeserializationService
 
         return null;
     }
-    
+
     private TimeOnly? ParseTimeOnly(XElement parentElement, string elementName)
     {
         var value = GetElementValue(parentElement, elementName);
@@ -690,16 +690,16 @@ public class XmlDeserializationService : IXmlDeserializationService
 
         return null;
     }
-    
+
     private AegisEInvoicing.Domain.Enums.FeeStandardUnit ParseFeeStandardUnit(string? codeValue)
     {
         if (string.IsNullOrWhiteSpace(codeValue))
             return AegisEInvoicing.Domain.Enums.FeeStandardUnit.NGN;
-            
+
         // Try to parse as enum name first
         if (Enum.TryParse<AegisEInvoicing.Domain.Enums.FeeStandardUnit>(codeValue, true, out var enumValue))
             return enumValue;
-            
+
         // Try to parse as numeric value
         if (int.TryParse(codeValue, out var numericCode))
         {
@@ -710,7 +710,7 @@ public class XmlDeserializationService : IXmlDeserializationService
                 _ => AegisEInvoicing.Domain.Enums.FeeStandardUnit.NGN
             };
         }
-        
+
         return AegisEInvoicing.Domain.Enums.FeeStandardUnit.NGN;
     }
 
@@ -791,7 +791,7 @@ public class XmlDeserializationService : IXmlDeserializationService
         try
         {
             _logger.LogDebug("Sanitizing XML content");
-            
+
             // Remove BOM if present
             if (xmlContent.Length > 0 && xmlContent[0] == '\uFEFF')
             {
@@ -804,18 +804,18 @@ public class XmlDeserializationService : IXmlDeserializationService
 
             // Fix common XML entity issues
             var sanitized = xmlContent;
-            
+
             // Fix unescaped ampersands that are not part of valid entities
             // This regex finds & that are not followed by valid entity names
             sanitized = Regex.Replace(sanitized, @"&(?![a-zA-Z][a-zA-Z0-9]*;|#[0-9]+;|#x[0-9a-fA-F]+;)", "&amp;");
-            
+
             // Fix unescaped less-than and greater-than in text content
             // This is more complex as we need to avoid elements and attributes
             // For now, we'll focus on the most common issues
-            
+
             // Remove any control characters except tab, newline, and carriage return
             sanitized = Regex.Replace(sanitized, @"[\x00-\x08\x0B\x0C\x0E-\x1F]", "");
-            
+
             // Ensure proper encoding declaration
             if (!sanitized.TrimStart().StartsWith("<?xml", StringComparison.OrdinalIgnoreCase))
             {

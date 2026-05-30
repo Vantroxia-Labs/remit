@@ -44,9 +44,11 @@ public class GetPendingApprovalInvoicesQueryHandler : IRequestHandler<GetPending
         // Note: InvoiceLine is not included as it's not used in the projection
         var query = _context.Invoices
             .AsNoTracking()
+            .Include(i => i.InvoiceLine)
+                .ThenInclude(il => il.BusinessItem)
+            .Include(i => i.Party)
             .Include(i => i.Business)
             .Include(i => i.InvoiceApprovalHistory)
-            .Include(i => i.CreatedByUser)
             .Where(i => i.BusinessId == _currentUserService.BusinessId.Value)
             .Where(i => i.InvoiceStatus == InvoiceStatus.PENDING_APPROVAL)
             .Where(i => !i.IsDeleted)
@@ -80,22 +82,23 @@ public class GetPendingApprovalInvoicesQueryHandler : IRequestHandler<GetPending
             .Select(invoice => new InvoiceDto
             {
                 Id = invoice.Id,
+                InvoiceCode = invoice.InvoiceCode,
                 BusinessId = invoice.BusinessId,
                 BusinessName = invoice.Business.Name,
+                PartyName = invoice.Party != null ? invoice.Party.Name : null,
                 InvoiceStatus = invoice.InvoiceApprovalHistory
                     .Select(x => x.InvoiceStatus)
                     .OrderBy(x => x)
                     .ToArray(),
-                Irn = invoice.Irn.Value,
-                CurrentInvoiceStatus = invoice.InvoiceStatus,
+                Irn = invoice.Irn != null ? invoice.Irn.Value : string.Empty,
+                Status = invoice.InvoiceStatus,
                 FirsResponseMessage = "Pending ClientAdmin Approval",
                 InvoiceSource = invoice.InvoiceSource,
                 PaymentStatus = invoice.PaymentStatus,
                 IssueDate = invoice.IssueDate,
+                TotalAmount = invoice.InvoiceLine.Sum(il => (decimal)(il.Quantity * (il.BusinessItem != null ? il.BusinessItem.UnitPrice : 0.0m))),
                 CreatedAt = invoice.CreatedAt,
-                CreatedBy = invoice.CreatedByUser != null
-                    ? invoice.CreatedByUser.ToString()
-                    : "System"
+                CreatedBy = invoice.CreatedBy.ToString()
             })
             .ToListAsync(cancellationToken);
 

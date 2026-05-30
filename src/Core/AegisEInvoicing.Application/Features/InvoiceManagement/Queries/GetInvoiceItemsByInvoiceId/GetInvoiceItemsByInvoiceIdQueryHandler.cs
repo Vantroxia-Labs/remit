@@ -49,18 +49,17 @@ public class GetInvoiceItemsByInvoiceIdQueryHandler : IRequestHandler<GetInvoice
 
             var invoiceItems = await _context.InvoiceItems
                 .Include(li => li.BusinessItem)
-                .ThenInclude(li => li.ItemCategory)
                 .Where(ii => ii.InvoiceId == request.InvoiceId)
                 .Select(item => new InvoiceItemDto
                 {
                     Id = item.Id,
                     InvoiceId = item.InvoiceId,
-                    ItemCode = item.BusinessItem.ItemId,
-                    Category = item.BusinessItem.ItemCategory.Name,
-                    ItemDescription = item.BusinessItem.ItemDescription,
-                    UnitPrice = item.BusinessItem.UnitPrice,
+                    ItemCode = item.BusinessItem!.ItemId,
+                    Category = item.BusinessItem!.ServiceCode.Name ?? "",
+                    ItemDescription = item.BusinessItem!.ItemDescription,
+                    UnitPrice = item.BusinessItem!.UnitPrice,
                     Quantity = item.Quantity,
-                    TotalPrice = item.Quantity * item.BusinessItem.UnitPrice
+                    TotalPrice = item.Quantity * item.BusinessItem!.UnitPrice
                 })
                 .OrderBy(ii => ii.Id)
                 .ToListAsync(cancellationToken);

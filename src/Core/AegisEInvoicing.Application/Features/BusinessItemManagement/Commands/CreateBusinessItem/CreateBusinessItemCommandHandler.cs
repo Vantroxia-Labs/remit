@@ -49,16 +49,6 @@ public class CreateBusinessItemCommandHandler : IRequestHandler<CreateBusinessIt
             throw new NotFoundException("Business not found");
         }
 
-        // Verify item category exists
-        var categoryExists = await _context.ItemCategories
-            .AnyAsync(ic => ic.Id == request.ItemCategoryId, cancellationToken);
-
-        if (!categoryExists)
-        {
-            _logger.LogWarning("Attempt to create business item for non-existent item category {ItemCategoryId}", request.ItemCategoryId);
-            throw new ConflictException("Item category not found");
-        }
-
         // Check for duplicate business item name within the same business
         var existingItem = await _context.BusinessItems
             .Where(bi => bi.BusinessID == _currentUser.BusinessId.Value &&
@@ -74,17 +64,23 @@ public class CreateBusinessItemCommandHandler : IRequestHandler<CreateBusinessIt
 
         // Create value objects
         var serviceCode = ServiceCode.Create(request.ServiceCode.Code, request.ServiceCode.Name);
-        var taxCategory = TaxCategory.Create(request.TaxCategory.Name, request.TaxCategory.Percent);
 
         // Create BusinessItem entity
         var businessItem = BusinessItem.Create(
             _currentUser.BusinessId.Value,
             request.Name,
+            request.ItemType,
             serviceCode,
-            taxCategory,
-            request.ItemCategoryId,
+            Guid.Empty,
             request.ItemDescription,
             request.UnitPrice);
+
+        // Apply tax categories
+        var taxCategories = request.TaxCategories.Select(tc =>
+            tc.IsPercentage
+                ? BusinessItemTaxCategory.CreatePercentage(tc.Code, tc.Name, tc.Percent!.Value)
+                : BusinessItemTaxCategory.CreateFlatFee(tc.Code, tc.Name, tc.FlatAmount!.Value)).ToList();
+        businessItem.UpdateTaxCategories(taxCategories);
 
         // Save to database
         await _context.BusinessItems.AddAsync(businessItem);

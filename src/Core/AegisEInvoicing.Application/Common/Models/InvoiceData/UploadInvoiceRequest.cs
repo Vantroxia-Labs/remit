@@ -79,9 +79,8 @@ public class InvoiceItemRequest
     public string Name { get; set; } = null!;
     [StringLength(500, MinimumLength = 10)]
     public string ItemDescription { get; set; } = null!;
-    public string ItemCategory { get; set; } = null!;
     public ServiceCodeRequest ServiceCode { get; set; } = null!;
-    public TaxCategoryRequest TaxCategory { get; set; } = null!;
+    public List<TaxCategoryRequest> TaxCategories { get; set; } = [];
     public decimal UnitPrice { get; set; }
     public decimal Quantity { get; set; }
     public FeeRequest DiscountFee { get; set; } = null!;
@@ -97,7 +96,9 @@ public class ServiceCodeRequest
 public class TaxCategoryRequest
 {
     public string Name { get; set; } = null!;
-    public decimal Percent { get; set; }
+    public bool IsPercentage { get; set; }
+    public decimal? Percent { get; set; }
+    public decimal? FlatAmount { get; set; }
 }
 
 public class FeeRequest

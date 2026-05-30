@@ -22,7 +22,7 @@ public static class PermissionConstants
     public const string DeleteRoles = "roles.delete";
     public const string AssignRoles = "roles.assign";
     public const string RevokeRoles = "roles.revoke";
-    
+
     // Aegis User Management Permissions (Platform-level only)
     public const string CreateAegisUsers = "Aegis_users.create";
     public const string ViewAegisUsers = "Aegis_users.view";
@@ -32,7 +32,7 @@ public static class PermissionConstants
     public const string ActivateAegisUsers = "Aegis_users.activate";
     public const string DeactivateAegisUsers = "Aegis_users.deactivate";
     public const string ResetAegisUserPasswords = "Aegis_users.reset_password";
-    
+
     // Invoice Management Permissions
     public const string CreateInvoices = "invoices.create";
     public const string ViewInvoices = "invoices.view";
@@ -41,34 +41,75 @@ public static class PermissionConstants
     public const string SubmitInvoices = "invoices.submit";
     public const string ApproveInvoices = "invoices.approve";
     public const string RejectInvoices = "invoices.reject";
-    
+
+    // Party (Customer/Supplier) Management Permissions
+    public const string CreateParties = "parties.create";
+    public const string ViewParties = "parties.view";
+    public const string UpdateParties = "parties.update";
+    public const string DeleteParties = "parties.delete";
+
+    // Item / Product Management Permissions
+    public const string CreateItems = "items.create";
+    public const string ViewItems = "items.view";
+    public const string UpdateItems = "items.update";
+    public const string DeleteItems = "items.delete";
+
     // Business Management Permissions
+    public const string CreateBusiness = "business.create";
     public const string ViewBusiness = "business.view";
     public const string UpdateBusiness = "business.update";
     public const string ManageBusinessSettings = "business.manage_settings";
     public const string ManageBranches = "business.manage_branches";
     public const string ManageCertificates = "business.manage_certificates";
-    
+
     // Tenant Management Permissions
     public const string ManageTenant = "tenant.manage";
     public const string ViewTenantSettings = "tenant.view_settings";
     public const string UpdateTenantSettings = "tenant.update_settings";
-    
+
     // System Permissions
     public const string ViewAuditLogs = "system.view_audit_logs";
     public const string ViewIntegrationLogs = "system.view_integration_logs";
     public const string ManageIntegrations = "system.manage_integrations";
-    
+
+    /// <summary>
+    /// Permissions a ClientAdmin is allowed to include when building custom business roles.
+    /// Deliberately excludes: certificates (business.manage_certificates), tenant management,
+    /// system integrations, and Aegis platform user management.
+    /// business.manage_settings IS included so ClientAdmin can delegate app/env switching.
+    ///</summary>
+    public static readonly string[] ClientAdminAssignablePermissions = [
+        // Invoice operations
+        CreateInvoices, ViewInvoices, UpdateInvoices, DeleteInvoices,
+        SubmitInvoices, ApproveInvoices, RejectInvoices,
+
+        // Party (customer/supplier) management
+        CreateParties, ViewParties, UpdateParties, DeleteParties,
+
+        // Item / product management
+        CreateItems, ViewItems, UpdateItems, DeleteItems,
+
+        // User management within the business
+        CreateUsers, ViewUsers, UpdateUsers, DeleteUsers,
+        ActivateUsers, DeactivateUsers, ResetPasswords,
+
+        // Business info and settings (no certs/env — those stay platform-only)
+        ViewBusiness, UpdateBusiness, ManageBranches, ManageBusinessSettings,
+
+        // Reporting / audit (read-only system access)
+        ViewAuditLogs, ViewIntegrationLogs,
+    ];
+
     /// <summary>
     /// Gets all available system permissions
     /// </summary>
     public static readonly string[] AllPermissions = [
         // User Management
-        CreateUsers, ViewUsers, UpdateUsers, DeleteUsers, 
+        CreateUsers, ViewUsers, UpdateUsers, DeleteUsers,
         ActivateUsers, DeactivateUsers, ResetPasswords,
         
         // Role Management
-        CreateRoles, ViewRoles, UpdateRoles, DeleteRoles, 
+        CreateRoles, ViewRoles, UpdateRoles, DeleteRoles,
         AssignRoles, RevokeRoles,
         
         // Aegis User Management
@@ -78,9 +119,15 @@ public static class PermissionConstants
         // Invoice Management
         CreateInvoices, ViewInvoices, UpdateInvoices, DeleteInvoices,
         SubmitInvoices, ApproveInvoices, RejectInvoices,
+
+        // Party Management
+        CreateParties, ViewParties, UpdateParties, DeleteParties,
+
+        // Item Management
+        CreateItems, ViewItems, UpdateItems, DeleteItems,
         
         // Business Management
-        ViewBusiness, UpdateBusiness, ManageBusinessSettings,
+        CreateBusiness, ViewBusiness, UpdateBusiness, ManageBusinessSettings,
         ManageBranches, ManageCertificates,
         
         // Tenant Management
@@ -95,11 +142,11 @@ public static class PermissionConstants
     /// </summary>
     public static readonly string[] PlatformAdminPermissions = [
         // User Management - Full control
-        CreateUsers, ViewUsers, UpdateUsers, DeleteUsers, 
+        CreateUsers, ViewUsers, UpdateUsers, DeleteUsers,
         ActivateUsers, DeactivateUsers, ResetPasswords,
         
         // Role Management - Full control
-        CreateRoles, ViewRoles, UpdateRoles, DeleteRoles, 
+        CreateRoles, ViewRoles, UpdateRoles, DeleteRoles,
         AssignRoles, RevokeRoles,
         
         // Aegis User Management - Full control (Platform-level only)
@@ -172,5 +219,32 @@ public static class PermissionConstants
     public static readonly string[] ViewerPermissions = [
         // Read-only access
         ViewInvoices, ViewBusiness
+    ];
+
+    /// <summary>
+    /// Permissions an AegisAdmin can assign to new Aegis staff members.
+    /// The full AegisAdmin role always retains platform.full_access.
+    /// These are the granular permissions available for restricted Aegis staff.
+    /// </summary>
+    public static readonly string[] AegisAdminAssignablePermissions = [
+        // Aegis user management
+        CreateAegisUsers, ViewAegisUsers, UpdateAegisUserProfiles, UpdateAegisUserRoles,
+        DeleteAegisUsers, ActivateAegisUsers, DeactivateAegisUsers, ResetAegisUserPasswords,
+
+        // Business management
+        CreateBusiness, ViewBusiness, UpdateBusiness, ManageBusinessSettings, ManageBranches, ManageCertificates,
+
+        // Client user management
+        CreateUsers, ViewUsers, UpdateUsers, DeleteUsers,
+        ActivateUsers, DeactivateUsers, ResetPasswords,
+
+        // Role management
+        CreateRoles, ViewRoles, UpdateRoles, DeleteRoles, AssignRoles, RevokeRoles,
+
+        // Reporting
+        ViewAuditLogs, ViewIntegrationLogs, ManageIntegrations,
+
+        // Tenant management
+        ManageTenant, ViewTenantSettings, UpdateTenantSettings,
     ];
 }

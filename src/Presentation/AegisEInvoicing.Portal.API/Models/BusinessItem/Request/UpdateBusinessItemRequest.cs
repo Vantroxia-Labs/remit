@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using AegisEInvoicing.Domain.Enums;
 
 namespace AegisEInvoicing.Portal.API.Models.BusinessItem.Request;
 
@@ -15,22 +16,16 @@ public class UpdateBusinessItemRequest
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Service code information
+    /// Item type: Goods or Service
     /// </summary>
-    [Required(ErrorMessage = "Service code is required")]
+    [Required(ErrorMessage = "Item type is required")]
+    public ItemType ItemType { get; set; }
+
+    /// <summary>
+    /// Product code (for Goods) or Service code (for Services)
+    /// </summary>
+    [Required(ErrorMessage = "Code is required")]
     public ServiceCodeRequest ServiceCode { get; set; } = null!;
-
-    /// <summary>
-    /// Tax category information
-    /// </summary>
-    [Required(ErrorMessage = "Tax category is required")]
-    public TaxCategoryRequest TaxCategory { get; set; } = null!;
-
-    /// <summary>
-    /// Item category ID
-    /// </summary>
-    [Required(ErrorMessage = "Item category is required")]
-    public Guid ItemCategoryId { get; set; }
 
     /// <summary>
     /// Description of the item
@@ -45,4 +40,9 @@ public class UpdateBusinessItemRequest
     [Required(ErrorMessage = "Unit price is required")]
     [Range(0, double.MaxValue, ErrorMessage = "Unit price must be greater than or equal to 0")]
     public decimal UnitPrice { get; set; }
+
+    /// <summary>
+    /// Tax categories applicable to this item
+    /// </summary>
+    public List<TaxCategoryItemRequest> TaxCategories { get; set; } = [];
 }

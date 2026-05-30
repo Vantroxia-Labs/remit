@@ -9,7 +9,7 @@ namespace AegisEInvoicing.Domain.Common;
 public static class UserSeedData
 {
     // Predefined IDs for consistency
-    private static readonly Guid SystemUserId = Guid.Parse("c0b8df9d-14c3-4d69-bb92-adee94bde64e");   
+    private static readonly Guid SystemUserId = Guid.Parse("c0b8df9d-14c3-4d69-bb92-adee94bde64e");
 
     public static List<PlatformRole> GetSeedPlatformRoles(Guid actualCreatedBy)
     {
@@ -23,25 +23,11 @@ public static class UserSeedData
             category: "Administrative",
             sortOrder: 1,
             createdBy: createdBy,
-            permissions: new[]
-            {
-                "platform.full_access",
-                "users.create",
-                "users.read",
-                "users.update",
-                "users.delete",
-                "roles.manage",
-                "system.configure",
-                "businesses.manage",
-                "invoices.manage",
-                "reports.full_access",
-                "integrations.manage",
-                "users.view"
-            }
+            permissions: PermissionConstants.PlatformAdminPermissions
         );
         roles.Add(superAdminRole);
 
-        // Merchant Admin Role - Business-focused permissions
+        // Merchant Admin Role - Full business-level permissions
         var businessManagerRole = PlatformRole.Create(
             name: "ClientAdmin",
             description: "Manages business operations and user accounts within organizations",
@@ -49,16 +35,8 @@ public static class UserSeedData
             sortOrder: 2,
             createdBy: createdBy
         );
-        businessManagerRole.AddPermission("users.read");
-        businessManagerRole.AddPermission("users.update");
-        businessManagerRole.AddPermission("businesses.read");
-        businessManagerRole.AddPermission("businesses.update");
-        businessManagerRole.AddPermission("invoices.read");
-        businessManagerRole.AddPermission("invoices.create");
-        businessManagerRole.AddPermission("invoices.update");
-        businessManagerRole.AddPermission("reports.read");
-        businessManagerRole.AddPermission("users.view");
-        businessManagerRole.AddPermission("users.create");
+        foreach (var permission in PermissionConstants.ClientAdminAssignablePermissions)
+            businessManagerRole.AddPermission(permission);
         roles.Add(businessManagerRole);
 
         // Merchant Initiator Role - Business-focused permissions
@@ -71,7 +49,7 @@ public static class UserSeedData
         );
         businessInitiatorRole.AddPermission("invoices.create");
         roles.Add(businessInitiatorRole);
-      
+
         return roles;
     }
 
@@ -139,9 +117,9 @@ public static class UserSeedData
 
         #region PlatformSubscriptions
 
-        // Portal Plan - Invoice creation on portal only
+        // Invoice Portal - Invoice creation on portal only
         var portalPlan = PlatformSubscription.Create(
-            planName: "Portal Plan",
+            planName: "Invoice Portal",
             tier: SubscriptionTier.SaaS,
             monthlyPrice: 100_000,
             createdBy: actualCreatedBy,
@@ -149,9 +127,9 @@ public static class UserSeedData
         );
         platformSubscriptions.Add(portalPlan);
 
-        // SFTP Plan - SFTP integration only (no portal invoice creation)
+        // File Manager - SFTP file-based invoice submission
         var sftpPlan = PlatformSubscription.Create(
-            planName: "SFTP Plan",
+            planName: "File Manager",
             tier: SubscriptionTier.SFTP,
             monthlyPrice: 120_000,
             createdBy: actualCreatedBy,
@@ -159,9 +137,9 @@ public static class UserSeedData
         );
         platformSubscriptions.Add(sftpPlan);
 
-        // API Plan - API access only (no portal invoice creation)
+        // API Connect - API integration for invoice submission
         var apiPlan = PlatformSubscription.Create(
-            planName: "API Plan",
+            planName: "API Connect",
             tier: SubscriptionTier.ApiOnly,
             monthlyPrice: 150_000,
             createdBy: actualCreatedBy,

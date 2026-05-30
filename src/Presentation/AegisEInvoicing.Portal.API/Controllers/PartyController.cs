@@ -4,7 +4,7 @@ using AegisEInvoicing.Portal.API.Models.Party.Request;
 using AegisEInvoicing.Portal.API.Models.Party.Response;
 using AegisEInvoicing.Application.Features.PartyManagement.Commands.CreateBulkParty;
 using AegisEInvoicing.Application.Features.PartyManagement.Commands.CreateParty;
-using AegisEInvoicing.Application.Features.PartyManagement.Commands.DeleteParty;
+using AegisEInvoicing.Application.Features.PartyManagement.Commands.DeactivateParty;
 using AegisEInvoicing.Application.Features.PartyManagement.Commands.UpdateParty;
 using AegisEInvoicing.Application.Features.PartyManagement.DTOs;
 using AegisEInvoicing.Application.Features.PartyManagement.Queries.GetPartiesByBusinessId;
@@ -15,7 +15,6 @@ using AegisEInvoicing.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace AegisEInvoicing.Portal.API.Controllers;
 
@@ -25,7 +24,6 @@ namespace AegisEInvoicing.Portal.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
-[SwaggerTag("Party Management Operations including create, read, update, delete and list parties")]
 [Authorize]
 public class PartyController(IMediator mediator, ILogger<PartyController> logger) : BaseApiController
 {
@@ -40,15 +38,6 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <returns>Created party information</returns>
     [HttpPost]
     [Authorize(Policy = "RequireSaasSubscription")]
-    [SwaggerOperation(
-        Summary = "Create Party",
-        Description = "Creates a new party (customer, supplier, etc.) for the current business. Only business administrators with SaaS subscription can create parties."
-    )]
-    [SwaggerResponse(201, "Party created successfully", typeof(ApiResponse<CreatePartyResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions - Requires SaaS subscription", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> CreateAsync([FromBody] CreatePartyRequest request,
         CancellationToken cancellationToken = default)
@@ -60,7 +49,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
             request.Address.City,
             request.Address.State,
             request.Address.Country,
-            request.Address.PostalCode);
+            request.Address.PostalCode,
+            request.Address.Lga);
 
         var command = new CreatePartyCommand(
             request.Name,
@@ -97,12 +87,6 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <returns></returns>
     [HttpPost("CreateBulkParty")]
     [Authorize(Policy = "RequireSaasSubscription")]
-    [SwaggerOperation(Summary = "Create bulk party", Description = "Upload a file of data to creates a mulitple new party (customer, supplier, etc.) for the current business. Only business administrators with SaaS subscription can create parties."
-    )]
-    [SwaggerResponse(200, "Request successfully", typeof(ApiResponse<CreatePartyResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions - Requires SaaS subscription", typeof(ApiResponse<object>))]    
     [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> CreateBulkParty(CreateBulkPartyUploadRequest request,
         CancellationToken cancellationToken = default)
@@ -129,15 +113,6 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Party details</returns>
     [HttpGet("{id:guid}")]
-    [SwaggerOperation(
-        Summary = "Get Party by ID",
-        Description = "Retrieves a specific party by its ID. Only parties belonging to the current business can be accessed."
-    )]
-    [SwaggerResponse(200, "Party retrieved successfully", typeof(ApiResponse<PartyResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Party not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetByIdAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
@@ -165,7 +140,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
                 City = result.Party.Address.City,
                 State = result.Party.Address.State,
                 Country = result.Party.Address.Country,
-                PostalCode = result.Party.Address.PostalCode
+                PostalCode = result.Party.Address.PostalCode,
+                Lga = result.Party.Address.Lga
             },
             CreatedAt = result.Party.CreatedAt,
             UpdatedAt = result.Party.UpdatedAt,
@@ -185,16 +161,6 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <returns>Update result</returns>
     [HttpPut("{id:guid}")]
     [Authorize(Policy = "RequireSaasSubscription")]
-    [SwaggerOperation(
-        Summary = "Update Party",
-        Description = "Updates an existing party. Only business administrators with SaaS subscription can update parties."
-    )]
-    [SwaggerResponse(200, "Party updated successfully", typeof(ApiResponse<UpdatePartyResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions - Requires SaaS subscription", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Party not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> UpdateAsync([FromRoute] Guid id, [FromBody] UpdatePartyRequest request,
         CancellationToken cancellationToken = default)
@@ -206,7 +172,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
             request.Address.City,
             request.Address.State,
             request.Address.Country,
-            request.Address.PostalCode);
+            request.Address.PostalCode,
+            request.Address.Lga);
 
         var command = new UpdatePartyCommand(
             id,
@@ -221,8 +188,8 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
         if (!result.IsSuccess)
         {
             _logger.LogWarning("Failed to update party: {Message}", result.Message);
-            return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase) 
-                ? Error(result.Message, 404) 
+            return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                ? Error(result.Message, 404)
                 : BadRequest(Error(result.Message));
         }
 
@@ -244,15 +211,6 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Validation results indicating whether each field exists</returns>
     [HttpPost("validate")]
-
-    [SwaggerOperation(
-        Summary = "Validate Party Fields",
-        Description = "Validates whether party fields (TaxIdentificationNumber) exist in the system."
-    )]
-    [SwaggerResponse(200, "Validation completed successfully", typeof(ApiResponse<PartyValidationResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Access denied - insufficient permissions", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> ValidatePartyFieldsAsync(
         [FromBody] PartyValidationRequest request,
@@ -295,48 +253,38 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     }
 
     /// <summary>
-    /// Delete a party
+    /// Deactivate a party (soft delete)
     /// </summary>
     /// <param name="id">Party ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Delete result</returns>
-    [HttpDelete("{id:guid}")]
+    /// <returns>Deactivation result</returns>
+    [HttpPatch("{id:guid}/deactivate")]
     [Authorize(Policy = "RequireSaasSubscription")]
-    [SwaggerOperation(
-        Summary = "Delete Party",
-        Description = "Deletes a party. Only business administrators with SaaS subscription can delete parties."
-    )]
-    [SwaggerResponse(200, "Party deleted successfully", typeof(ApiResponse<DeletePartyResponse>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions - Requires SaaS subscription", typeof(ApiResponse<object>))]
-    [SwaggerResponse(404, "Party not found", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.ClientAdmin)]
-    public async Task<IActionResult> DeleteAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> DeactivateAsync([FromRoute] Guid id, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Deleting party with ID: {Id}", id);
+        _logger.LogInformation("Deactivating party with ID: {Id}", id);
 
-        var command = new DeletePartyCommand(id);
+        var command = new DeactivatePartyCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
 
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("Failed to delete party: {Message}", result.Message);
-            return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase) 
-                ? Error(result.Message, 404) 
+            _logger.LogWarning("Failed to deactivate party: {Message}", result.Message);
+            return result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                ? Error(result.Message, 404)
                 : BadRequest(Error(result.Message));
         }
 
-        _logger.LogInformation("Party deleted successfully. ID: {PartyId}", result.PartyId);
+        _logger.LogInformation("Party deactivated successfully. ID: {PartyId}", result.PartyId);
 
         var response = new DeletePartyResponse
         {
-            PartyId = result.PartyId ?? id, // Use the original ID if PartyId is null
+            PartyId = result.PartyId ?? id,
             Message = result.Message
         };
 
-        return Success(response, "Party deleted successfully");
+        return Success(response, "Party deactivated successfully");
     }
 
     /// <summary>
@@ -351,31 +299,6 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of parties</returns>
     [HttpGet]
-    [SwaggerOperation(
-        Summary = "Get Parties List",
-        Description = @"Retrieve all parties for the current business with pagination, search, and sorting capabilities.
-
-**Features:**
-- **Pagination**: Use pageNumber and pageSize parameters
-- **Search**: Filter by name, email, or tax identification number using searchTerm  
-- **Sorting**: Sort by name, email, or createdat
-- **Security**: Only returns parties belonging to the current business
-
-**Query Parameters:**
-- `pageNumber`: Page number (default: 1)
-- `pageSize`: Items per page (default: 10, max: 100)
-- `searchTerm`: Search in name, email, and TIN
-- `sortBy`: Field to sort by (name, email, createdat)
-- `sortDescending`: Sort order (default: false - ascending)
-
-**Access Control:**
-- **Business Admin**: Can view all parties for their business
-- **Business User**: Can view all parties for their business"
-    )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<IEnumerable<PartySummaryResponse>>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.AegisAdmin, RoleConstants.ClientAdmin, RoleConstants.ClientUser)]
     public async Task<IActionResult> GetListAsync(
         [FromQuery] Guid? BusinessId,
@@ -386,7 +309,7 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
         [FromQuery] bool sortDescending = false,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving parties list - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}", 
+        _logger.LogInformation("Retrieving parties list - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}",
             pageNumber, pageSize, searchTerm ?? "None");
 
         // Validate pagination parameters
@@ -403,25 +326,28 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
         var query = new GetPartyListQuery(BusinessId, pageNumber, pageSize, searchTerm, sortBy, sortDescending);
         var result = await _mediator.Send(query, cancellationToken);
 
-        if (result == null || !result.Items.Any())
-        {
-            return Success(Enumerable.Empty<PartySummaryResponse>(), "No parties found");
-        }
-
-        var response = result.Items.Select(p => new PartySummaryResponse
+        var mappedItems = (result?.Items ?? []).Select(p => new PartySummaryResponse
         {
             Id = p.Id,
             Name = p.Name,
             Email = p.Email,
+            Phone = p.Phone,
             TaxIdentificationNumber = p.TaxIdentificationNumber,
             CreatedAt = p.CreatedAt
-        });
+        }).ToList();
 
-        var message = string.IsNullOrWhiteSpace(searchTerm) 
-            ? $"Retrieved {result.Items.Count} parties (Page {pageNumber} of {pageSize} items)"
-            : $"Found {result.Items.Count} parties matching '{searchTerm}' (Page {pageNumber} of {pageSize} items)";
+        var message = string.IsNullOrWhiteSpace(searchTerm)
+            ? $"Retrieved {mappedItems.Count} parties (Page {pageNumber} of {pageSize} items)"
+            : $"Found {mappedItems.Count} parties matching '{searchTerm}' (Page {pageNumber} of {pageSize} items)";
 
-        return Success(response, message);
+        return Success(new
+        {
+            items = mappedItems,
+            totalCount = result?.TotalCount ?? 0,
+            pageNumber = result?.PageNumber ?? pageNumber,
+            pageSize = result?.PageSize ?? pageSize,
+            totalPages = result?.TotalPages ?? 1
+        }, message);
     }
 
     /// <summary>
@@ -436,36 +362,6 @@ public class PartyController(IMediator mediator, ILogger<PartyController> logger
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of parties for the specified business</returns>
     [HttpGet("business/{businessId:guid}")]
-    [SwaggerOperation(
-        Summary = "Get Parties by Business ID",
-        Description = @"Retrieve all parties for a specific business with pagination, search, and sorting capabilities.
-        
-**Important:** This endpoint is primarily for KMPG administrators to view parties across different businesses. 
-Business administrators will typically use the regular GET endpoint which automatically filters to their business.
-
-**Features:**
-- **Pagination**: Use pageNumber and pageSize parameters
-- **Search**: Filter by name, email, or tax identification number using searchTerm  
-- **Sorting**: Sort by name, email, or createdat
-- **Cross-Business Access**: KMPG admins can view parties from any business
-
-**Query Parameters:**
-- `businessId`: Specific business ID to retrieve parties from
-- `pageNumber`: Page number (default: 1)
-- `pageSize`: Items per page (default: 10, max: 100)
-- `searchTerm`: Search in name, email, and TIN
-- `sortBy`: Field to sort by (name, email, createdat)
-- `sortDescending`: Sort order (default: false - ascending)
-
-**Access Control:**
-- **KMPG Admin**: Can view parties for any business
-- **Business Admin**: Can view parties for their own business only"
-    )]
-    [SwaggerResponse(200, "Request successful", typeof(ApiResponse<IEnumerable<PartySummaryResponse>>))]
-    [SwaggerResponse(400, "Invalid request", typeof(ApiResponse<object>))]
-    [SwaggerResponse(401, "Authentication failed", typeof(ApiResponse<object>))]
-    [SwaggerResponse(403, "Insufficient permissions", typeof(ApiResponse<object>))]
-    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse<object>))]
     [RequireRole(RoleConstants.ClientAdmin)]
     public async Task<IActionResult> GetByBusinessIdAsync(
         [FromRoute] Guid businessId,
@@ -476,7 +372,7 @@ Business administrators will typically use the regular GET endpoint which automa
         [FromQuery] bool sortDescending = false,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving parties for business {BusinessId} - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}", 
+        _logger.LogInformation("Retrieving parties for business {BusinessId} - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}",
             businessId, pageNumber, pageSize, searchTerm ?? "None");
 
         // Validate pagination parameters
@@ -493,24 +389,27 @@ Business administrators will typically use the regular GET endpoint which automa
         var query = new GetPartiesByBusinessIdQuery(pageNumber, pageSize, searchTerm, sortBy, sortDescending);
         var result = await _mediator.Send(query, cancellationToken);
 
-        if (result == null || !result.Items.Any())
-        {
-            return Success(Enumerable.Empty<PartySummaryResponse>(), "No parties found for the specified business");
-        }
-
-        var response = result.Items.Select(p => new PartySummaryResponse
+        var mappedItems = (result?.Items ?? []).Select(p => new PartySummaryResponse
         {
             Id = p.Id,
             Name = p.Name,
             Email = p.Email,
+            Phone = p.Phone,
             TaxIdentificationNumber = p.TaxIdentificationNumber,
             CreatedAt = p.CreatedAt
-        });
+        }).ToList();
 
-        var message = string.IsNullOrWhiteSpace(searchTerm) 
-            ? $"Retrieved {result.Items.Count} parties for business {businessId} (Page {pageNumber} of {pageSize} items)"
-            : $"Found {result.Items.Count} parties for business {businessId} matching '{searchTerm}' (Page {pageNumber} of {pageSize} items)";
+        var message = string.IsNullOrWhiteSpace(searchTerm)
+            ? $"Retrieved {result?.TotalCount ?? 0} parties (Page {pageNumber} of {result?.TotalPages ?? 1})"
+            : $"Found {result?.TotalCount ?? 0} parties matching '{searchTerm}'";
 
-        return Success(response, message);
+        return Success(new
+        {
+            items = mappedItems,
+            totalCount = result?.TotalCount ?? 0,
+            pageNumber = result?.PageNumber ?? pageNumber,
+            pageSize = result?.PageSize ?? pageSize,
+            totalPages = result?.TotalPages ?? 1
+        }, message);
     }
 }

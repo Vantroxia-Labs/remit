@@ -1,4 +1,4 @@
-﻿using AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
+using AegisEInvoicing.Application.Features.InvoiceManagement.DTOs;
 using System.ComponentModel.DataAnnotations;
 
 namespace AegisEInvoicing.ERP.API.Models;
@@ -28,8 +28,7 @@ public class CreateInvoiceItemDto
     /// Item category (e.g., Goods, Service, Equipment)
     /// </summary>
     /// <example>Electrical Materials</example>
-    [Required(ErrorMessage = "Item category is required")]
-    public string ItemCategory { get; set; } = null!;
+
 
     /// <summary>
     /// Service code information (mapped to FIRS service catalog)
@@ -44,16 +43,9 @@ public class CreateInvoiceItemDto
     public ServiceCodeRequest ServiceCode { get; set; } = null!;
 
     /// <summary>
-    /// Tax category applied to this item
+    /// Tax categories applied to this item
     /// </summary>
-    /// <example>
-    /// {
-    ///   "name": "VAT",
-    ///   "percent": 7.5
-    /// }
-    /// </example>
-    [Required(ErrorMessage = "Tax category is required")]
-    public TaxCategoryRequest TaxCategory { get; set; } = null!;
+    public List<TaxCategoryRequest> TaxCategories { get; set; } = [];
 
     /// <summary>
     /// Unit price of the item (in NGN)
@@ -125,16 +117,17 @@ public class TaxCategoryRequest
     /// <summary>
     /// Name of the tax category (e.g., VAT, WHT, Zero-Rated)
     /// </summary>
-    /// <example>VAT</example>
     [Required(ErrorMessage = "Tax category name is required")]
     [StringLength(500, ErrorMessage = "Tax category name cannot exceed 500 characters")]
     public string Name { get; set; } = null!;
 
-    /// <summary>
-    /// Tax percentage applied to the item
-    /// </summary>
-    /// <example>7.5</example>
-    [Required(ErrorMessage = "Tax percentage is required")]
+    /// <summary>True = percentage-based; False = flat fee</summary>
+    public bool IsPercentage { get; set; }
+
+    /// <summary>Rate (0-100) when IsPercentage is true</summary>
     [Range(0, 100, ErrorMessage = "Tax percentage must be between 0 and 100")]
-    public decimal Percent { get; set; }
+    public decimal? Percent { get; set; }
+
+    /// <summary>Fixed amount when IsPercentage is false</summary>
+    public decimal? FlatAmount { get; set; }
 }

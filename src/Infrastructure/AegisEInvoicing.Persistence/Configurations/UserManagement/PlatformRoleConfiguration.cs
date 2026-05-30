@@ -91,9 +91,18 @@ public class PlatformRoleConfiguration : IEntityTypeConfiguration<PlatformRole>
             .HasColumnName("Version")
             .IsRequired();
 
+        // Null = platform-wide system role; non-null = custom role owned by a business
+        builder.Property(pr => pr.BusinessId)
+            .HasColumnName("BusinessId")
+            .IsRequired(false);
+
+        builder.HasIndex(pr => pr.BusinessId)
+            .HasDatabaseName("IX_PlatformRoles_BusinessId");
+
         // Add indexes for performance
+        // Name is unique within scope: globally for system roles, per-business for custom roles.
+        // Enforced at the application layer (CreateBusinessRoleCommandHandler checks for duplicates).
         builder.HasIndex(pr => pr.Name)
-            .IsUnique()
             .HasDatabaseName("IX_PlatformRoles_Name");
         builder.HasIndex(pr => pr.Category)
             .HasDatabaseName("IX_PlatformRoles_Category");

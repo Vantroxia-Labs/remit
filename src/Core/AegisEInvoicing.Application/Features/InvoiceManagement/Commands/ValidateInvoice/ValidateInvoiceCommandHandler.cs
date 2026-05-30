@@ -35,7 +35,7 @@ public class ValidateInvoiceCommandHandler(
     public async Task<ValidateInvoiceResult> Handle(ValidateInvoiceCommand request, CancellationToken cancellationToken)
     {
         var startTime = DateTime.UtcNow;
-        
+
         try
         {
             var businessId = ResolveBusinessId(request.BusinessId);
@@ -52,7 +52,6 @@ public class ValidateInvoiceCommandHandler(
                 .Include(i => i.Party)
                 .Include(i => i.InvoiceLine)
                 .ThenInclude(il => il.BusinessItem)
-                .ThenInclude(il => il.ItemCategory)
                 .Include(i => i.InvoiceApprovalHistory)
                 .Include(i => i.BillingReferences)
                  .Include(i => i.AdditionalDocumentReferences)
@@ -78,10 +77,6 @@ public class ValidateInvoiceCommandHandler(
                 InvoiceStatus.TRANSMITTED,
                 InvoiceStatus.TRANSMISSIONFAILED
             };
-
-            // Check historical status
-            //if (invoice.InvoiceApprovalHistory.Any(h => !validatedStatuses.Contains(h.InvoiceStatus)))
-            //    return ValidateInvoiceResult.BadRequest(ResponseMessages.INVOICE_ALREADY_VALIDATED);
 
             if (string.IsNullOrEmpty(invoice.Business.FIRSApiKey) || string.IsNullOrEmpty(invoice.Business.FIRSClientSecret))
                 return ValidateInvoiceResult.NotFound(ResponseMessages.BUSINESS_FIRS_CREDENTIALS_NOT_CONFIGURED);
@@ -120,7 +115,7 @@ public class ValidateInvoiceCommandHandler(
             };
 
             var statusBefore = invoice.InvoiceStatus.ToString();
-            
+
             var apiCallStart = DateTime.UtcNow;
             var response = await _firshttpClient.ValidateInvoiceDataAsync(validationRequest, decryptedApiKey, decryptedClientSecret, cancellationToken);
             var apiCallDuration = DateTime.UtcNow - apiCallStart;
@@ -154,7 +149,7 @@ public class ValidateInvoiceCommandHandler(
                 invoice.UpdateStatus(InvoiceStatus.VALIDATED);
                 var invoiceApprovalHistory = InvoiceApprovalHistory.Create(invoice.Id, invoice.InvoiceStatus, ResponseMessages.INVOICE_VALIDATION_SUCCESSFUL);
                 _context.InvoiceApprovalHistories.Add(invoiceApprovalHistory);
-                if(invoice.InvoiceSource == InvoiceSource.SFTP)
+                if (invoice.InvoiceSource == InvoiceSource.SFTP)
                 {
                     User? currentUser = null;
                     currentUser = await _context.Users
@@ -164,7 +159,7 @@ public class ValidateInvoiceCommandHandler(
 
                     var createdById = currentUser?.Id ?? Guid.Empty;
                     invoiceApprovalHistory.CreatedBy = createdById;
-                }   
+                }
                 await _context.SaveChangesAsync(cancellationToken);
 
                 // Log state transition
@@ -181,7 +176,7 @@ public class ValidateInvoiceCommandHandler(
                 }
 
                 _logger.LogInformation("Invoice {InvoiceId} successfully validated by FIRS", invoice.Id);
-                
+
                 // Track successful validation
                 var duration = DateTime.UtcNow - startTime;
                 _telemetryService?.TrackInvoiceValidated(invoice.Id, true, duration);
@@ -252,12 +247,12 @@ public class ValidateInvoiceCommandHandler(
         catch (Exception ex)
         {
             var duration = DateTime.UtcNow - startTime;
-            
+
             _logger.LogError(ex, "Failed to validate invoice {InvoiceId}", request.InvoiceId);
-            
+
             // Track failed validation due to exception
             _telemetryService?.TrackInvoiceValidated(request.InvoiceId, false, duration, ex.Message);
-            
+
             return ValidateInvoiceResult.Failure(ResponseMessages.INVOICE_VALIDATION_FAILED);
         }
     }

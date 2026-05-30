@@ -22,6 +22,12 @@ public sealed class UpdateStatusRequest
     public string? Reference { get; set; }
 
     /// <summary>
+    /// Amount paid so far (required when payment_status is PARTIAL)
+    /// </summary>
+    [JsonPropertyName("amount")]
+    public decimal? Amount { get; set; }
+
+    /// <summary>
     /// Invoice Reference Number
     /// </summary>
     [JsonPropertyName("irn")]

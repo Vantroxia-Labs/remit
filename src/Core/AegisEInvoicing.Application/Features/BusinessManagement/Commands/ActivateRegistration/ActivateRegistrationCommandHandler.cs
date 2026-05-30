@@ -27,134 +27,144 @@ public class ActivateRegistrationCommandHandler(
 
     public async Task<ActivateRegistrationResult> Handle(ActivateRegistrationCommand request, CancellationToken cancellationToken)
     {
-        await using var transaction = await context.BeginTransactionAsync(cancellationToken);
-
-        try
+        var strategy = context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            var pending = await context.PendingBusinessRegistrations
-                .FirstOrDefaultAsync(p => p.PaystackReference == request.PaystackReference && !p.IsDeleted, cancellationToken);
+            await using var transaction = await context.BeginTransactionAsync(cancellationToken);
 
-            if (pending is null)
-                return new ActivateRegistrationResult(false, "Registration not found for this payment reference.");
-
-            if (pending.Status == PendingRegistrationStatus.Activated)
-                return new ActivateRegistrationResult(true, "Business already activated.", pending.ActivatedBusinessId, AlreadyActivated: true);
-
-            if (pending.Status == PendingRegistrationStatus.Failed)
-                return new ActivateRegistrationResult(false, "This registration has been marked as failed.");
-
-            var plan = await context.PlatformSubscriptions
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == pending.PlatformSubscriptionId && !p.IsDeleted, cancellationToken);
-
-            if (plan is null)
-                return new ActivateRegistrationResult(false, "Subscription plan not found.");
-
-            pending.MarkPaid(request.PaidAt);
-            await context.SaveChangesAsync(cancellationToken);
-
-            // Create the business with placeholder details — admin fills in during onboarding
-            var tin = TIN.Create("0000000000");
-            var address = Address.Create("TBD", "TBD", "TBD", "Nigeria", "TBD");
-
-            var business = Business.Create(
-                name: pending.BusinessName,
-                description: string.Empty,
-                businessRegistrationNumber: "TBD",
-                taxIdentificationNumber: tin,
-                registeredAddress: address,
-                invoicePrefix: "INV",
-                contactEmail: pending.AdminEmail,
-                adminUserId: null,
-                createdBy: SystemUserId,
-                contactPhone: pending.AdminPhone,
-                serviceId: "TBD",
-                industry: "TBD",
-                firsBusinessId: Guid.Empty);
-
-            await context.Businesses.AddAsync(business, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-
-            var tempPassword = GenerateSecurePassword();
-
-            var clientAdminRole = await context.PlatformRoles
-                .FirstOrDefaultAsync(r => r.Name == RoleConstants.ClientAdmin && !r.IsDeleted, cancellationToken);
-
-            if (clientAdminRole is null)
-                return new ActivateRegistrationResult(false, "System error: ClientAdmin role not found.");
-
-            var adminUser = User.Create(
-                businessId: business.Id,
-                firstName: pending.AdminFirstName,
-                lastName: pending.AdminLastName,
-                email: pending.AdminEmail,
-                passwordHash: PasswordHash.Create(tempPassword),
-                createdBy: SystemUserId,
-                branchId: null,
-                phoneNumber: pending.AdminPhone);
-
-            adminUser.AssignRole(clientAdminRole.Id, SystemUserId);
-            await context.Users.AddAsync(adminUser, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-
-            business.SetAdmin(adminUser.Id, SystemUserId);
-
-            var defaultFlowRules = CreateDefaultFlowRules(business.Id, SystemUserId);
-            await context.FlowRules.AddRangeAsync(defaultFlowRules, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-
-            var startDate = DateTimeOffset.UtcNow;
-            var endDate = pending.BillingCycle == BillingCycle.Annual
-                ? startDate.AddYears(1)
-                : startDate.AddMonths(1);
-
-            var subscription = Subscription.Create(
-                businessId: business.Id,
-                platformSubscriptionId: plan.Id,
-                startDate: startDate,
-                endDate: endDate,
-                createdBy: SystemUserId);
-
-            subscription.UpdateBilling(startDate, endDate);
-            await context.Subscriptions.AddAsync(subscription, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-
-            business.AssignSubscription(subscription.Id, SystemUserId);
-            await context.SaveChangesAsync(cancellationToken);
-
-            string? apiKey = null;
-            try { apiKey = await apiKeyAuthenticationService.GenerateApiKeyAsync(business.Id); }
-            catch (Exception ex) { logger.LogError(ex, "Failed to generate API key for {BusinessId}", business.Id); }
-
-            string? sftpPassword = null;
-            if (plan.Tier == SubscriptionTier.SFTP)
+            try
             {
-                try { sftpPassword = await CreateSftpUserAsync(business); }
-                catch (Exception ex) { logger.LogError(ex, "Failed to create SFTP user for {BusinessId}", business.Id); }
+                var pending = await context.PendingBusinessRegistrations
+                    .FirstOrDefaultAsync(p => p.PaystackReference == request.PaystackReference && !p.IsDeleted, cancellationToken);
+
+                if (pending is null)
+                    return new ActivateRegistrationResult(false, "Registration not found for this payment reference.");
+
+                if (pending.Status == PendingRegistrationStatus.Activated)
+                    return new ActivateRegistrationResult(true, "Business already activated.", pending.ActivatedBusinessId, AlreadyActivated: true);
+
+                if (pending.Status == PendingRegistrationStatus.Failed)
+                    return new ActivateRegistrationResult(false, "This registration has been marked as failed.");
+
+                var selectedPlanIds = pending.GetSelectedPlanIds();
+                var plans = await context.PlatformSubscriptions
+                    .AsNoTracking()
+                    .Where(p => selectedPlanIds.Contains(p.Id) && !p.IsDeleted)
+                    .ToListAsync(cancellationToken);
+
+                if (plans.Count == 0)
+                    return new ActivateRegistrationResult(false, "Subscription plan(s) not found.");
+
+                // Use first plan as representative (for email / primary subscription)
+                var primaryPlan = plans[0];
+
+                pending.MarkPaid(request.PaidAt);
+                await context.SaveChangesAsync(cancellationToken);
+
+                // Create the business with placeholder details — admin fills in during onboarding
+                var tin = TIN.Create("0000000000");
+                var address = Address.Create(string.Empty, string.Empty, string.Empty, "Nigeria", string.Empty);
+
+                var business = Business.Create(
+                    name: pending.BusinessName,
+                    description: string.Empty,
+                    businessRegistrationNumber: string.Empty,
+                    taxIdentificationNumber: tin,
+                    registeredAddress: address,
+                    invoicePrefix: "INV",
+                    contactEmail: pending.AdminEmail,
+                    adminUserId: null,
+                    createdBy: SystemUserId,
+                    contactPhone: pending.AdminPhone,
+                    serviceId: string.Empty,
+                    industry: string.Empty,
+                    firsBusinessId: Guid.Empty);
+
+                await context.Businesses.AddAsync(business, cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
+
+                var tempPassword = GenerateSecurePassword();
+
+                var clientAdminRole = await context.PlatformRoles
+                    .FirstOrDefaultAsync(r => r.Name == RoleConstants.ClientAdmin && !r.IsDeleted, cancellationToken);
+
+                if (clientAdminRole is null)
+                    return new ActivateRegistrationResult(false, "System error: ClientAdmin role not found.");
+
+                var adminUser = User.Create(
+                    businessId: business.Id,
+                    firstName: pending.AdminFirstName,
+                    lastName: pending.AdminLastName,
+                    email: pending.AdminEmail,
+                    passwordHash: PasswordHash.Create(tempPassword),
+                    createdBy: SystemUserId,
+                    branchId: null,
+                    phoneNumber: pending.AdminPhone);
+
+                adminUser.AssignRole(clientAdminRole.Id, SystemUserId);
+                await context.Users.AddAsync(adminUser, cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
+
+                business.SetAdmin(adminUser.Id, SystemUserId);
+
+                var defaultFlowRules = CreateDefaultFlowRules(business.Id, SystemUserId);
+                await context.FlowRules.AddRangeAsync(defaultFlowRules, cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
+
+                var startDate = DateTimeOffset.UtcNow;
+                var endDate = pending.BillingCycle == BillingCycle.Annual
+                    ? startDate.AddYears(1)
+                    : startDate.AddMonths(1);
+
+                // Create one Subscription record per selected plan
+                foreach (var plan in plans)
+                {
+                    var subscription = Subscription.Create(
+                        businessId: business.Id,
+                        platformSubscriptionId: plan.Id,
+                        startDate: startDate,
+                        endDate: endDate,
+                        createdBy: SystemUserId);
+
+                    subscription.UpdateBilling(startDate, endDate);
+                    await context.Subscriptions.AddAsync(subscription, cancellationToken);
+                    await context.SaveChangesAsync(cancellationToken);
+                }
+
+                string? apiKey = null;
+                try { apiKey = await apiKeyAuthenticationService.GenerateApiKeyAsync(business.Id); }
+                catch (Exception ex) { logger.LogError(ex, "Failed to generate API key for {BusinessId}", business.Id); }
+
+                string? sftpPassword = null;
+                if (plans.Any(p => p.Tier == SubscriptionTier.SFTP))
+                {
+                    try { sftpPassword = await CreateSftpUserAsync(business); }
+                    catch (Exception ex) { logger.LogError(ex, "Failed to create SFTP user for {BusinessId}", business.Id); }
+                }
+
+                pending.MarkActivated(business.Id);
+                await context.SaveChangesAsync(cancellationToken);
+
+                await transaction.CommitAsync(cancellationToken);
+
+                await SendWelcomeEmailAsync(pending, plans, business, tempPassword, apiKey, sftpPassword, cancellationToken);
+
+                logger.LogInformation("Business {BusinessId} activated from registration {PendingId}", business.Id, pending.Id);
+
+                return new ActivateRegistrationResult(true, "Business activated successfully.", business.Id);
             }
-
-            pending.MarkActivated(business.Id);
-            await context.SaveChangesAsync(cancellationToken);
-
-            await transaction.CommitAsync(cancellationToken);
-
-            await SendWelcomeEmailAsync(pending, plan, business, tempPassword, apiKey, sftpPassword, cancellationToken);
-
-            logger.LogInformation("Business {BusinessId} activated from registration {PendingId}", business.Id, pending.Id);
-
-            return new ActivateRegistrationResult(true, "Business activated successfully.", business.Id);
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            logger.LogError(ex, "Error activating registration for reference {Reference}", request.PaystackReference);
-            return new ActivateRegistrationResult(false, $"Activation failed: {ex.Message}");
-        }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                logger.LogError(ex, "Error activating registration for reference {Reference}", request.PaystackReference);
+                return new ActivateRegistrationResult(false, $"Activation failed: {ex.Message}");
+            }
+        }); // end ExecuteAsync
     }
 
     private async Task SendWelcomeEmailAsync(
         PendingBusinessRegistration pending,
-        PlatformSubscription plan,
+        List<PlatformSubscription> plans,
         Business business,
         string tempPassword,
         string? apiKey,
@@ -167,22 +177,26 @@ public class ActivateRegistrationCommandHandler(
             var supportEmail = configuration["Support:Email"] ?? "support@aegisnrs.com";
             var sftpHost = configuration["SftpConfiguration:Host"] ?? "sftp.aegisnrs.com";
 
+            var hasSftp = plans.Any(p => p.Tier == SubscriptionTier.SFTP);
+            var hasSaas = plans.Any(p => p.Tier == SubscriptionTier.SaaS);
+            var planNames = string.Join(" + ", plans.Select(p => p.PlanName));
+
             string subject;
             string htmlBody;
 
-            if (plan.Tier == SubscriptionTier.SaaS)
+            if (hasSftp)
             {
-                subject = "Welcome to Aegis NRS Portal — Your Account Details";
-                htmlBody = BuildPortalWelcomeEmail(pending, tempPassword, portalUrl, supportEmail);
-            }
-            else if (plan.Tier == SubscriptionTier.SFTP)
-            {
-                subject = "Welcome to Aegis NRS Portal — Your Account & SFTP Details";
+                subject = $"Welcome to Aegis EInvoicing Portal — {planNames} Account Details";
                 htmlBody = BuildSftpWelcomeEmail(pending, business, tempPassword, sftpPassword, portalUrl, sftpHost, supportEmail);
+            }
+            else if (hasSaas)
+            {
+                subject = $"Welcome to Aegis EInvoicing Portal — {planNames} Account Details";
+                htmlBody = BuildPortalWelcomeEmail(pending, tempPassword, portalUrl, supportEmail);
             }
             else
             {
-                subject = "Welcome to Aegis NRS Portal — Your Account & API Key";
+                subject = $"Welcome to Aegis EInvoicing Portal — {planNames} Account & API Key";
                 htmlBody = BuildApiWelcomeEmail(pending, tempPassword, apiKey, portalUrl, supportEmail);
             }
 
@@ -209,7 +223,7 @@ public class ActivateRegistrationCommandHandler(
           </div>
           <div style="padding:32px;">
             <p>Dear {p.AdminFirstName},</p>
-            <p>Your <strong>Portal Plan</strong> for <strong>{p.BusinessName}</strong> is now active.</p>
+            <p>Your <strong>Invoice Portal</strong> for <strong>{p.BusinessName}</strong> is now active.</p>
             <table style="background:#f4f6f7;border-radius:8px;padding:20px;width:100%;border-collapse:collapse;">
               <tr><td style="padding:8px 0;font-weight:bold;">Portal URL:</td><td><a href="{portalUrl}">{portalUrl}</a></td></tr>
               <tr><td style="padding:8px 0;font-weight:bold;">Email:</td><td>{p.AdminEmail}</td></tr>
@@ -234,7 +248,7 @@ public class ActivateRegistrationCommandHandler(
           </div>
           <div style="padding:32px;">
             <p>Dear {p.AdminFirstName},</p>
-            <p>Your <strong>SFTP Plan</strong> for <strong>{p.BusinessName}</strong> is now active.</p>
+            <p>Your <strong>File Manager</strong> for <strong>{p.BusinessName}</strong> is now active.</p>
             <h3>Portal Credentials</h3>
             <table style="background:#f4f6f7;border-radius:8px;padding:20px;width:100%;border-collapse:collapse;">
               <tr><td style="padding:8px 0;font-weight:bold;">Portal URL:</td><td><a href="{portalUrl}">{portalUrl}</a></td></tr>
@@ -247,7 +261,7 @@ public class ActivateRegistrationCommandHandler(
               <tr><td style="padding:8px 0;font-weight:bold;">SFTP Username:</td><td style="font-family:monospace;">{sftpUsername}</td></tr>
               <tr><td style="padding:8px 0;font-weight:bold;">SFTP Password:</td><td style="font-family:monospace;background:#d5e8d4;padding:4px 8px;border-radius:4px;">{sftpPwd ?? "Contact support"}</td></tr>
             </table>
-            <p style="color:#d35400;"><strong>Note:</strong> With the SFTP plan you upload invoices via SFTP. You can update payment status on the portal but cannot create invoices there.</p>
+            <p style="color:#d35400;"><strong>Note:</strong> With File Manager you upload invoices via SFTP. You can update payment status on the portal but cannot create invoices there.</p>
             <hr style="border:none;border-top:1px solid #eee;margin:24px 0;"/>
             <p style="font-size:12px;color:#999;">Support: <a href="mailto:{supportEmail}">{supportEmail}</a></p>
           </div>
@@ -264,7 +278,7 @@ public class ActivateRegistrationCommandHandler(
           </div>
           <div style="padding:32px;">
             <p>Dear {p.AdminFirstName},</p>
-            <p>Your <strong>API Plan</strong> for <strong>{p.BusinessName}</strong> is now active.</p>
+            <p>Your <strong>API Connect</strong> for <strong>{p.BusinessName}</strong> is now active.</p>
             <h3>Portal Credentials</h3>
             <table style="background:#f4f6f7;border-radius:8px;padding:20px;width:100%;border-collapse:collapse;">
               <tr><td style="padding:8px 0;font-weight:bold;">Portal URL:</td><td><a href="{portalUrl}">{portalUrl}</a></td></tr>
@@ -275,7 +289,7 @@ public class ActivateRegistrationCommandHandler(
             <table style="background:#f4f6f7;border-radius:8px;padding:20px;width:100%;border-collapse:collapse;">
               <tr><td style="word-break:break-all;font-family:monospace;background:#d5e8d4;padding:8px;border-radius:4px;">{apiKey ?? "Available in portal settings"}</td></tr>
             </table>
-            <p style="color:#d35400;"><strong>Note:</strong> With the API plan you submit invoices via the API. You can view invoices and update payment status on the portal, but cannot create invoices there.</p>
+            <p style="color:#d35400;"><strong>Note:</strong> With API Connect you submit invoices via the API. You can view invoices and update payment status on the portal, but cannot create invoices there.</p>
             <hr style="border:none;border-top:1px solid #eee;margin:24px 0;"/>
             <p style="font-size:12px;color:#999;">Support: <a href="mailto:{supportEmail}">{supportEmail}</a></p>
           </div>
