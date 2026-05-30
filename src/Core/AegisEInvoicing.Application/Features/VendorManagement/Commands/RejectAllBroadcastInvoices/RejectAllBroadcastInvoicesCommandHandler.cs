@@ -82,6 +82,7 @@ public class RejectAllBroadcastInvoicesCommandHandler(
                             invoice.Irn.Value,
                             "REJECTED",
                             invoice.PaymentReference,
+                            null,
                             cancellationToken);
                     }
                     catch (Exception ex)

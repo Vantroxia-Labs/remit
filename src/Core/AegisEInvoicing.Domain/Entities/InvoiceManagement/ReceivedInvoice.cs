@@ -179,7 +179,8 @@ public class ReceivedInvoice : AuditableAggregateRoot
     /// Payment reference (e.g., bank transfer ref, receipt number)
     /// </summary>
     public string? PaymentReference { get; private set; }
-    public decimal? PartialAmount { get; private set; }
+    private readonly List<InvoicePayment> _payments = [];
+    public IReadOnlyCollection<InvoicePayment> Payments => _payments.AsReadOnly();
 
     /// <summary>
     /// Accounting cost
@@ -503,7 +504,7 @@ public class ReceivedInvoice : AuditableAggregateRoot
     /// <summary>
     /// Updates payment status with optional reference (for manual buyer action)
     /// </summary>
-    public void UpdatePaymentStatus(string paymentStatus, string? paymentReference = null, decimal? partialAmount = null)
+    public void UpdatePaymentStatus(string paymentStatus, string? paymentReference = null)
     {
         if (string.IsNullOrWhiteSpace(paymentStatus))
             throw new BadRequestException("Payment status cannot be empty", nameof(paymentStatus));
@@ -511,7 +512,6 @@ public class ReceivedInvoice : AuditableAggregateRoot
         PaymentStatus = paymentStatus;
         if (!string.IsNullOrWhiteSpace(paymentReference))
             PaymentReference = paymentReference;
-        PartialAmount = paymentStatus == "PARTIAL" ? partialAmount : null;
     }
 
     #endregion

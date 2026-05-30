@@ -20,6 +20,7 @@ public interface IApplicationDbContext
     DbSet<Invoice> Invoices { get; }
     DbSet<InvoiceDraft> InvoiceDrafts { get; }
     DbSet<InvoiceItem> InvoiceItems { get; }
+    DbSet<InvoicePayment> InvoicePayments { get; }
     DbSet<Branch> Branches { get; }
     DbSet<FlowRule> FlowRules { get; }
     DbSet<FIRSApiConfiguration> FIRSApiConfigurations { get; }

@@ -55,7 +55,7 @@ public class DismissBroadcastSubmissionsCommandHandler(
             {
                 if (bv.Invoice is null) continue;
 
-                bv.Invoice.UpdatePaymentStatus(PaymentStatus.Dismissed);
+                bv.Invoice.UpdatePaymentStatus(PaymentStatus.Rejected);
                 succeeded++;
 
                 if (template is not null)

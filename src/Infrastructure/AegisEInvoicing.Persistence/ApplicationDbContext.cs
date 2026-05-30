@@ -32,6 +32,7 @@ public sealed class ApplicationDbContext(
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceDraft> InvoiceDrafts => Set<InvoiceDraft>();
     public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
+    public DbSet<InvoicePayment> InvoicePayments => Set<InvoicePayment>();
     public DbSet<InvoiceApprovalHistory> InvoiceApprovalHistories => Set<InvoiceApprovalHistory>();
     public DbSet<InvoiceBillingReference> BillingReferences => Set<InvoiceBillingReference>();
     public DbSet<InvoiceDispatchDocumentReference> DispatchDocumentReferences => Set<InvoiceDispatchDocumentReference>();

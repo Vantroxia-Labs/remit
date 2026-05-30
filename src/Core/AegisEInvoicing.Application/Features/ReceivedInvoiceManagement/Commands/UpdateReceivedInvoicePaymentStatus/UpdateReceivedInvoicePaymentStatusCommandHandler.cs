@@ -1,5 +1,6 @@
 using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Constants;
+using AegisEInvoicing.Domain.Entities.InvoiceManagement;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -75,7 +76,13 @@ public class UpdateReceivedInvoicePaymentStatusCommandHandler
             return UpdateReceivedInvoicePaymentStatusResult.Failure(
                 "Failed to update payment status with the regulator. Please try again.");
 
-        receivedInvoice.UpdatePaymentStatus(status, request.Reference, request.Amount);
+        receivedInvoice.UpdatePaymentStatus(status, request.Reference);
+
+        if (status == "PARTIAL")
+        {
+            var payment = InvoicePayment.ForReceivedInvoice(receivedInvoice.Id, request.Amount!.Value, request.Reference, businessId);
+            await _context.InvoicePayments.AddAsync(payment, cancellationToken);
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 

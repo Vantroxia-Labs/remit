@@ -53,6 +53,7 @@ public class MarkBroadcastSubmissionsPaidCommandHandler(
                             invoice.Irn.Value,
                             "PAID",
                             invoice.PaymentReference,
+                            null,
                             cancellationToken);
                     }
                     catch (Exception ex)
@@ -143,6 +144,7 @@ public class MarkBroadcastSubmissionsRejectedCommandHandler(
                             invoice.Irn.Value,
                             "REJECTED",
                             invoice.PaymentReference,
+                            null,
                             cancellationToken);
                     }
                     catch (Exception ex)
