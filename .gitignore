@@ -416,3 +416,4 @@ appsettings.Local.json
 
 # macOS
 .DS_Store
+*.md
