@@ -87,7 +87,7 @@ public partial class InvoiceController(IMediator mediator, ILogger<InvoiceContro
 
             var result = await _mediator.Send(command, cancellationToken);
 
-            return GenericResponse(result.Message, result.IsSuccess, result.StatusCodes);
+            return GenericResponse(result.Message, result.IsSuccess, result.StatusCodes, result);
         }
         catch (Exception ex)
         {
