@@ -58,6 +58,10 @@
     <ProjectReference Include="..\..\src\Presentation\AegisEInvoicing.SFTP.API\AegisEInvoicing.SFTP.API.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="NotificationServiceTests\Configurations\" />
+  </ItemGroup>
+
   <!-- Temporarily exclude problematic test files for coverage analysis -->
 
 </Project>

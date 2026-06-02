@@ -19,7 +19,7 @@
 	<ItemGroup>
 		<PackageReference Include="Ardalis.GuardClauses" Version="5.0.0" />
 		<PackageReference Include="Ardalis.SmartEnum" Version="8.2.0" />
-		<PackageReference Include="ExcelDataReader" Version="3.8.0" />
+		<PackageReference Include="ExcelDataReader" Version="3.9.0-develop00574" />
 		<PackageReference Include="MediatR.Contracts" Version="2.0.1" />
 		<PackageReference Include="FluentValidation" Version="12.1.1" />
 	</ItemGroup>
