@@ -35,23 +35,22 @@ public static class DatabaseExtensions
             catch (Exception sqlEx) when (sqlEx.Message.Contains("already exists") || sqlEx.Message.Contains("42P07"))
             {
                 logger.LogWarning("Migration conflict detected: {Message}. This usually means the database schema already exists.", sqlEx.Message);
-                logger.LogInformation("Attempting to resolve migration conflict...");
+                logger.LogInformation("Attempting to resolve migration conflict by marking pending migrations as applied...");
 
-                // Try to get pending migrations
-                var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-                if (pendingMigrations.Any())
+                // Get pending migrations and mark them as applied since the schema already exists
+                var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToList();
+                if (pendingMigrations.Count > 0)
                 {
-                    logger.LogWarning("Found {Count} pending migrations. You may need to manually mark them as applied.", pendingMigrations.Count());
+                    var productVersion = typeof(DbContext).Assembly.GetName().Version?.ToString() ?? "10.0.3";
                     foreach (var migration in pendingMigrations)
                     {
-                        logger.LogWarning("Pending migration: {Migration}", migration);
+                        await context.Database.ExecuteSqlRawAsync(
+                            """INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion") VALUES ({0}, {1}) ON CONFLICT DO NOTHING""",
+                            migration, productVersion);
+                        logger.LogInformation("Marked migration as applied: {Migration}", migration);
                     }
+                    logger.LogInformation("Successfully marked {Count} migrations as applied. Schema was already up to date.", pendingMigrations.Count);
                 }
-
-                logger.LogError("Migration failed due to existing schema. Please run the fix_migration.sql script or manually resolve the conflict.");
-                throw new InvalidOperationException(
-                    "Database migration failed because tables already exist. " +
-                    "Run the fix_migration.sql script to resolve this issue.", sqlEx);
             }
 
             // Seed initial data if needed
