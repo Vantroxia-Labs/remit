@@ -71,7 +71,6 @@ public class CreateBusinessItemCommandHandler : IRequestHandler<CreateBusinessIt
             request.Name,
             request.ItemType,
             serviceCode,
-            Guid.Empty,
             request.ItemDescription,
             request.UnitPrice);
 

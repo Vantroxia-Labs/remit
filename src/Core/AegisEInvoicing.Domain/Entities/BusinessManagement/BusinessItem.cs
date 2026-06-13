@@ -38,7 +38,6 @@ public class BusinessItem : AuditableAggregateRoot
         string name,
         ItemType itemType,
         ServiceCode serviceCode,
-        Guid itemCategoryId,
         string itemDescription,
         decimal unitPrice)
     {
@@ -70,7 +69,6 @@ public class BusinessItem : AuditableAggregateRoot
         string name,
         ItemType itemType,
         ServiceCode serviceCode,
-        Guid itemCategoryId,
         string itemDescription)
     {
         if (string.IsNullOrWhiteSpace(name))

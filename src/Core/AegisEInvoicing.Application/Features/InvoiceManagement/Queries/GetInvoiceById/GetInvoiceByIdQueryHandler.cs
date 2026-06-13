@@ -44,6 +44,7 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                 .Include(i => i.OriginatorDocumentReference)
                 .Include(i => i.ContractDocumentReference)
                 .Include(i => i.AdditionalDocumentReferences)
+                .Include(i => i.Payments)
                 .Where(i => i.Id == request.InvoiceId);
 
             if (!_currentUserService.IsPlatformAdmin && _currentUserService.BusinessId.HasValue)
@@ -185,7 +186,19 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, G
                     Id = adr.Id,
                     Irn = adr.Irn.Value,
                     IssueDate = adr.IssueDate
-                }).ToList()
+                }).ToList(),
+                PaymentHistory = invoice.Payments
+                    .OrderBy(p => p.PaidAt)
+                    .Select(p => new InvoicePaymentDto
+                    {
+                        Id = p.Id,
+                        Amount = p.Amount,
+                        Reference = p.Reference,
+                        PaidAt = p.PaidAt
+                    }).ToList(),
+                AmountPaid = invoice.Payments.Sum(p => p.Amount),
+                OutstandingAmount = invoice.InvoiceLine.Sum(il => (decimal)(il.Quantity * il.UnitPriceSnapshot))
+                    - invoice.Payments.Sum(p => p.Amount),
             };
 
             return new GetInvoiceByIdResult
