@@ -50,11 +50,14 @@ ENV PATH="$PATH:/root/.dotnet/tools"
 # project   = where the DbContext + migrations live (Persistence)
 # startup   = Portal.API, so EF discovers ApplicationDbContextFactory
 # self-contained musl bundle so it runs on the alpine runtime-deps image
+RUN dotnet build src/Presentation/AegisEInvoicing.Portal.API/AegisEInvoicing.Portal.API.csproj -c Release -r linux-musl-x64
+
 RUN dotnet ef migrations bundle \
       --project src/Infrastructure/AegisEInvoicing.Persistence/AegisEInvoicing.Persistence.csproj \
       --startup-project src/Presentation/AegisEInvoicing.Portal.API/AegisEInvoicing.Portal.API.csproj \
       --configuration Release \
       --self-contained -r linux-musl-x64 \
+      --verbose \
       --output /app/efbundle
 
 # ── Stage 2: Minimal runtime ─────────────────────────────────────────────────
