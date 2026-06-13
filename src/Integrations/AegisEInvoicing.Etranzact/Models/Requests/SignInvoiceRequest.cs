@@ -109,4 +109,6 @@ public sealed class SignInvoiceRequest
 
     [JsonPropertyName("invoice_line")]
     public List<EtranzactInvoiceLine> InvoiceLine { get; set; } = null!;
+    
+    public string? InvoiceKind { get; set; }
 }
