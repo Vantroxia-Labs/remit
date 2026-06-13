@@ -1,0 +1,141 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Vantroxia-Labs/remit — CI Pipeline
+# Triggers: push to main, pull requests
+# Steps: build → test → Docker build → push to ghcr.io → trigger deploy
+# ═══════════════════════════════════════════════════════════════════════════
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  PORTAL_API_IMAGE: ghcr.io/vantroxia-labs/remit-portal-api
+  ERP_API_IMAGE: ghcr.io/vantroxia-labs/remit-erp-api
+  MIGRATOR_IMAGE: ghcr.io/vantroxia-labs/remit-migrator
+  # NOTE: SFTP API is not deployed (uploads go via admin → Portal → NRS).
+  # Dockerfile.sftp-api remains in the repo but no image is built/pushed.
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Step 1: Build + Test
+  # ─────────────────────────────────────────────────────────────────────────
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+      # TODO: Uncomment when test coverage is stable
+      # - name: Check coverage threshold
+      #   run: |
+      #     COVERAGE=$(find ./coverage -name "coverage.cobertura.xml" -exec grep -oP 'line-rate="\K[^"]+' {} \; | head -1)
+      #     echo "Coverage: $COVERAGE"
+      #     if (( $(echo "$COVERAGE < 0.80" | bc -l) )); then
+      #       echo "Coverage $COVERAGE is below 80% threshold"
+      #       exit 1
+      #     fi
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Step 2: Build + Push Docker Images (only on main push)
+  # ─────────────────────────────────────────────────────────────────────────
+  docker:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      sha_tag: ${{ steps.tags.outputs.sha_tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image tags
+        id: tags
+        run: |
+          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "sha_tag=$SHA" >> $GITHUB_OUTPUT
+          echo "date_tag=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+
+      # ── Portal API Image ──────────────────────────────────────────────
+      - name: Build and push Portal API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.portal-api
+          push: true
+          tags: |
+            ${{ env.PORTAL_API_IMAGE }}:latest
+            ${{ env.PORTAL_API_IMAGE }}:${{ steps.tags.outputs.sha_tag }}
+            ${{ env.PORTAL_API_IMAGE }}:${{ steps.tags.outputs.date_tag }}
+
+      # ── ERP API Image ─────────────────────────────────────────────────
+      - name: Build and push ERP API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.erp-api
+          push: true
+          tags: |
+            ${{ env.ERP_API_IMAGE }}:latest
+            ${{ env.ERP_API_IMAGE }}:${{ steps.tags.outputs.sha_tag }}
+            ${{ env.ERP_API_IMAGE }}:${{ steps.tags.outputs.date_tag }}
+
+      # ── DB Migrator Image (EF bundle, run before apps roll) ────────────
+      - name: Build and push DB migrator image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.migrator
+          push: true
+          tags: |
+            ${{ env.MIGRATOR_IMAGE }}:latest
+            ${{ env.MIGRATOR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}
+            ${{ env.MIGRATOR_IMAGE }}:${{ steps.tags.outputs.date_tag }}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Step 3: Trigger deployment in infra repo
+  # ─────────────────────────────────────────────────────────────────────────
+  trigger-deploy:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch deploy workflow
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.INFRA_DEPLOY_TOKEN }}
+          repository: Vantroxia-Labs/infra
+          event-type: deploy
+          client-payload: |
+            {
+              "service": "all-apis",
+              "image_tag": "${{ needs.docker.outputs.sha_tag || 'latest' }}",
+              "triggered_by": "${{ github.repository }}",
+              "commit_sha": "${{ github.sha }}",
+              "commit_message": "${{ github.event.head_commit.message }}"
+            }

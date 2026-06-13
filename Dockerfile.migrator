@@ -1,0 +1,79 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# AegisRemit DB Migrator — EF Core migration bundle
+# Place at: Vantroxia-Labs/remit/Dockerfile.migrator
+# Build context: repository root (so all projects are accessible)
+#
+# Produces a self-contained `efbundle` executable that applies all pending
+# EF Core migrations to the target database, then exits. Run as a one-shot
+# job in the deploy pipeline BEFORE rolling the API containers (Production
+# does NOT auto-migrate on startup).
+#
+# Connection string is supplied at runtime via the environment variable
+#   ConnectionStrings__DefaultConnection
+# which AegisEInvoicing.Persistence.ApplicationDbContextFactory reads through
+# .AddEnvironmentVariables(). A placeholder appsettings.json is shipped so the
+# factory's mandatory appsettings.json load succeeds.
+#
+# Usage:
+#   docker run --rm --network aegisremit-internal \
+#     -e ConnectionStrings__DefaultConnection="$DB_CONNECTION_STRING" \
+#     ghcr.io/vantroxia-labs/remit-migrator:<tag>
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ── Stage 1: Build the migration bundle ─────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+WORKDIR /src
+
+# Copy solution and all project files first (layer caching)
+COPY *.sln ./
+COPY src/Core/AegisEInvoicing.Domain/*.csproj src/Core/AegisEInvoicing.Domain/
+COPY src/Core/AegisEInvoicing.Application/*.csproj src/Core/AegisEInvoicing.Application/
+COPY src/Infrastructure/AegisEInvoicing.Infrastructure/*.csproj src/Infrastructure/AegisEInvoicing.Infrastructure/
+COPY src/Infrastructure/AegisEInvoicing.Persistence/*.csproj src/Infrastructure/AegisEInvoicing.Persistence/
+COPY src/Integrations/AegisEInvoicing.FIRSAccessPoint/*.csproj src/Integrations/AegisEInvoicing.FIRSAccessPoint/
+COPY src/Integrations/AegisEInvoicing.Interswitch/*.csproj src/Integrations/AegisEInvoicing.Interswitch/
+COPY src/Integrations/AegisEInvoicing.NotificationService/*.csproj src/Integrations/AegisEInvoicing.NotificationService/
+COPY src/Integrations/AegisEInvoicing.Paystack/*.csproj src/Integrations/AegisEInvoicing.Paystack/
+COPY src/Integrations/AegisEInvoicing.BlueBridge/*.csproj src/Integrations/AegisEInvoicing.BlueBridge/
+COPY src/Integrations/AegisEInvoicing.Etranzact/*.csproj src/Integrations/AegisEInvoicing.Etranzact/
+COPY src/Presentation/AegisEInvoicing.Portal.API/*.csproj src/Presentation/AegisEInvoicing.Portal.API/
+
+RUN dotnet restore src/Presentation/AegisEInvoicing.Portal.API/AegisEInvoicing.Portal.API.csproj
+
+# Copy everything and generate the bundle
+COPY . .
+
+# EF tooling pinned to the EF Core version used by the solution (10.0.3)
+RUN dotnet tool install --global dotnet-ef --version 10.0.3
+ENV PATH="$PATH:/root/.dotnet/tools"
+
+# project   = where the DbContext + migrations live (Persistence)
+# startup   = Portal.API, so EF discovers ApplicationDbContextFactory
+# self-contained musl bundle so it runs on the alpine runtime-deps image
+RUN dotnet ef migrations bundle \
+      --project src/Infrastructure/AegisEInvoicing.Persistence/AegisEInvoicing.Persistence.csproj \
+      --startup-project src/Presentation/AegisEInvoicing.Portal.API/AegisEInvoicing.Portal.API.csproj \
+      --configuration Release \
+      --self-contained -r linux-musl-x64 \
+      --output /app/efbundle
+
+# ── Stage 2: Minimal runtime ─────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine AS runtime
+WORKDIR /app
+
+# Security: run as non-root
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+COPY --from=build /app/efbundle ./efbundle
+
+# Placeholder appsettings.json: ApplicationDbContextFactory loads it as
+# mandatory (optional: false). The real connection string overrides this via
+# the ConnectionStrings__DefaultConnection environment variable at runtime.
+RUN printf '{"ConnectionStrings":{"DefaultConnection":""}}\n' > /app/appsettings.json \
+    && chmod +x /app/efbundle \
+    && chown -R appuser:appgroup /app
+
+USER appuser
+
+# efbundle applies all pending migrations then exits 0. Idempotent.
+ENTRYPOINT ["./efbundle"]

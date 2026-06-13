@@ -1,0 +1,39 @@
+# Build context hygiene — keep host build artifacts and junk out of the image.
+# The Dockerfiles build from repo root with `COPY . .`, so without this every
+# bin/obj and the .git dir would be copied into the build layer.
+
+# .NET build output
+**/bin/
+**/obj/
+**/out/
+**/publish/
+*.user
+*.suo
+
+# VCS / IDE
+.git/
+.gitignore
+.gitattributes
+.vs/
+.vscode/
+.idea/
+*.DS_Store
+
+# Tests / coverage
+**/TestResults/
+coverage/
+
+# Local config & secrets (never bake into images)
+**/appsettings.Development.json
+**/appsettings.Local.json
+.env
+.env.*
+docker-compose*.yml
+docker-compose.override.yml
+
+# Docs & scripts not needed at build time
+*.md
+docs/
+scripts/
+*.ps1
+*.sql

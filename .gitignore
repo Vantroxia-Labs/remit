@@ -407,6 +407,10 @@ appsettings.Development.json
 appsettings.Local.json
 **/appsettings.*.json
 !**/appsettings.json
+# NOTE: appsettings.Production.json is force-tracked for non-secret prod config
+# (logging, directories, schedules). DO NOT put real secrets here — connection
+# strings, API keys, SMTP/AWS creds, etc. are injected at runtime via environment
+# variables (ASPNETCORE_ENVIRONMENT=Production + Section__Key) in the deploy stack.
 !**/appsettings.Production.json
 
 # Environment files
