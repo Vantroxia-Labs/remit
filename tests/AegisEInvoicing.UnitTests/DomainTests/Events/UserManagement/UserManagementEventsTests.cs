@@ -79,7 +79,7 @@ public class UserManagementEventsTests
     }
 
     #endregion
-       
+
     #region UserLoginSuccessfulEvent Tests
 
     [Fact]
@@ -217,7 +217,7 @@ public class UserManagementEventsTests
                     Guid.NewGuid(),
                     DateTimeOffset.UtcNow);
                 lock (events) { events.Add(evt); }
-            }));
+            }, TestContext.Current.CancellationToken));
             tasks.Add(Task.Run(() =>
             {
                 var evt = new UserLoginSuccessfulEvent(
@@ -227,7 +227,7 @@ public class UserManagementEventsTests
                     "192.168.1.1",
                     DateTimeOffset.UtcNow);
                 lock (events) { events.Add(evt); }
-            }));
+            }, TestContext.Current.CancellationToken));
         }
 
         await Task.WhenAll(tasks);

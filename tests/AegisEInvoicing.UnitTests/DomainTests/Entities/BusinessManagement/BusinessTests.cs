@@ -485,8 +485,7 @@ public class BusinessTests
         var business = CreateTestBusiness();
         var mockSubscription = CreateMockSubscription(true);
         var subscriptionsField = business.GetType().GetField("_subscriptions", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var subscriptionsList = (List<AegisEInvoicing.Domain.Entities.BusinessManagement.Subscription>)subscriptionsField!.GetValue(business)!;
-        subscriptionsList.Add(mockSubscription);
+        ((System.Collections.Generic.List<Subscription>)subscriptionsField!.GetValue(business)!).Add(mockSubscription);
 
         // Act & Assert
         business.HasActiveSubscription().Should().BeTrue();
@@ -509,8 +508,7 @@ public class BusinessTests
         var business = CreateTestBusiness();
         var mockSubscription = CreateMockSubscription(true);
         var subscriptionsField = business.GetType().GetField("_subscriptions", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var subscriptionsList = (List<AegisEInvoicing.Domain.Entities.BusinessManagement.Subscription>)subscriptionsField!.GetValue(business)!;
-        subscriptionsList.Add(mockSubscription);
+        ((System.Collections.Generic.List<Subscription>)subscriptionsField!.GetValue(business)!).Add(mockSubscription);
 
         // Act & Assert
         var action = () => business.ValidateSubscriptionAccess();

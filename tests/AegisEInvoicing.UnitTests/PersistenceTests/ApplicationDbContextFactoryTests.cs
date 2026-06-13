@@ -47,7 +47,6 @@ public class ApplicationDbContextFactoryTests
         context.InvoiceApprovalHistories.Should().NotBeNull();
         context.Parties.Should().NotBeNull();
         context.BusinessItems.Should().NotBeNull();
-
         context.Branches.Should().NotBeNull();
         context.FlowRules.Should().NotBeNull();
         context.FIRSApiConfigurations.Should().NotBeNull();

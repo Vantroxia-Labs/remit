@@ -326,7 +326,6 @@ public class CreateFIRSInvoiceCommandHandler(
                             itemDto.Name,
                             ItemType.Service,
                             serviceCode,
-                            Guid.Empty,
                             itemDto.ItemDescription);
                         hasItemChanges = true;
                     }
@@ -348,7 +347,6 @@ public class CreateFIRSInvoiceCommandHandler(
                         itemDto.Name,
                         ItemType.Service,
                         serviceCode,
-                        Guid.Empty,
                         itemDto.ItemDescription,
                         itemDto.UnitPrice);
 

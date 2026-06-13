@@ -9,7 +9,6 @@ namespace AegisEInvoicing.UnitTests.DomainTests.Entities.BusinessManagement;
 public class BusinessItemTests
 {
     private readonly Guid _businessId = Guid.NewGuid();
-    private readonly Guid _itemCategoryId = Guid.NewGuid();
     private readonly ServiceCode _validServiceCode;
 
     public BusinessItemTests()
@@ -31,7 +30,6 @@ public class BusinessItemTests
             name,
             ItemType.Goods,
             _validServiceCode,
-            _itemCategoryId,
             description,
             unitPrice);
 
@@ -41,7 +39,6 @@ public class BusinessItemTests
         businessItem.Name.Should().Be(name);
         businessItem.ItemType.Should().Be(ItemType.Goods);
         businessItem.ServiceCode.Should().Be(_validServiceCode);
-
         businessItem.ItemDescription.Should().Be(description);
         businessItem.UnitPrice.Should().Be(unitPrice);
         businessItem.ItemId.Should().NotBeNullOrEmpty();
@@ -60,7 +57,6 @@ public class BusinessItemTests
             invalidName!,
             ItemType.Goods,
             _validServiceCode,
-            _itemCategoryId,
             "Valid description",
             100.0m);
 
@@ -78,7 +74,6 @@ public class BusinessItemTests
             "Valid Name",
             ItemType.Goods,
             null!,
-            _itemCategoryId,
             "Valid description",
             100.0m);
 
@@ -96,7 +91,6 @@ public class BusinessItemTests
             "Valid Name",
             ItemType.Goods,
             _validServiceCode,
-            _itemCategoryId,
             "Valid description",
             -100.0m);
 
@@ -114,7 +108,6 @@ public class BusinessItemTests
             "Free Item",
             ItemType.Goods,
             _validServiceCode,
-            _itemCategoryId,
             "Free promotional item",
             0.0m);
 
@@ -129,7 +122,6 @@ public class BusinessItemTests
         var businessItem = CreateTestBusinessItem();
         var newName = "Updated Item Name";
         var newServiceCode = ServiceCode.Create("SVC002", "Updated Service");
-        var newCategoryId = Guid.NewGuid();
         var newDescription = "Updated description";
 
         // Act
@@ -137,13 +129,11 @@ public class BusinessItemTests
             newName,
             ItemType.Goods,
             newServiceCode,
-            newCategoryId,
             newDescription);
 
         // Assert
         businessItem.Name.Should().Be(newName);
         businessItem.ServiceCode.Should().Be(newServiceCode);
-
         businessItem.ItemDescription.Should().Be(newDescription);
     }
 
@@ -161,7 +151,6 @@ public class BusinessItemTests
             invalidName!,
             ItemType.Goods,
             _validServiceCode,
-            _itemCategoryId,
             "Valid description");
 
         action.Should().Throw<ArgumentException>()
@@ -180,7 +169,6 @@ public class BusinessItemTests
             "Valid Name",
             ItemType.Goods,
             null!,
-            _itemCategoryId,
             "Valid description");
 
         action.Should().Throw<ArgumentException>()
@@ -294,7 +282,6 @@ public class BusinessItemTests
             .And.ParamName.Should().Be("description");
     }
 
-
     [Fact]
     public void InvoiceItems_ShouldReturnReadOnlyCollection()
     {
@@ -314,7 +301,6 @@ public class BusinessItemTests
             "Test Item",
             ItemType.Goods,
             _validServiceCode,
-            _itemCategoryId,
             "Test item description",
             100000.0m);
     }

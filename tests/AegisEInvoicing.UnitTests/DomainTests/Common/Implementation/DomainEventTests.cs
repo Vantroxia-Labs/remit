@@ -303,7 +303,7 @@ public class DomainEventTests
                 {
                     events.Add(evt);
                 }
-            }));
+            }, TestContext.Current.CancellationToken));
         }
 
         await Task.WhenAll(tasks);

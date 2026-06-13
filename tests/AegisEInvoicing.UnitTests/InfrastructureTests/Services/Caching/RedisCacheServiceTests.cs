@@ -121,7 +121,7 @@ public class RedisCacheServiceTests : IDisposable
         _memoryCache.Set(key, value);
 
         // Act
-        var result = await serviceWithoutRedis.GetAsync<string>(key);
+        var result = await serviceWithoutRedis.GetAsync<string>(key, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(value);
@@ -140,7 +140,7 @@ public class RedisCacheServiceTests : IDisposable
         _memoryCache.Set(key, value);
 
         // Act
-        var result = await _cacheService.GetAsync<string>(key);
+        var result = await _cacheService.GetAsync<string>(key, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(value);
@@ -156,7 +156,7 @@ public class RedisCacheServiceTests : IDisposable
             .ReturnsAsync(RedisValue.Null);
 
         // Act
-        var result = await _cacheService.GetAsync<string>(key);
+        var result = await _cacheService.GetAsync<string>(key, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeNull();
@@ -175,7 +175,7 @@ public class RedisCacheServiceTests : IDisposable
         _memoryCache.Set(key, value);
 
         // Act
-        var result = await _cacheService.GetAsync<string>(key);
+        var result = await _cacheService.GetAsync<string>(key, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(value);
@@ -211,7 +211,7 @@ public class RedisCacheServiceTests : IDisposable
         var value = "test-value";
 
         // Act
-        await _cacheService.SetAsync(key, value);
+        await _cacheService.SetAsync(key, value, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         _databaseMock.Verify(x => x.StringSetAsync(
@@ -233,7 +233,7 @@ public class RedisCacheServiceTests : IDisposable
         var customExpiry = TimeSpan.FromHours(1);
 
         // Act
-        await _cacheService.SetAsync(key, value, customExpiry);
+        await _cacheService.SetAsync(key, value, customExpiry, TestContext.Current.CancellationToken);
 
         // Assert
         _databaseMock.Verify(x => x.StringSetAsync(
@@ -260,7 +260,7 @@ public class RedisCacheServiceTests : IDisposable
             .ThrowsAsync(new RedisException("Redis connection failed"));
 
         // Act
-        await _cacheService.SetAsync(key, value);
+        await _cacheService.SetAsync(key, value, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         _memoryCache.Get(key).Should().Be(value);
@@ -290,7 +290,7 @@ public class RedisCacheServiceTests : IDisposable
         _memoryCache.Set(key, value);
 
         // Act
-        await _cacheService.RemoveAsync(key);
+        await _cacheService.RemoveAsync(key, TestContext.Current.CancellationToken);
 
         // Assert
         _databaseMock.Verify(x => x.KeyDeleteAsync(key, It.IsAny<CommandFlags>()), Times.Once);
@@ -325,7 +325,7 @@ public class RedisCacheServiceTests : IDisposable
             .Returns(keys);
 
         // Act
-        await _cacheService.RemoveByPatternAsync(pattern);
+        await _cacheService.RemoveByPatternAsync(pattern, TestContext.Current.CancellationToken);
 
         // Assert
         _databaseMock.Verify(x => x.KeyDeleteAsync(keys, It.IsAny<CommandFlags>()), Times.Once);
@@ -354,7 +354,7 @@ public class RedisCacheServiceTests : IDisposable
             .ReturnsAsync(true);
 
         // Act
-        var result = await _cacheService.ExistsAsync(key);
+        var result = await _cacheService.ExistsAsync(key, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeTrue();
@@ -374,7 +374,7 @@ public class RedisCacheServiceTests : IDisposable
         _memoryCache.Set(key, value);
 
         // Act
-        var result = await _cacheService.ExistsAsync(key);
+        var result = await _cacheService.ExistsAsync(key, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeTrue();
@@ -392,7 +392,7 @@ public class RedisCacheServiceTests : IDisposable
             .ReturnsAsync(serializedValue);
 
         // Act
-        var result = await _cacheService.GetAsync<object>(key);
+        var result = await _cacheService.GetAsync<object>(key, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeNull();
