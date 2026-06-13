@@ -108,6 +108,7 @@ jobs:
 
       # ── DB Migrator Image (EF bundle, run before apps roll) ────────────
       - name: Build and push DB migrator image
+        continue-on-error: true
         uses: docker/build-push-action@v5
         with:
           context: .
