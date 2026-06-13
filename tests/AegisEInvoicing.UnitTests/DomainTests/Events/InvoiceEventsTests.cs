@@ -328,22 +328,22 @@ public class InvoiceEventsTests
             {
                 var evt = new InvoiceCreatedEvent(Guid.NewGuid(), $"INV-{i}", Guid.NewGuid());
                 lock (events) { events.Add(evt); }
-            }));
+            }, TestContext.Current.CancellationToken));
             tasks.Add(Task.Run(() =>
             {
                 var evt = new InvoiceApprovedEvent(Guid.NewGuid(), $"INV-{i}", Guid.NewGuid(), Guid.NewGuid());
                 lock (events) { events.Add(evt); }
-            }));
+            }, TestContext.Current.CancellationToken));
             tasks.Add(Task.Run(() =>
             {
                 var evt = new InvoiceSignedEvent(Guid.NewGuid(), $"INV-{i}", Guid.NewGuid());
                 lock (events) { events.Add(evt); }
-            }));
+            }, TestContext.Current.CancellationToken));
             tasks.Add(Task.Run(() =>
             {
                 var evt = new InvoiceSubmittedEvent(Guid.NewGuid(), $"INV-{i}", Guid.NewGuid(), $"SUB-{i}");
                 lock (events) { events.Add(evt); }
-            }));
+            }, TestContext.Current.CancellationToken));
         }
 
         await Task.WhenAll(tasks);

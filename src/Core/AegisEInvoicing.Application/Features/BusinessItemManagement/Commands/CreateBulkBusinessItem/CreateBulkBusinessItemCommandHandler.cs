@@ -108,7 +108,6 @@ public class CreateBulkBusinessItemCommandHandler : IRequestHandler<CreateBulkBu
                     item.Name,
                     item.ItemType,
                     serviceCode,
-                    Guid.Empty,
                     item.ItemDescription,
                     item.UnitPrice);
 

@@ -68,7 +68,7 @@ public class UnitOfWorkTests : IDisposable
         _context.ApiUsageTrackings.Add(entity);
 
         // Act
-        var result = await _unitOfWork.SaveChangesAsync();
+        var result = await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(1);
@@ -78,7 +78,7 @@ public class UnitOfWorkTests : IDisposable
     public async Task SaveChangesAsync_WithoutChanges_ShouldReturnZero()
     {
         // Act
-        var result = await _unitOfWork.SaveChangesAsync();
+        var result = await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(0);
@@ -90,10 +90,9 @@ public class UnitOfWorkTests : IDisposable
         // Arrange
         var entity = CreateTestEntity();
         _context.ApiUsageTrackings.Add(entity);
-        using var cts = new CancellationTokenSource();
 
         // Act - InMemory provider doesn't respect cancellation, so just verify it accepts the token
-        var result = await _unitOfWork.SaveChangesAsync(cts.Token);
+        var result = await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(1);
@@ -103,7 +102,7 @@ public class UnitOfWorkTests : IDisposable
     public async Task BeginTransactionAsync_ShouldReturnTransaction()
     {
         // Act
-        using var transaction = await _unitOfWork.BeginTransactionAsync();
+        using var transaction = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
 
         // Assert
         transaction.Should().NotBeNull();
@@ -114,10 +113,8 @@ public class UnitOfWorkTests : IDisposable
     public async Task BeginTransactionAsync_WithCancellation_ShouldAcceptCancellationToken()
     {
         // Arrange
-        using var cts = new CancellationTokenSource();
-
         // Act - InMemory provider doesn't respect cancellation, so just verify it accepts the token
-        using var transaction = await _unitOfWork.BeginTransactionAsync(cts.Token);
+        using var transaction = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
 
         // Assert
         transaction.Should().NotBeNull();
@@ -127,18 +124,18 @@ public class UnitOfWorkTests : IDisposable
     public async Task CommitAsync_WithActiveTransaction_ShouldCommitTransaction()
     {
         // Arrange
-        var transaction = await _unitOfWork.BeginTransactionAsync();
+        var transaction = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
         var entity = CreateTestEntity();
         _context.ApiUsageTrackings.Add(entity);
-        await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await _unitOfWork.CommitAsync();
+        await _unitOfWork.CommitAsync(TestContext.Current.CancellationToken);
 
         // Assert
         // Transaction should be disposed and nullified
         // We can verify this by attempting to begin another transaction
-        var newTransaction = await _unitOfWork.BeginTransactionAsync();
+        var newTransaction = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
         newTransaction.Should().NotBeNull();
         newTransaction.Dispose();
     }
@@ -157,11 +154,10 @@ public class UnitOfWorkTests : IDisposable
     public async Task CommitAsync_WithCancellation_ShouldAcceptCancellationToken()
     {
         // Arrange
-        var transaction = await _unitOfWork.BeginTransactionAsync();
-        using var cts = new CancellationTokenSource();
+        var transaction = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
 
         // Act - InMemory provider doesn't respect cancellation, just verify it accepts the token
-        await _unitOfWork.CommitAsync(cts.Token);
+        await _unitOfWork.CommitAsync(TestContext.Current.CancellationToken);
 
         // Assert
         // If we get here without exception, test passes
@@ -171,13 +167,13 @@ public class UnitOfWorkTests : IDisposable
     public async Task RollbackAsync_WithActiveTransaction_ShouldRollbackTransaction()
     {
         // Arrange
-        var transaction = await _unitOfWork.BeginTransactionAsync();
+        var transaction = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
         var entity = CreateTestEntity();
         _context.ApiUsageTrackings.Add(entity);
-        await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await _unitOfWork.RollbackAsync();
+        await _unitOfWork.RollbackAsync(TestContext.Current.CancellationToken);
 
         // Assert
         // InMemory database doesn't really support transactions, so entity may still exist
@@ -198,11 +194,10 @@ public class UnitOfWorkTests : IDisposable
     public async Task RollbackAsync_WithCancellation_ShouldAcceptCancellationToken()
     {
         // Arrange
-        var transaction = await _unitOfWork.BeginTransactionAsync();
-        using var cts = new CancellationTokenSource();
+        var transaction = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
 
         // Act - InMemory provider doesn't respect cancellation, just verify it accepts the token
-        await _unitOfWork.RollbackAsync(cts.Token);
+        await _unitOfWork.RollbackAsync(TestContext.Current.CancellationToken);
 
         // Assert
         // If we get here without exception, test passes
@@ -216,13 +211,13 @@ public class UnitOfWorkTests : IDisposable
         var entity = CreateTestEntity("/api/commit-test");
 
         // Act
-        var transaction = await _unitOfWork.BeginTransactionAsync();
+        var transaction = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
         _context.ApiUsageTrackings.Add(entity);
-        await _unitOfWork.SaveChangesAsync();
-        await _unitOfWork.CommitAsync();
+        await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _unitOfWork.CommitAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var savedEntity = await _context.ApiUsageTrackings.FirstOrDefaultAsync(e => e.Endpoint == "/api/commit-test");
+        var savedEntity = await _context.ApiUsageTrackings.FirstOrDefaultAsync(e => e.Endpoint == "/api/commit-test", TestContext.Current.CancellationToken);
         savedEntity.Should().NotBeNull();
         savedEntity!.Endpoint.Should().Be("/api/commit-test");
     }
@@ -234,10 +229,10 @@ public class UnitOfWorkTests : IDisposable
         var entity = CreateTestEntity("/api/rollback-test");
 
         // Act
-        var transaction = await _unitOfWork.BeginTransactionAsync();
+        var transaction = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
         _context.ApiUsageTrackings.Add(entity);
-        await _unitOfWork.SaveChangesAsync();
-        await _unitOfWork.RollbackAsync();
+        await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _unitOfWork.RollbackAsync(TestContext.Current.CancellationToken);
 
         // Assert
         // InMemory database doesn't truly support transactions
@@ -248,21 +243,21 @@ public class UnitOfWorkTests : IDisposable
     public async Task MultipleTransactions_ShouldWorkSequentially()
     {
         // First transaction
-        var transaction1 = await _unitOfWork.BeginTransactionAsync();
+        var transaction1 = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
         var entity1 = CreateTestEntity("/api/entity1");
         _context.ApiUsageTrackings.Add(entity1);
-        await _unitOfWork.SaveChangesAsync();
-        await _unitOfWork.CommitAsync();
+        await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _unitOfWork.CommitAsync(TestContext.Current.CancellationToken);
 
         // Second transaction
-        var transaction2 = await _unitOfWork.BeginTransactionAsync();
+        var transaction2 = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
         var entity2 = CreateTestEntity("/api/entity2");
         _context.ApiUsageTrackings.Add(entity2);
-        await _unitOfWork.SaveChangesAsync();
-        await _unitOfWork.CommitAsync();
+        await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _unitOfWork.CommitAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var count = await _context.ApiUsageTrackings.CountAsync();
+        var count = await _context.ApiUsageTrackings.CountAsync(TestContext.Current.CancellationToken);
         count.Should().Be(2);
     }
 
@@ -282,7 +277,7 @@ public class UnitOfWorkTests : IDisposable
     public async Task Dispose_WithActiveTransaction_ShouldCompleteWithoutError()
     {
         // Arrange
-        var transaction = await _unitOfWork.BeginTransactionAsync();
+        var transaction = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
 
         // Act
         _unitOfWork.Dispose();
@@ -300,14 +295,14 @@ public class UnitOfWorkTests : IDisposable
         var entity2 = CreateTestEntity("/api/nested2");
 
         // Act - Begin transaction and save first entity
-        var transaction = await _unitOfWork.BeginTransactionAsync();
+        var transaction = await _unitOfWork.BeginTransactionAsync(TestContext.Current.CancellationToken);
         _context.ApiUsageTrackings.Add(entity1);
-        await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Add second entity and rollback
         _context.ApiUsageTrackings.Add(entity2);
-        await _unitOfWork.SaveChangesAsync();
-        await _unitOfWork.RollbackAsync();
+        await _unitOfWork.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _unitOfWork.RollbackAsync(TestContext.Current.CancellationToken);
 
         // Assert - InMemory database doesn't support real transactions
         // Just verify the workflow completes

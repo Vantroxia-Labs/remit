@@ -37,7 +37,7 @@ public class XmlResponseServiceTests
             .Returns(Task.FromResult(expectedDirectory));
 
         // Act
-        var result = await _xmlResponseService.GetResponseDirectoryAsync(connectionId, XmlResponseType.ACK);
+        var result = await _xmlResponseService.GetResponseDirectoryAsync(connectionId, XmlResponseType.ACK, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(expectedDirectory);
@@ -54,7 +54,7 @@ public class XmlResponseServiceTests
             .Returns(Task.FromResult(expectedDirectory));
 
         // Act
-        var result = await _xmlResponseService.GetResponseDirectoryAsync(connectionId, XmlResponseType.NACK);
+        var result = await _xmlResponseService.GetResponseDirectoryAsync(connectionId, XmlResponseType.NACK, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(expectedDirectory);
@@ -69,22 +69,21 @@ public class XmlResponseServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(
-            () => _xmlResponseService.GetResponseDirectoryAsync("invalid", XmlResponseType.ACK));
+            () => _xmlResponseService.GetResponseDirectoryAsync("invalid", XmlResponseType.ACK, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetResponseDirectoryAsync_WithCancellationToken_ShouldPassToken()
     {
         // Arrange
-        var cts = new CancellationTokenSource();
-        _xmlResponseService.GetResponseDirectoryAsync("conn", XmlResponseType.ACK, cts.Token)
+        _xmlResponseService.GetResponseDirectoryAsync("conn", XmlResponseType.ACK, TestContext.Current.CancellationToken)
             .Returns(Task.FromResult("/ack"));
 
         // Act
-        await _xmlResponseService.GetResponseDirectoryAsync("conn", XmlResponseType.ACK, cts.Token);
+        await _xmlResponseService.GetResponseDirectoryAsync("conn", XmlResponseType.ACK, TestContext.Current.CancellationToken);
 
         // Assert
-        await _xmlResponseService.Received(1).GetResponseDirectoryAsync("conn", XmlResponseType.ACK, cts.Token);
+        await _xmlResponseService.Received(1).GetResponseDirectoryAsync("conn", XmlResponseType.ACK, TestContext.Current.CancellationToken);
     }
 
     #endregion
@@ -113,7 +112,7 @@ public class XmlResponseServiceTests
             .Returns(Task.FromResult(expectedResponse));
 
         // Act
-        var result = await _xmlResponseService.GenerateAckResponseAsync(invoiceDetails, "test.xml", "conn1");
+        var result = await _xmlResponseService.GenerateAckResponseAsync(invoiceDetails, "test.xml", "conn1", TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeNull();
@@ -147,7 +146,7 @@ public class XmlResponseServiceTests
             .Returns(Task.FromResult(expectedResponse));
 
         // Act
-        var result = await _xmlResponseService.GenerateNackResponseAsync(errorDetails, "test.xml", "conn1");
+        var result = await _xmlResponseService.GenerateNackResponseAsync(errorDetails, "test.xml", "conn1", TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeNull();
@@ -174,7 +173,7 @@ public class XmlResponseServiceTests
             .Returns(Task.FromResult(true));
 
         // Act
-        var result = await _xmlResponseService.UploadResponseAsync(response, "conn1");
+        var result = await _xmlResponseService.UploadResponseAsync(response, "conn1", TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeTrue();

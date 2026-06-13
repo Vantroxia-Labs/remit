@@ -59,7 +59,6 @@ public class UpdateBusinessItemCommandHandler : IRequestHandler<UpdateBusinessIt
             request.Name,
             request.ItemType,
             serviceCode,
-            Guid.Empty,
             request.ItemDescription);
 
         // Update tax categories
