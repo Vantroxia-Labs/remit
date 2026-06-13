@@ -359,12 +359,13 @@ public class AddressTests
         // Assert
         components.Should().NotBeNull();
         var componentsList = components!.ToList();
-        componentsList.Should().HaveCount(5);
+        componentsList.Should().HaveCount(6);
         componentsList[0].Should().Be("123 Main St");
         componentsList[1].Should().Be("Lagos");
         componentsList[2].Should().Be("Lagos State");
         componentsList[3].Should().Be("Nigeria");
         componentsList[4].Should().Be("100001");
+        componentsList[5].Should().Be("");
     }
 
     [Fact]

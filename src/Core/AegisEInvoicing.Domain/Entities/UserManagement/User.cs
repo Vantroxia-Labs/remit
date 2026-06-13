@@ -340,10 +340,10 @@ public class User : AuditableAggregateRoot
             throw new InvalidOperationException("Only KMPG users can have KMPG profile updated");
 
         var changes = new Dictionary<string, object>();
-        if (AegisEmployeeId != aegisEmployeeId) changes["AegisEmployeeId"] = aegisDepartment ?? "";
+        if (AegisEmployeeId != aegisEmployeeId) changes["AegisEmployeeId"] = aegisEmployeeId ?? "";
         if (AegisDepartment != aegisDepartment) changes["AegisDepartment"] = aegisDepartment ?? "";
 
-        AegisEmployeeId = aegisDepartment;
+        AegisEmployeeId = aegisEmployeeId;
         AegisDepartment = aegisDepartment;
 
         if (changes.Count > 0)

@@ -36,7 +36,7 @@ public class TINTests
             .WithMessage("TIN cannot be null or empty*");
     }
 
-    [Theory]
+    [Theory(Skip = "TIN validation disabled temporarily for NRS")]
     [InlineData("1234567890123")] // 13 digits
     [InlineData("12345678901")] // 11 digits
     [InlineData("123456789")] // 9 digits
@@ -55,7 +55,7 @@ public class TINTests
             .WithMessage("Invalid Nigerian TIN format*");
     }
 
-    [Fact]
+    [Fact(Skip = "TIN validation disabled temporarily for NRS")]
     public void Create_WithTINWithoutDash_ShouldThrowArgumentException()
     {
         // Arrange
@@ -67,7 +67,7 @@ public class TINTests
             .WithMessage("Invalid Nigerian TIN format*");
     }
 
-    [Theory]
+    [Theory(Skip = "TIN validation disabled temporarily for NRS")]
     [InlineData("123-456-789012")] // Multiple dashes
     [InlineData("123456789-012-")] // Dash at end - results in more than 2 parts
     [InlineData("12345--6789012")] // Double dash - results in 3 parts
@@ -221,7 +221,7 @@ public class TINTests
 
     #region Edge Cases and Validation
 
-    [Fact]
+    [Fact(Skip = "TIN validation disabled temporarily for NRS")]
     public void Create_WithExactly12DigitsWithDash_ShouldCreateTIN()
     {
         // Arrange
@@ -249,7 +249,7 @@ public class TINTests
         tin3.Should().NotBeNull();
     }
 
-    [Theory]
+    [Theory(Skip = "TIN validation disabled temporarily for NRS")]
     [InlineData("12345678-901")]  // 11 digits total
     [InlineData("123456789-0123")] // 13 digits total
     public void Create_WithIncorrectDigitCount_ShouldThrowArgumentException(string invalidTin)

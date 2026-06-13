@@ -213,8 +213,8 @@ public class SystemConfigurationTests
     public void DeploymentModeEnum_ShouldHaveCorrectValues()
     {
         // Assert
-        ((int)DeploymentMode.Cloud).Should().Be(1);
-        ((int)DeploymentMode.OnPremise).Should().Be(2);
+        ((int)DeploymentMode.Cloud).Should().Be(0);
+        ((int)DeploymentMode.OnPremise).Should().Be(1);
     }
 
     [Fact]

@@ -39,8 +39,8 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
-      # - name: Test
-      #   run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
+      - name: Test
+        run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
 
       # TODO: Uncomment when test coverage is stable
       # - name: Check coverage threshold

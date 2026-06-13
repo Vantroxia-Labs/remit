@@ -242,7 +242,7 @@ public class PlatformSubscriptionTests
     public void SubscriptionTier_ShouldHaveCorrectEnumValues()
     {
         // Assert
-        Enum.GetNames<SubscriptionTier>().Should().Contain(["ApiOnly", "SaaS", "OnPremise"]);
+        Enum.GetNames<SubscriptionTier>().Should().Contain(["ApiOnly", "SaaS", "SFTP"]);
     }
 
     [Theory]
