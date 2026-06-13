@@ -100,7 +100,7 @@ public class ApplicationDbContextTests : IDisposable
         _context.InvoiceApprovalHistories.Should().NotBeNull();
         _context.Parties.Should().NotBeNull();
         _context.BusinessItems.Should().NotBeNull();
-        _context.ItemCategories.Should().NotBeNull();
+
         _context.Branches.Should().NotBeNull();
         _context.FlowRules.Should().NotBeNull();
         _context.FIRSApiConfigurations.Should().NotBeNull();

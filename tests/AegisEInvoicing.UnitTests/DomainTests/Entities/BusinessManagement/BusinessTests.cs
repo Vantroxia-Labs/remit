@@ -483,11 +483,10 @@ public class BusinessTests
     {
         // Arrange
         var business = CreateTestBusiness();
-        var subscriptionId = Guid.NewGuid();
-        business.GetType().GetProperty("SubscriptionId")?.SetValue(business, subscriptionId);
-
         var mockSubscription = CreateMockSubscription(true);
-        business.GetType().GetProperty("Subscription")?.SetValue(business, mockSubscription);
+        var subscriptionsField = business.GetType().GetField("_subscriptions", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var subscriptionsList = (List<AegisEInvoicing.Domain.Entities.BusinessManagement.Subscription>)subscriptionsField!.GetValue(business)!;
+        subscriptionsList.Add(mockSubscription);
 
         // Act & Assert
         business.HasActiveSubscription().Should().BeTrue();
@@ -504,75 +503,14 @@ public class BusinessTests
     }
 
     [Fact]
-    public void AssignSubscription_WithoutExistingSubscription_ShouldAssignSubscription()
-    {
-        // Arrange
-        var business = CreateTestBusiness();
-        var subscriptionId = Guid.NewGuid();
-
-        // Act
-        business.AssignSubscription(subscriptionId, _updatedBy);
-
-        // Assert
-        business.SubscriptionId.Should().Be(subscriptionId);
-        business.UpdatedBy.Should().Be(_updatedBy);
-        business.UpdatedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(1));
-    }
-
-    [Fact]
-    public void AssignSubscription_WithExistingSubscription_ShouldThrowInvalidOperationException()
-    {
-        // Arrange
-        var business = CreateTestBusiness();
-        business.AssignSubscription(Guid.NewGuid(), _updatedBy);
-
-        // Act & Assert
-        var action = () => business.AssignSubscription(Guid.NewGuid(), _updatedBy);
-        action.Should().Throw<InvalidOperationException>()
-            .WithMessage("Business already has a subscription assigned");
-    }
-
-    [Fact]
-    public void UpdateSubscription_WithExistingSubscription_ShouldUpdateSubscription()
-    {
-        // Arrange
-        var business = CreateTestBusiness();
-        var initialSubscriptionId = Guid.NewGuid();
-        var newSubscriptionId = Guid.NewGuid();
-        business.AssignSubscription(initialSubscriptionId, _createdBy);
-
-        // Act
-        business.UpdateSubscription(newSubscriptionId, _updatedBy);
-
-        // Assert
-        business.SubscriptionId.Should().Be(newSubscriptionId);
-        business.UpdatedBy.Should().Be(_updatedBy);
-        business.UpdatedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(1));
-    }
-
-    [Fact]
-    public void UpdateSubscription_WithoutExistingSubscription_ShouldThrowInvalidOperationException()
-    {
-        // Arrange
-        var business = CreateTestBusiness();
-        var newSubscriptionId = Guid.NewGuid();
-
-        // Act & Assert
-        var action = () => business.UpdateSubscription(newSubscriptionId, _updatedBy);
-        action.Should().Throw<InvalidOperationException>()
-            .WithMessage("Business does not have a subscription to update. Use AssignSubscription instead.");
-    }
-
-    [Fact]
     public void ValidateSubscriptionAccess_WithActiveSubscription_ShouldNotThrow()
     {
         // Arrange
         var business = CreateTestBusiness();
-        var subscriptionId = Guid.NewGuid();
-        business.GetType().GetProperty("SubscriptionId")?.SetValue(business, subscriptionId);
-
         var mockSubscription = CreateMockSubscription(true);
-        business.GetType().GetProperty("Subscription")?.SetValue(business, mockSubscription);
+        var subscriptionsField = business.GetType().GetField("_subscriptions", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var subscriptionsList = (List<AegisEInvoicing.Domain.Entities.BusinessManagement.Subscription>)subscriptionsField!.GetValue(business)!;
+        subscriptionsList.Add(mockSubscription);
 
         // Act & Assert
         var action = () => business.ValidateSubscriptionAccess();

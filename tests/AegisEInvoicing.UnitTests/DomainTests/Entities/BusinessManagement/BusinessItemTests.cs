@@ -41,7 +41,7 @@ public class BusinessItemTests
         businessItem.Name.Should().Be(name);
         businessItem.ItemType.Should().Be(ItemType.Goods);
         businessItem.ServiceCode.Should().Be(_validServiceCode);
-        businessItem.ItemCategoryId.Should().Be(_itemCategoryId);
+
         businessItem.ItemDescription.Should().Be(description);
         businessItem.UnitPrice.Should().Be(unitPrice);
         businessItem.ItemId.Should().NotBeNullOrEmpty();
@@ -143,7 +143,7 @@ public class BusinessItemTests
         // Assert
         businessItem.Name.Should().Be(newName);
         businessItem.ServiceCode.Should().Be(newServiceCode);
-        businessItem.ItemCategoryId.Should().Be(newCategoryId);
+
         businessItem.ItemDescription.Should().Be(newDescription);
     }
 
@@ -294,33 +294,6 @@ public class BusinessItemTests
             .And.ParamName.Should().Be("description");
     }
 
-    [Fact]
-    public void UpdateCategory_WithValidCategoryId_ShouldUpdateCategory()
-    {
-        // Arrange
-        var businessItem = CreateTestBusinessItem();
-        var newCategoryId = Guid.NewGuid();
-
-        // Act
-        businessItem.UpdateCategory(newCategoryId);
-
-        // Assert
-        businessItem.ItemCategoryId.Should().Be(newCategoryId);
-    }
-
-    [Fact]
-    public void UpdateCategory_WithEmptyGuid_ShouldThrowArgumentException()
-    {
-        // Arrange
-        var businessItem = CreateTestBusinessItem();
-
-        // Act & Assert
-        var action = () => businessItem.UpdateCategory(Guid.Empty);
-
-        action.Should().Throw<ArgumentException>()
-            .WithMessage("Category cannot be empty.*")
-            .And.ParamName.Should().Be("categoryId");
-    }
 
     [Fact]
     public void InvoiceItems_ShouldReturnReadOnlyCollection()
