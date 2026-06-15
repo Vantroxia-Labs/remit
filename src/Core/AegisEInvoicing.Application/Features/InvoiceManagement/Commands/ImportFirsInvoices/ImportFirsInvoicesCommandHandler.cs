@@ -330,7 +330,7 @@ public sealed class ImportFirsInvoicesCommandHandler(
             businessId, itemName,
             ItemType.Service,
             ServiceCode.Create(svcCodeValue, svcCodeName),
-            Guid.Empty, itemDesc, unitPrice);
+            itemDesc, unitPrice);
 
         businessItem.CreatedBy = createdById;
         await context.BusinessItems.AddAsync(businessItem, cancellationToken);

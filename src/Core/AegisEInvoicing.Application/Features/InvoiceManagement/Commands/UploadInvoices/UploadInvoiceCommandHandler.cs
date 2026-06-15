@@ -692,7 +692,6 @@ public class UploadInvoiceCommandHandler(
                     item.Name,
                     ItemType.Service,
                     ServiceCode.Create(item.ServiceCode.Code, item.Name),
-                    Guid.Empty,
                     item.ItemDescription,
                     item.UnitPrice);
 

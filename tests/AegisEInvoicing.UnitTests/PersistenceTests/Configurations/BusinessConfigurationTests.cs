@@ -291,10 +291,10 @@ public class BusinessConfigurationTests : IDisposable
 
         // Act
         _context.Businesses.Add(business);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var savedBusiness = await _context.Businesses.FirstOrDefaultAsync(b => b.Id == business.Id);
+        var savedBusiness = await _context.Businesses.FirstOrDefaultAsync(b => b.Id == business.Id, TestContext.Current.CancellationToken);
         savedBusiness.Should().NotBeNull();
         savedBusiness!.Name.Should().Be("Test Business Limited");
         savedBusiness.RegisteredAddress.Street.Should().Be("123 Test Street");

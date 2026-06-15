@@ -45,6 +45,17 @@ public record InvoiceDetailsDto
     public DocumentReferenceDto? OriginatorDocumentReference { get; init; }
     public DocumentReferenceDto? ContractDocumentReference { get; init; }
     public List<DocumentReferenceDto>? AdditionalDocumentReferences { get; init; }
+    public List<InvoicePaymentDto> PaymentHistory { get; init; } = [];
+    public decimal AmountPaid { get; init; }
+    public decimal OutstandingAmount { get; init; }
+}
+
+public record InvoicePaymentDto
+{
+    public Guid Id { get; init; }
+    public decimal Amount { get; init; }
+    public string? Reference { get; init; }
+    public DateTimeOffset PaidAt { get; init; }
 }
 
 public record BillingReferenceDto

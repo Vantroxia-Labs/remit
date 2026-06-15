@@ -265,7 +265,7 @@ public class SftpServiceAsyncMethodsTests
             .Returns(Task.CompletedTask);
 
         // Act & Assert - should not throw
-        await _sftpService.MoveFileAsync("conn1", "/source/file.xml", "/dest/file.xml");
+        await _sftpService.MoveFileAsync("conn1", "/source/file.xml", "/dest/file.xml", TestContext.Current.CancellationToken);
     }
 
     #endregion
@@ -280,7 +280,7 @@ public class SftpServiceAsyncMethodsTests
             .Returns(Task.CompletedTask);
 
         // Act & Assert - should not throw
-        await _sftpService.DeleteFileAsync("conn1", "/test/file.xml");
+        await _sftpService.DeleteFileAsync("conn1", "/test/file.xml", TestContext.Current.CancellationToken);
     }
 
     #endregion
@@ -295,7 +295,7 @@ public class SftpServiceAsyncMethodsTests
             .Returns(Task.CompletedTask);
 
         // Act & Assert - should not throw
-        await _sftpService.CreateDirectoryIfNotExistsAsync("conn1", "/test/newdir");
+        await _sftpService.CreateDirectoryIfNotExistsAsync("conn1", "/test/newdir", TestContext.Current.CancellationToken);
     }
 
     #endregion
@@ -310,7 +310,7 @@ public class SftpServiceAsyncMethodsTests
             .Returns(Task.FromResult(true));
 
         // Act
-        var result = await _sftpService.TestConnectionAsync("conn1");
+        var result = await _sftpService.TestConnectionAsync("conn1", TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeTrue();
@@ -324,7 +324,7 @@ public class SftpServiceAsyncMethodsTests
             .Returns(Task.FromResult(false));
 
         // Act
-        var result = await _sftpService.TestConnectionAsync("conn1");
+        var result = await _sftpService.TestConnectionAsync("conn1", TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeFalse();
