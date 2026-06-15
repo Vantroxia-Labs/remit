@@ -13,15 +13,15 @@ services:
       - DOTNET_RUNNING_IN_CONTAINER=true
       - DOTNET_USE_POLLING_FILE_WATCHER=true
       # Override sensitive configuration via environment variables
-      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-Host=pg-2ec9c3a8-aresdims-2dc9.g.aivencloud.com;Port=22331;Database=EInvoiceUsermgtDb;Username=avnadmin;Password=AVNS_De_tHsKg5She-pUD_IC;Pooling=true;SSL Mode=Prefer;Trust Server Certificate=true}
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-}
       - MailKit__SmtpServer=${SMTP_SERVER:-email-smtp.us-east-1.amazonaws.com}
       - MailKit__SmtpPort=${SMTP_PORT:-587}
-      - MailKit__Username=${SMTP_USERNAME:-AKIA4ESZHHNERFGJFKMF}
-      - MailKit__Password=${SMTP_PASSWORD:-BNBtIWD1XdUo7M8UlGWTZvkWHI3atVL8G1V9Sh6NGoqY}
+      - MailKit__Username=${SMTP_USERNAME:-}
+      - MailKit__Password=${SMTP_PASSWORD:-}
       - MailKit__UseSsl=${SMTP_USE_SSL:-true}
-      - SFTPDetails__Connections__0__Host=${SFTP_HOST:-172.236.28.121}
-      - SFTPDetails__Connections__0__UserName=${SFTP_USERNAME:-kpmg}
-      - SFTPDetails__Connections__0__Password=${SFTP_PASSWORD:-Nigeriasns19$}
+      - SFTPDetails__Connections__0__Host=${SFTP_HOST:-}
+      - SFTPDetails__Connections__0__UserName=${SFTP_USERNAME:-}
+      - SFTPDetails__Connections__0__Password=${SFTP_PASSWORD:-}
       - Processing__ProcessingIntervalSeconds=${PROCESSING_INTERVAL:-30}
       - Processing__MaxFilesPerBatch=${MAX_FILES_PER_BATCH:-50}
       - Processing__EnableParallelProcessing=${ENABLE_PARALLEL_PROCESSING:-true}
@@ -29,8 +29,8 @@ services:
       - Logging__LogLevel__EInvoiceIntegrator.BackgroundService.Jobs=Information
       - Logging__LogLevel__Quartz=Information
       - Logging__LogLevel__Quartz.Core=Debug
-      - Security__EncryptionKey=${ENCRYPTION_KEY:-your-32-character-encryption-key-here12345}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-32-character-encryption-key-here12345}
+      - Security__EncryptionKey=${ENCRYPTION_KEY:-}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
     volumes:
       - ./logs:/app/logs:rw
       - ./data:/app/data:rw
@@ -59,23 +59,23 @@ services:
       - DOTNET_RUNNING_IN_CONTAINER=true
       - DOTNET_USE_POLLING_FILE_WATCHER=true
       # Override sensitive configuration via environment variables
-      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-Host=pg-2ec9c3a8-aresdims-2dc9.g.aivencloud.com;Port=22331;Database=EInvoiceUsermgtDb;Username=avnadmin;Password=AVNS_De_tHsKg5She-pUD_IC;Pooling=true;SSL Mode=Prefer;Trust Server Certificate=true}
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-}
       - MailKit__SmtpServer=${SMTP_SERVER:-email-smtp.us-east-1.amazonaws.com}
       - MailKit__SmtpPort=${SMTP_PORT:-587}
-      - MailKit__Username=${SMTP_USERNAME:-AKIA4ESZHHNERFGJFKMF}
-      - MailKit__Password=${SMTP_PASSWORD:-BNBtIWD1XdUo7M8UlGWTZvkWHI3atVL8G1V9Sh6NGoqY}
+      - MailKit__Username=${SMTP_USERNAME:-}
+      - MailKit__Password=${SMTP_PASSWORD:-}
       - MailKit__UseSsl=${SMTP_USE_SSL:-true}
-      - SFTPDetails__Connections__0__Host=${SFTP_HOST:-172.236.28.121}
-      - SFTPDetails__Connections__0__UserName=${SFTP_USERNAME:-kpmg}
-      - SFTPDetails__Connections__0__Password=${SFTP_PASSWORD:-Nigeriasns19$}
+      - SFTPDetails__Connections__0__Host=${SFTP_HOST:-}
+      - SFTPDetails__Connections__0__UserName=${SFTP_USERNAME:-}
+      - SFTPDetails__Connections__0__Password=${SFTP_PASSWORD:-}
       - Processing__ProcessingIntervalSeconds=${PROCESSING_INTERVAL:-30}
       - Processing__MaxFilesPerBatch=${MAX_FILES_PER_BATCH:-50}
       - Processing__EnableParallelProcessing=${ENABLE_PARALLEL_PROCESSING:-true}
       - Logging__LogLevel__Default=${LOG_LEVEL:-Information}
       - Logging__LogLevel__EInvoiceIntegrator.BackgroundService.Jobs=Information
       - Logging__LogLevel__Quartz=Information
-      - Security__EncryptionKey=${ENCRYPTION_KEY:-your-32-character-encryption-key-here12345}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-32-character-encryption-key-here12345}
+      - Security__EncryptionKey=${ENCRYPTION_KEY:-}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
     volumes:
       - ./logs:/app/logs:rw
       - ./data:/app/data:rw
@@ -119,8 +119,8 @@ services:
     image: dpage/pgadmin4:latest
     container_name: einvoice-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@einvoice.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
       - "8080:80"

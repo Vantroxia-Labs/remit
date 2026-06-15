@@ -28,6 +28,16 @@ public class SecurityHeadersMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
+
+        // Skip security headers for API documentation paths (Scalar/OpenAPI)
+        // These paths serve interactive documentation that requires inline scripts and external CDN resources
+        if (path.StartsWith("/scalar") || path.StartsWith("/openapi"))
+        {
+            await _next(context);
+            return;
+        }
+
         // Register callback to modify headers just before response is sent
         // This ensures we can remove headers that are added by the server
         context.Response.OnStarting(() =>

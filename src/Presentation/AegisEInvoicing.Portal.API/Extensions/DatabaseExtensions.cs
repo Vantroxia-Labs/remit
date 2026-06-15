@@ -1,5 +1,6 @@
 ﻿using AegisEInvoicing.Domain.Common;
 using AegisEInvoicing.Domain.Constants;
+using AegisEInvoicing.Domain.Entities;
 using AegisEInvoicing.Domain.Entities.UserManagement;
 using AegisEInvoicing.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -72,6 +73,9 @@ public static class DatabaseExtensions
     {
         try
         {
+            // Always ensure SystemConfiguration exists regardless of user state
+            await EnsureSystemConfigurationAsync(context, logger, configuration);
+
             logger.LogInformation("Checking for existing seed data...");
 
             // Check if we already have users seeded (to avoid duplicates)
@@ -79,7 +83,8 @@ public static class DatabaseExtensions
 
             if (existingUsersCount > 0)
             {
-                logger.LogInformation("Seed data already exists. Skipping seeding.");
+                await EnsurePlatformSubscriptionsAsync(context, logger);
+                logger.LogInformation("Seed data already exists. Skipping user/role seeding.");
                 return;
             }
 
@@ -160,6 +165,8 @@ public static class DatabaseExtensions
             await context.SaveChangesAsync();
             logger.LogInformation("Successfully seeded role assignments");
 
+            await EnsurePlatformSubscriptionsAsync(context, logger, user.Id);
+
             logger.LogInformation("Comprehensive seeding completed successfully");
 
             // Log summary of all seeded data
@@ -170,6 +177,49 @@ public static class DatabaseExtensions
             logger.LogError(ex, "An error occurred while seeding initial data");
             throw;
         }
+    }
+
+    private static async Task EnsurePlatformSubscriptionsAsync(
+        ApplicationDbContext context,
+        ILogger logger,
+        Guid? createdByOverride = null)
+    {
+        var existingPlanNames = await context.PlatformSubscriptions
+            .AsNoTracking()
+            .Where(ps => !ps.IsDeleted)
+            .Select(ps => ps.PlanName)
+            .ToListAsync();
+
+        var createdBy = createdByOverride;
+        if (!createdBy.HasValue)
+        {
+            createdBy = await context.Users
+                .AsNoTracking()
+                .Where(u => u.IsAegisUser)
+                .OrderBy(u => u.CreatedAt)
+                .Select(u => (Guid?)u.Id)
+                .FirstOrDefaultAsync();
+        }
+
+        if (!createdBy.HasValue)
+        {
+            logger.LogWarning("Platform subscription seeding skipped: no Aegis user found for CreatedBy.");
+            return;
+        }
+
+        var seedPlans = UserSeedData.GetPlatformSubscriptions(createdBy.Value)
+            .Where(p => !existingPlanNames.Contains(p.PlanName, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        if (seedPlans.Count == 0)
+        {
+            logger.LogInformation("Platform subscriptions already seeded.");
+            return;
+        }
+
+        await context.PlatformSubscriptions.AddRangeAsync(seedPlans);
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded {Count} missing platform subscription plan(s).", seedPlans.Count);
     }
 
     private static async Task ReconcileSystemRolePermissions(ApplicationDbContext context, ILogger logger)
@@ -229,5 +279,73 @@ public static class DatabaseExtensions
         {
             logger.LogWarning(ex, "Could not generate seed summary");
         }
+    }
+
+
+    /// <summary>
+    /// Ensures a SystemConfiguration record exists on startup.
+    /// Uses settings from appsettings.json "SystemSetup" and "DeploymentMode" sections.
+    /// This runs independently of user seeding so the app never stays in "waiting for setup" state.
+    /// </summary>
+    private static async Task EnsureSystemConfigurationAsync(ApplicationDbContext context, ILogger logger, IConfiguration configuration)
+    {
+        var existingConfig = await context.SystemConfigurations.FirstOrDefaultAsync();
+
+        if (existingConfig is not null)
+        {
+            logger.LogInformation("System configuration already exists (Mode: {Mode}, Setup completed: {IsSetup})",
+                existingConfig.DeploymentMode, existingConfig.IsSetupCompleted);
+            return;
+        }
+
+        logger.LogInformation("No system configuration found. Seeding initial system configuration...");
+
+        var deploymentMode = configuration["DeploymentMode"]?.Trim().ToLowerInvariant();
+        var setupSection = configuration.GetSection("SystemSetup");
+
+        var organizationName = setupSection["OrganizationName"] ?? "AegisRemit E-Invoicing";
+        var allowSelfOnboarding = setupSection.GetValue<bool>("AllowSelfOnboarding", false);
+        var maxBusinesses = setupSection.GetValue<int>("MaxBusinessesAllowed", 1000);
+
+        // Use a deterministic system GUID for the setup-by field (no user may exist yet)
+        var systemSetupId = Guid.Empty;
+
+        // Try to get the first admin user ID if one exists
+        var existingAdmin = await context.Users.FirstOrDefaultAsync(u => u.IsAegisUser);
+        if (existingAdmin is not null)
+        {
+            systemSetupId = existingAdmin.Id;
+        }
+
+        SystemConfiguration systemConfig;
+
+        if (deploymentMode == "onpremise" || deploymentMode == "on-premise")
+        {
+            var contactEmail = setupSection["ContactEmail"] ?? string.Empty;
+            var contactPhone = setupSection["ContactPhone"] ?? string.Empty;
+
+            systemConfig = SystemConfiguration.CreateForOnPremise(
+                organizationName: organizationName,
+                licenseKey: configuration["License:Key"] ?? "DEVELOPMENT-LICENSE",
+                licenseExpiryDate: DateTimeOffset.UtcNow.AddYears(1),
+                contactEmail: contactEmail,
+                contactPhone: contactPhone,
+                setupBy: systemSetupId);
+        }
+        else
+        {
+            // Default: SaaS / Cloud mode
+            systemConfig = SystemConfiguration.CreateForSaaS(
+                organizationName: organizationName,
+                setupBy: systemSetupId,
+                allowSelfOnboarding: allowSelfOnboarding,
+                maxBusinesses: maxBusinesses);
+        }
+
+        await context.SystemConfigurations.AddAsync(systemConfig);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Successfully seeded initial system configuration: Mode={Mode}, Org={Org}, SetupBy={SetupBy}",
+            systemConfig.DeploymentMode, systemConfig.OrganizationName, systemSetupId);
     }
 }

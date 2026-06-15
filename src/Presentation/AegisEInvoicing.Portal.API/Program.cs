@@ -166,13 +166,23 @@ try
             // SECURITY: No wildcard fallback - fail-secure if not configured
             var allowedOrigins = corsConfig.GetSection("AllowedOrigins").Get<string[]>();
 
+            var isDevelopment = builder.Environment.IsDevelopment();
+
             // If no origins configured, throw exception (fail-secure approach)
             if (allowedOrigins == null || allowedOrigins.Length == 0)
             {
-                throw new InvalidOperationException(
-                    "CORS configuration error: No allowed origins specified in configuration. " +
-                    "Please configure 'Cors:AllowedOrigins' in appsettings.json or .env file. " +
-                    "Never use wildcard '*' with AllowCredentials.");
+                if (isDevelopment)
+                {
+                    allowedOrigins = ["http://localhost:5173", "http://localhost:5174"];
+                    Console.WriteLine("[CORS CONFIG] Using development localhost defaults because Cors:AllowedOrigins was empty.");
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        "CORS configuration error: No allowed origins specified in configuration. " +
+                        "Please configure 'Cors:AllowedOrigins' in appsettings.json or .env file. " +
+                        "Never use wildcard '*' with AllowCredentials.");
+                }
             }
 
             // Validate that wildcard is not used with credentials
@@ -323,7 +333,7 @@ try
     app.MapScalarApiReference(options =>
     {
         options
-            .WithTitle("EInvoice Integrator API Documentation")
+            .WithTitle("AegisRemit E-Invoice Integrator API Documentation")
             .WithTheme(ScalarTheme.Purple)
             .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });
