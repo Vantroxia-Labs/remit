@@ -272,6 +272,9 @@ public class Program
             // Health check endpoint
             app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTimeOffset.UtcNow }));
 
+            // Favicon endpoint - prevents 404 errors in browser console
+            app.MapGet("/favicon.ico", () => Results.NoContent());
+
             app.Run();
         }
         catch (Exception ex)

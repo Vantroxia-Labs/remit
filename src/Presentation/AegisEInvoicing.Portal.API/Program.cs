@@ -405,6 +405,9 @@ try
     app.MapHealthChecks();
     app.MapMetrics();
 
+    // Favicon endpoint - prevents 404 errors in browser console
+    app.MapGet("/favicon.ico", () => Results.NoContent());
+
     // Migrate database if in development
     if (app.Environment.IsDevelopment())
     {

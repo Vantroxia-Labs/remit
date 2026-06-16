@@ -30,10 +30,18 @@ public class SecurityHeadersMiddleware
     {
         var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
 
-        // Skip security headers for API documentation paths (Scalar/OpenAPI)
-        // These paths serve interactive documentation that requires inline scripts and external CDN resources
-        if (path.StartsWith("/scalar") || path.StartsWith("/openapi"))
+        // Skip ALL security headers for API documentation paths (Scalar/OpenAPI)
+        // Scalar requires inline scripts, styles, and CDN resources to function
+        // This includes the main scalar page and all its assets
+        if (path.StartsWith("/scalar") || path.StartsWith("/openapi") || path.Contains("/scalar/"))
         {
+            // Still remove server identification headers for minimal security
+            context.Response.OnStarting(() =>
+            {
+                RemoveServerHeaders(context);
+                return Task.CompletedTask;
+            });
+
             await _next(context);
             return;
         }
@@ -368,28 +376,29 @@ public class SecurityHeadersMiddleware
 
     private string BuildDevelopmentCsp()
     {
-        // Development CSP - Relaxed for Swagger UI and development tools
-        // Swagger requires unsafe-inline and unsafe-eval for its JavaScript
+        // Development CSP - Relaxed for Scalar UI and development tools
+        // Scalar requires unsafe-inline and unsafe-eval for its JavaScript and CDN resources
         var cspDirectives = new[]
         {
             "default-src 'self'",
 
-            // Swagger needs unsafe-inline and unsafe-eval for dynamic script generation
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+            // Scalar needs unsafe-inline and unsafe-eval for dynamic script generation
+            // Also allow CDN for Scalar assets
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
 
-            // Swagger needs unsafe-inline for styling
-            "style-src 'self' 'unsafe-inline'",
+            // Scalar needs unsafe-inline for styling and CDN fonts
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
 
             // Allow images from anywhere in development
             "img-src 'self' data: https:",
 
-            // Font sources
-            "font-src 'self' data:",
+            // Font sources - include CDN for Scalar
+            "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
 
             // Allow WebSockets for hot reload in development
             "connect-src 'self' ws: wss:",
 
-            // Allow iframes in development (for Swagger auth flows)
+            // Allow iframes in development (for Scalar auth flows)
             "frame-src 'self'",
 
             // Still prevent embedding by other sites
@@ -407,7 +416,7 @@ public class SecurityHeadersMiddleware
             // Media sources
             "media-src 'self'",
 
-            // Allow workers in development
+            // Allow workers in development (Scalar may use web workers)
             "worker-src 'self' blob:"
         };
 
