@@ -36,8 +36,30 @@ public class PayloadDecryptionMiddleware
         _next = next;
         _logger = logger;
 
-        var key = configuration["PayloadEncryption:Key"]
-            ?? Environment.GetEnvironmentVariable("PAYLOAD_ENCRYPTION_KEY");
+        // Priority: env var (from server .env) > appsettings.json config
+        // The server's .env sets PAYLOAD_ENCRYPTION_KEY (flat name), which must
+        // take precedence over any stale value in appsettings.json.
+        var envKey = Environment.GetEnvironmentVariable("PAYLOAD_ENCRYPTION_KEY");
+        var configKey = configuration["PayloadEncryption:Key"];
+
+        string? key;
+        string keySource;
+
+        if (!string.IsNullOrEmpty(envKey))
+        {
+            key = envKey;
+            keySource = "PAYLOAD_ENCRYPTION_KEY env var";
+        }
+        else if (!string.IsNullOrEmpty(configKey))
+        {
+            key = configKey;
+            keySource = "PayloadEncryption:Key config";
+        }
+        else
+        {
+            key = null;
+            keySource = "none";
+        }
 
         if (string.IsNullOrEmpty(key))
         {
@@ -53,6 +75,12 @@ public class PayloadDecryptionMiddleware
                 throw new InvalidOperationException(
                     $"Payload encryption key must be 32 bytes (256 bits). Got {_encryptionKey.Length} bytes.");
             }
+
+            // Log safe key fingerprint for debugging key mismatch issues
+            var keyFingerprint = key.Length >= 8 ? key[..8] : key;
+            _logger.LogInformation(
+                "Payload encryption key loaded from {Source}. Fingerprint: {Fingerprint}..., Length: {Length} bytes",
+                keySource, keyFingerprint, _encryptionKey.Length);
         }
     }
 
@@ -97,11 +125,12 @@ public class PayloadDecryptionMiddleware
                 var decryptedBody = await DecryptRequestBodyAsync(context.Request.Body);
 
                 // Replace the request body with the decrypted content
-                context.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(decryptedBody));
+                var decryptedBytes = Encoding.UTF8.GetBytes(decryptedBody);
+                context.Request.Body = new MemoryStream(decryptedBytes);
                 context.Request.Body.Position = 0;
 
-                // Update content length
-                context.Request.ContentLength = decryptedBody.Length;
+                // Update content length (must be byte count, not string character count)
+                context.Request.ContentLength = decryptedBytes.Length;
 
                 _logger.LogDebug("Successfully decrypted request payload for {Path}", context.Request.Path);
             }
