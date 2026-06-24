@@ -1,4 +1,4 @@
-﻿using AegisEInvoicing.Application.Common.Interfaces;
+using AegisEInvoicing.Application.Common.Interfaces;
 using AegisEInvoicing.Domain.Entities.BusinessManagement;
 using AegisEInvoicing.Domain.Entities.UserManagement;
 using MediatR;
@@ -31,7 +31,7 @@ public class LoginCommandHandler(
                 return accountValidation.Result;
 
             var passwordValidation = await ValidatePasswordAsync(user, request.Password, request.IpAddress, cancellationToken);
-            if (passwordValidation.IsValid)
+            if (!passwordValidation.IsValid)
                 return passwordValidation.Result;
 
             var subscriptionValidation = ValidateBusinessSubscription(user);
