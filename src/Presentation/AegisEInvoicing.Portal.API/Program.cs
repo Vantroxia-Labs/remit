@@ -400,6 +400,11 @@ try
     {
         await app.MigrateDatabaseAsync();
     }
+    else
+    {
+        // In production, migrations are run separately, but we still need to seed the database
+        await app.SeedDatabaseAsync();
+    }
 
     await app.RunAsync();
 }

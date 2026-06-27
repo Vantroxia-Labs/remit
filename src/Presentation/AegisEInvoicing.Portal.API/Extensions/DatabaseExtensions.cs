@@ -1,4 +1,4 @@
-﻿using AegisEInvoicing.Domain.Common;
+using AegisEInvoicing.Domain.Common;
 using AegisEInvoicing.Domain.Constants;
 using AegisEInvoicing.Domain.Entities.UserManagement;
 using AegisEInvoicing.Persistence;
@@ -69,78 +69,109 @@ public static class DatabaseExtensions
         }
     }
 
+    public static async Task SeedDatabaseAsync(this WebApplication app)
+    {
+        using var scope = app.Services.CreateScope();
+        var services = scope.ServiceProvider;
+
+        try
+        {
+            var context = services.GetRequiredService<ApplicationDbContext>();
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            var configuration = services.GetRequiredService<IConfiguration>();
+
+            logger.LogInformation("Seeding database...");
+            await SeedData(context, logger, configuration);
+            await ReconcileSystemRolePermissions(context, logger);
+            logger.LogInformation("Database seeded successfully.");
+        }
+        catch (Exception ex)
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "An error occurred while seeding the database");
+            throw;
+        }
+    }
+
     private static async Task SeedData(ApplicationDbContext context, ILogger logger, IConfiguration configuration)
     {
         try
         {
-            logger.LogInformation("Checking for existing seed data...");
-
-            // Check if we already have users seeded (to avoid duplicates)
-            var existingUsersCount = await context.Users.CountAsync();
-
-            if (existingUsersCount > 0)
-            {
-                logger.LogInformation("Seed data already exists. Skipping seeding.");
-                return;
-            }
-
             logger.LogInformation("Starting comprehensive seed data process...");
 
-            // Step 1: Seed Users first (needed for CreatedBy references in roles)
-            logger.LogInformation("Seeding initial user data...");
             var adminEmail = configuration["AegisAdmin:Email"];
             var seedUsers = UserSeedData.GetSeedUsers(adminEmail);
-            logger.LogInformation("Adding {UserCount} users to database", seedUsers.Count);
+            var seedUser = seedUsers.FirstOrDefault();
 
-            var user = seedUsers.FirstOrDefault();
+            if (seedUser is null)
+                throw new ArgumentNullException(nameof(seedUser));
 
-            if (user is null)
-                throw new ArgumentNullException(nameof(user));
+            // Step 1: Seed Users
+            logger.LogInformation("Checking user seed data...");
+            var existingUser = await context.Users.FirstOrDefaultAsync(u => u.Email == seedUser.Email);
+            var actualUser = existingUser;
 
-            await context.Users.AddAsync(user);
-
-            await context.SaveChangesAsync();
-            logger.LogInformation("Successfully seeded {UserCount} users", seedUsers.Count);
-
-            // Step 2: Seed Platform Roles (now that system user exists)
-            logger.LogInformation("Seeding platform roles...");
-
-            var seedRoles = UserSeedData.GetSeedPlatformRoles(user.Id);
-            logger.LogInformation("Adding {RoleCount} platform roles to database", seedRoles.Count);
-
-            foreach (var role in seedRoles)
+            if (existingUser == null)
             {
-                await context.PlatformRoles.AddAsync(role);
-                logger.LogDebug("Added platform role: {RoleName} ({Category})",
-                    role.Name, role.Category);
+                logger.LogInformation("Seeding initial user data...");
+                await context.Users.AddAsync(seedUser);
+                await context.SaveChangesAsync();
+                logger.LogInformation("Successfully seeded users");
+                actualUser = seedUser;
+            }
+            else
+            {
+                logger.LogInformation("Seed user already exists. Skipping user seeding.");
             }
 
-            await context.SaveChangesAsync();
-            logger.LogInformation("Successfully seeded {RoleCount} platform roles", seedRoles.Count);
+            // Step 2: Seed Platform Roles
+            logger.LogInformation("Checking platform roles...");
+            var existingRolesCount = await context.PlatformRoles.CountAsync();
+            var seedRoles = UserSeedData.GetSeedPlatformRoles(actualUser!.Id);
 
-            // Step 3: Seed User Role Assignments (depends on both users and roles)
-            logger.LogInformation("Seeding user role assignments...");
-
-            // Get the actual user and role from the database
-            var systemAdminRole = await context.PlatformRoles
-                .FirstOrDefaultAsync(r => r.Name == RoleConstants.AegisAdmin);
-
-            if (systemAdminRole != null && user != null)
+            if (existingRolesCount == 0)
             {
-                // Create role assignment using actual database IDs
-                var superAdminAssignment = UserRoleAssignment.Create(
-                    userId: user.Id,
-                    platformRoleId: systemAdminRole.Id,
-                    assignedBy: user.Id, // Use the actual user ID as assignedBy
-                    expiresAt: null // No expiration for system admin
-                );
-
-                await context.UserRoleAssignments.AddAsync(superAdminAssignment);
-                logger.LogDebug("Added role assignment: User {UserId} -> Role {RoleId}",
-                    superAdminAssignment.UserId, superAdminAssignment.PlatformRoleId);
-
+                logger.LogInformation("Seeding platform roles...");
+                foreach (var role in seedRoles)
+                {
+                    await context.PlatformRoles.AddAsync(role);
+                    logger.LogDebug("Added platform role: {RoleName} ({Category})", role.Name, role.Category);
+                }
                 await context.SaveChangesAsync();
-                logger.LogInformation("Successfully seeded role assignments");
+                logger.LogInformation("Successfully seeded {RoleCount} platform roles", seedRoles.Count);
+            }
+            else
+            {
+                logger.LogInformation("Platform roles already exist. Skipping role seeding.");
+            }
+
+            // Step 3: Seed User Role Assignments
+            logger.LogInformation("Checking user role assignments...");
+            var systemAdminRole = await context.PlatformRoles.FirstOrDefaultAsync(r => r.Name == RoleConstants.AegisAdmin);
+
+            if (systemAdminRole != null && actualUser != null)
+            {
+                var existingAssignment = await context.UserRoleAssignments
+                    .FirstOrDefaultAsync(ra => ra.UserId == actualUser.Id && ra.PlatformRoleId == systemAdminRole.Id);
+
+                if (existingAssignment == null)
+                {
+                    logger.LogInformation("Seeding user role assignments...");
+                    var superAdminAssignment = UserRoleAssignment.Create(
+                        userId: actualUser.Id,
+                        platformRoleId: systemAdminRole.Id,
+                        assignedBy: actualUser.Id,
+                        expiresAt: null
+                    );
+
+                    await context.UserRoleAssignments.AddAsync(superAdminAssignment);
+                    await context.SaveChangesAsync();
+                    logger.LogInformation("Successfully seeded role assignments");
+                }
+                else
+                {
+                    logger.LogInformation("User role assignment already exists. Skipping assignment seeding.");
+                }
             }
             else
             {
@@ -148,18 +179,26 @@ public static class DatabaseExtensions
             }
 
             // Step 4: Seed Platform Subscriptions
-            logger.LogInformation("Seeding user role assignments...");
+            logger.LogInformation("Checking platform subscriptions...");
+            var existingSubscriptionsCount = await context.PlatformSubscriptions.CountAsync();
 
-            var platformSubscriptions = UserSeedData.GetPlatformSubscriptions(user!.Id);
-            foreach (var platformSubscription in platformSubscriptions)
+            if (existingSubscriptionsCount == 0)
             {
-                await context.PlatformSubscriptions.AddAsync(platformSubscription);
-                logger.LogDebug("Added Platform Subscription: Plan Name {PlanName} -> Tier {Tier}",
-                platformSubscription.PlanName, platformSubscription.Tier);
+                logger.LogInformation("Seeding platform subscriptions...");
+                var platformSubscriptions = UserSeedData.GetPlatformSubscriptions(actualUser!.Id);
+                foreach (var platformSubscription in platformSubscriptions)
+                {
+                    await context.PlatformSubscriptions.AddAsync(platformSubscription);
+                    logger.LogDebug("Added Platform Subscription: Plan Name {PlanName} -> Tier {Tier}",
+                        platformSubscription.PlanName, platformSubscription.Tier);
+                }
+                await context.SaveChangesAsync();
+                logger.LogInformation("Successfully seeded platform subscriptions");
             }
-
-            await context.SaveChangesAsync();
-            logger.LogInformation("Successfully seeded role assignments");
+            else
+            {
+                logger.LogInformation("Platform subscriptions already exist. Skipping subscription seeding.");
+            }
 
             logger.LogInformation("Comprehensive seeding completed successfully");
 
