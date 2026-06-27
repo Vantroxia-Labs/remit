@@ -10,7 +10,7 @@ namespace AegisEInvoicing.BlueBridge;
 
 /// <summary>
 /// Adapts <see cref="IBlueBridgeClient"/> to the vendor-agnostic
-/// <see cref="IAccessPointProviderClient"/> interface used by <see cref="AppProviderRouter"/>.
+/// <see cref="IAccessPointProviderClient"/> interface used by <see cref="BlueBridgeAppAdapter"/>.
 ///
 /// Credential JSON schema:
 /// { "apiKey": "..." }
