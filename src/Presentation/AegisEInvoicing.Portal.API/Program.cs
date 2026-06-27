@@ -166,6 +166,16 @@ try
             // SECURITY: No wildcard fallback - fail-secure if not configured
             var allowedOrigins = corsConfig.GetSection("AllowedOrigins").Get<string[]>();
 
+            // Fallback: If array binding fails, try reading it as a comma-separated flat string
+            if (allowedOrigins == null || allowedOrigins.Length == 0)
+            {
+                var flatOrigins = corsConfig.GetValue<string>("AllowedOrigins");
+                if (!string.IsNullOrWhiteSpace(flatOrigins))
+                {
+                    allowedOrigins = flatOrigins.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                }
+            }
+
             // If no origins configured, throw exception (fail-secure approach)
             if (allowedOrigins == null || allowedOrigins.Length == 0)
             {
@@ -323,7 +333,7 @@ try
     app.MapScalarApiReference(options =>
     {
         options
-            .WithTitle("EInvoice Integrator API Documentation")
+            .WithTitle("AegisRemit EInvoice Integrator API Documentation")
             .WithTheme(ScalarTheme.Purple)
             .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });

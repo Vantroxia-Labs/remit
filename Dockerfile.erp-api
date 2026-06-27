@@ -37,6 +37,10 @@ RUN dotnet publish src/Presentation/AegisEInvoicing.ERP.API/AegisEInvoicing.ERP.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 WORKDIR /app
 
+# Install ICU libraries (globalization) and fonts (for QuestPDF/SkiaSharp)
+RUN apk add --no-cache icu-libs tzdata fontconfig ttf-dejavu
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
 # Security: run as non-root
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
