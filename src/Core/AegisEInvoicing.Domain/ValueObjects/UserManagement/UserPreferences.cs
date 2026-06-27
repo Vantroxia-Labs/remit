@@ -278,7 +278,18 @@ public class UserPreferences : ValueObject
         }
         catch (ArgumentException)
         {
-            throw new ArgumentException("Invalid number format culture", nameof(numberFormat));
+            // Fallback for Globalization Invariant Mode (common in minimal container environments)
+            // If the value is a standard BCP-47 language tag (e.g. "en-US", "en-NG"), we allow it.
+            var isStandardTag = System.Text.RegularExpressions.Regex.IsMatch(
+                numberFormat,
+                "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,4})?$",
+                System.Text.RegularExpressions.RegexOptions.None,
+                TimeSpan.FromMilliseconds(100));
+
+            if (!isStandardTag && !numberFormat.Equals("invariant", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Invalid number format culture", nameof(numberFormat));
+            }
         }
     }
 

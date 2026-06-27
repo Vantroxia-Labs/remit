@@ -22,6 +22,17 @@ function Generate-SecureKey {
     return $base64
 }
 
+function Generate-HexKey {
+    param (
+        [int]$ByteLength
+    )
+    $bytes = New-Object byte[] $ByteLength
+    $rng = [System.Security.Cryptography.RNGCryptoServiceProvider]::Create()
+    $rng.GetBytes($bytes)
+    $hex = [System.BitConverter]::ToString($bytes).Replace("-", "").ToLower()
+    return $hex
+}
+
 # Function to generate random password
 function Generate-SecurePassword {
     param (
@@ -42,16 +53,28 @@ Write-Host "JWT_SECRET_KEY:" -ForegroundColor Yellow
 Write-Host $jwtKey -ForegroundColor White
 Write-Host ""
 
-# Encryption Key (256-bit, exactly 44 chars for AES-256)
-$encryptionKey = Generate-SecureKey -ByteLength 32
-Write-Host "ENCRYPTION_KEY:" -ForegroundColor Yellow
+# Internal Encryption Key (256-bit, exactly 32 UTF-8 characters for AES-256)
+$encryptionKey = Generate-HexKey -ByteLength 16
+Write-Host "ENCRYPTION_KEY (32-chars plain text):" -ForegroundColor Yellow
 Write-Host $encryptionKey -ForegroundColor White
 Write-Host ""
 
-# Backup Encryption Key
-$backupKey = Generate-SecureKey -ByteLength 32
-Write-Host "BACKUP_ENCRYPTION_KEY:" -ForegroundColor Yellow
+# Internal Encryption IV (128-bit, exactly 16 UTF-8 characters for AES-256 block size)
+$encryptionIv = Generate-HexKey -ByteLength 8
+Write-Host "ENCRYPTION_IV (16-chars plain text):" -ForegroundColor Yellow
+Write-Host $encryptionIv -ForegroundColor White
+Write-Host ""
+
+# Backup Encryption Key (exactly 32 UTF-8 characters)
+$backupKey = Generate-HexKey -ByteLength 16
+Write-Host "BACKUP_ENCRYPTION_KEY (32-chars plain text):" -ForegroundColor Yellow
 Write-Host $backupKey -ForegroundColor White
+Write-Host ""
+
+# Payload Encryption Key (base64-encoded, must decode to exactly 32 bytes)
+$payloadEncryptionKey = Generate-SecureKey -ByteLength 32
+Write-Host "PAYLOAD_ENCRYPTION_KEY:" -ForegroundColor Yellow
+Write-Host $payloadEncryptionKey -ForegroundColor White
 Write-Host ""
 
 # Database Password
@@ -113,7 +136,9 @@ Generated: $(Get-Date)
 
 JWT_SECRET_KEY=$jwtKey
 ENCRYPTION_KEY=$encryptionKey
+ENCRYPTION_IV=$encryptionIv
 BACKUP_ENCRYPTION_KEY=$backupKey
+PAYLOAD_ENCRYPTION_KEY=$payloadEncryptionKey
 DATABASE_PASSWORD=$dbPassword
 REDIS_PASSWORD=$redisPassword
 RABBITMQ_PASSWORD=$rabbitPassword

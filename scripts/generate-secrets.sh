@@ -18,6 +18,12 @@ generate_secure_key() {
     openssl rand -base64 $byte_length | tr -d '\n'
 }
 
+# Function to generate random hex string (for raw UTF-8 keys/IVs)
+generate_hex_key() {
+    local byte_length=$1
+    openssl rand -hex $byte_length | tr -d '\n'
+}
+
 # Function to generate random password
 generate_secure_password() {
     local length=${1:-24}
@@ -34,16 +40,28 @@ echo "JWT_SECRET_KEY:"
 echo "$JWT_KEY"
 echo ""
 
-# Encryption Key (256-bit, exactly 44 chars for AES-256)
-ENCRYPTION_KEY=$(generate_secure_key 32)
-echo "ENCRYPTION_KEY:"
+# Internal Encryption Key (256-bit, exactly 32 UTF-8 characters for AES-256)
+ENCRYPTION_KEY=$(generate_hex_key 16)
+echo "ENCRYPTION_KEY (32-chars plain text):"
 echo "$ENCRYPTION_KEY"
 echo ""
 
-# Backup Encryption Key
-BACKUP_KEY=$(generate_secure_key 32)
-echo "BACKUP_ENCRYPTION_KEY:"
+# Internal Encryption IV (128-bit, exactly 16 UTF-8 characters for AES-256 block size)
+ENCRYPTION_IV=$(generate_hex_key 8)
+echo "ENCRYPTION_IV (16-chars plain text):"
+echo "$ENCRYPTION_IV"
+echo ""
+
+# Backup Encryption Key (exactly 32 UTF-8 characters)
+BACKUP_KEY=$(generate_hex_key 16)
+echo "BACKUP_ENCRYPTION_KEY (32-chars plain text):"
 echo "$BACKUP_KEY"
+echo ""
+
+# Payload Encryption Key (base64-encoded, must decode to exactly 32 bytes)
+PAYLOAD_ENCRYPTION_KEY=$(generate_secure_key 32)
+echo "PAYLOAD_ENCRYPTION_KEY:"
+echo "$PAYLOAD_ENCRYPTION_KEY"
 echo ""
 
 # Database Password
@@ -105,7 +123,9 @@ Generated: $(date)
 
 JWT_SECRET_KEY=$JWT_KEY
 ENCRYPTION_KEY=$ENCRYPTION_KEY
+ENCRYPTION_IV=$ENCRYPTION_IV
 BACKUP_ENCRYPTION_KEY=$BACKUP_KEY
+PAYLOAD_ENCRYPTION_KEY=$PAYLOAD_ENCRYPTION_KEY
 DATABASE_PASSWORD=$DB_PASSWORD
 REDIS_PASSWORD=$REDIS_PASSWORD
 RABBITMQ_PASSWORD=$RABBIT_PASSWORD
