@@ -144,6 +144,7 @@ public static class ServiceCollectionExtensions
                         "Never use wildcard '*' with AllowCredentials.");
                 }
 
+
                 // Validate that wildcard is not used with credentials
                 if (allowedOrigins.Contains("*"))
                 {
@@ -347,7 +348,7 @@ public static class ServiceCollectionExtensions
             .AddUrlGroup(
                 options =>
                 {
-                    options.AddUri(new Uri(configuration["ExternalApi:HealthCheckUrl"] ?? "https://api.example.com/health"));
+                    options.AddUri(GetRequiredAbsoluteUri(configuration, "ExternalApi:HealthCheckUrl"));
                 },
                 name: "external-api",
                 failureStatus: HealthStatus.Degraded);
@@ -407,5 +408,23 @@ public static class ServiceCollectionExtensions
 
         // Use connection remote IP
         return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    }
+
+    private static Uri GetRequiredAbsoluteUri(IConfiguration configuration, string configurationKey)
+    {
+        var value = configuration[configurationKey];
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException(
+                $"Missing required configuration '{configurationKey}'. Set a valid absolute URL.");
+        }
+
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+        {
+            throw new InvalidOperationException(
+                $"Invalid configuration '{configurationKey}'. Value '{value}' is not a valid absolute URL.");
+        }
+
+        return uri;
     }
 }

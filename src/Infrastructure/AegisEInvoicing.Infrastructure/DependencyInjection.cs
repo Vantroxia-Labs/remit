@@ -213,7 +213,7 @@ public static class DependencyInjection
         // HTTP clients - resilience policies are now handled in the service itself
         services.AddHttpClient<IIntegrationService, IntegrationService>(client =>
         {
-            client.BaseAddress = new Uri(configuration?["FIRSConfiguration:BaseUrl"] ?? "https://api.example.com");
+            client.BaseAddress = GetRequiredAbsoluteUri(configuration, "FIRSConfiguration:BaseUrl");
 
             // Add standard headers that Postman likely includes
             client.DefaultRequestHeaders.Add("Accept", "application/json");
@@ -225,6 +225,30 @@ public static class DependencyInjection
             // Set default timeout
             client.Timeout = TimeSpan.FromSeconds(60);
         });
+    }
+
+    private static Uri GetRequiredAbsoluteUri(IConfiguration? configuration, string configurationKey)
+    {
+        if (configuration is null)
+        {
+            throw new InvalidOperationException(
+                $"Missing configuration provider while resolving '{configurationKey}'.");
+        }
+
+        var value = configuration[configurationKey];
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException(
+                $"Missing required configuration '{configurationKey}'. Set a valid absolute URL.");
+        }
+
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+        {
+            throw new InvalidOperationException(
+                $"Invalid configuration '{configurationKey}'. Value '{value}' is not a valid absolute URL.");
+        }
+
+        return uri;
     }
 
 

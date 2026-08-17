@@ -126,6 +126,7 @@ public static class ServiceCollectionExtensions
                             {
                                 token = authHeader["Bearer ".Length..].Trim();
                             }
+
                         }
 
                         if (!string.IsNullOrEmpty(token))
@@ -536,7 +537,7 @@ public static class ServiceCollectionExtensions
             .AddUrlGroup(
                 options =>
                 {
-                    options.AddUri(new Uri(configuration["ExternalApi:HealthCheckUrl"] ?? "https://api.example.com/health"));
+                    options.AddUri(GetRequiredAbsoluteUri(configuration, "ExternalApi:HealthCheckUrl"));
                 },
                 name: "external-api",
                 failureStatus: HealthStatus.Degraded);
@@ -582,5 +583,23 @@ public static class ServiceCollectionExtensions
                 }));
 
         return services;
+    }
+
+    private static Uri GetRequiredAbsoluteUri(IConfiguration configuration, string configurationKey)
+    {
+        var value = configuration[configurationKey];
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException(
+                $"Missing required configuration '{configurationKey}'. Set a valid absolute URL.");
+        }
+
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+        {
+            throw new InvalidOperationException(
+                $"Invalid configuration '{configurationKey}'. Value '{value}' is not a valid absolute URL.");
+        }
+
+        return uri;
     }
 }
