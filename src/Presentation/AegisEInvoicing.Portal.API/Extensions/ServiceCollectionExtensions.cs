@@ -1,4 +1,4 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using AegisEInvoicing.Portal.API.Filters;
 using AegisEInvoicing.Portal.API.Models;
 using AegisEInvoicing.Domain.Extensions;
@@ -521,7 +521,7 @@ public static class ServiceCollectionExtensions
         services.AddResponseCaching();
 
         // Health Checks
-        services.AddHealthChecks()
+        var healthChecks = services.AddHealthChecks()
             .AddCheck("database", () => HealthCheckResult.Healthy("Database is available"))
             .AddCheck<HealthChecks.SubscriptionHealthCheck>(
                 "subscription",
@@ -533,14 +533,19 @@ public static class ServiceCollectionExtensions
                 failureStatus: HealthStatus.Degraded)
             .AddRabbitMQ(
                 name: "rabbitmq",
-                failureStatus: HealthStatus.Degraded)
-            .AddUrlGroup(
+                failureStatus: HealthStatus.Degraded);
+
+        var externalApiUrl = configuration["ExternalApi:HealthCheckUrl"];
+        if (!string.IsNullOrWhiteSpace(externalApiUrl) && Uri.TryCreate(externalApiUrl, UriKind.Absolute, out var externalUri))
+        {
+            healthChecks.AddUrlGroup(
                 options =>
                 {
-                    options.AddUri(GetRequiredAbsoluteUri(configuration, "ExternalApi:HealthCheckUrl"));
+                    options.AddUri(externalUri);
                 },
                 name: "external-api",
                 failureStatus: HealthStatus.Degraded);
+        }
 
         return services;
     }
