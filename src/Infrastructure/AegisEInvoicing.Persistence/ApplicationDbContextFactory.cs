@@ -22,6 +22,10 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
 
         // Use a default connection string for design-time
         var connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString) || connectionString.StartsWith("${"))
+        {
+            connectionString = "Host=localhost;Database=aegisremit_design;Username=postgres;Password=postgres";
+        }
         optionsBuilder.UseNpgsql(connectionString);
 
         // Create mock services for design-time
