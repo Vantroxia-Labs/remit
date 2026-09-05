@@ -22,11 +22,28 @@ public class OriginValidationMiddleware
         _configuration = configuration;
 
         // Load allowed origins from configuration
-        var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? Array.Empty<string>();
+        var originsArray = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+        string[] origins;
+        if (originsArray != null && originsArray.Length > 0)
+        {
+            origins = originsArray;
+        }
+        else
+        {
+            var flatOrigins = configuration.GetValue<string>("Cors:AllowedOrigins");
+            if (!string.IsNullOrWhiteSpace(flatOrigins))
+            {
+                origins = flatOrigins.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            }
+            else
+            {
+                origins = Array.Empty<string>();
+            }
+        }
 
         _allowedOrigins = new HashSet<string>(
-            origins.Select(NormalizeOrigin),
+            origins.Where(o => !string.IsNullOrWhiteSpace(o) && !o.StartsWith("${"))
+                   .Select(NormalizeOrigin),
             StringComparer.OrdinalIgnoreCase);
 
         // Check if strict validation is enabled (default: true)
@@ -150,6 +167,16 @@ public class OriginValidationMiddleware
         if (_allowedOrigins.Contains(normalizedOrigin))
         {
             return true;
+        }
+
+        // Allow aegisremit.ng and its subdomains or localhost
+        if (Uri.TryCreate(requestOrigin, UriKind.Absolute, out var reqUri))
+        {
+            var host = reqUri.Host.ToLowerInvariant();
+            if (host == "aegisremit.ng" || host.EndsWith(".aegisremit.ng") || host == "localhost" || host == "127.0.0.1")
+            {
+                return true;
+            }
         }
 
         // Check if origin matches the host (same-origin request)
