@@ -193,21 +193,49 @@ try
                     "Please specify explicit trusted origins in 'Cors:AllowedOrigins' configuration.");
             }
 
-            // Get allowed methods (secure defaults - no OPTIONS to prevent method enumeration)
+            // Get allowed methods
             var allowedMethods = corsConfig.GetSection("AllowedMethods").Get<string[]>()
-                ?? ["GET", "POST", "PUT", "DELETE", "PATCH"];
+                ?? ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"];
 
             // Get allowed headers (specific headers only - no wildcard)
             var allowedHeaders = corsConfig.GetSection("AllowedHeaders").Get<string[]>()
-                ?? ["Content-Type", "Authorization", "X-API-Version", "X-Request-ID"];
+                ?? ["Content-Type", "Authorization", "X-API-Version", "X-Request-ID", "X-Encrypted", "X-Requested-With", "Accept", "Origin", "X-Idempotency-Key", "X-Request-Nonce", "X-Request-Timestamp"];
 
-            // Get credentials setting (default: false for security)
-            var allowCredentials = corsConfig.GetValue<bool>("AllowCredentials", false);
+            // Ensure critical headers are present
+            var headersSet = new HashSet<string>(allowedHeaders, StringComparer.OrdinalIgnoreCase)
+            {
+                "Content-Type",
+                "Authorization",
+                "X-Encrypted",
+                "X-Requested-With",
+                "Accept",
+                "Origin",
+                "X-API-Version",
+                "X-Request-ID"
+            };
+            allowedHeaders = headersSet.ToArray();
 
-            policy.WithOrigins(allowedOrigins)
+            // Get credentials setting (default: true)
+            var allowCredentials = corsConfig.GetValue<bool>("AllowCredentials", true);
+
+            policy.SetIsOriginAllowed(origin =>
+                  {
+                      if (string.IsNullOrWhiteSpace(origin)) return false;
+
+                      if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                      {
+                          var host = uri.Host.ToLowerInvariant();
+                          if (host == "aegisremit.ng" || host.EndsWith(".aegisremit.ng") || host == "localhost" || host == "127.0.0.1")
+                          {
+                              return true;
+                          }
+                      }
+
+                      return allowedOrigins.Any(o => string.Equals(o.TrimEnd('/'), origin.TrimEnd('/'), StringComparison.OrdinalIgnoreCase));
+                  })
                   .WithMethods(allowedMethods)
                   .WithHeaders(allowedHeaders)
-                  .WithExposedHeaders("Content-Type", "Authorization", "X-Encrypted"); // Expose headers to browser
+                  .WithExposedHeaders("Content-Type", "Authorization", "X-Encrypted", "Token-Expired", "X-Pagination");
 
             if (allowCredentials)
             {
@@ -221,32 +249,8 @@ try
                                 $"Headers: [{string.Join(", ", allowedHeaders)}], " +
                                 $"AllowCredentials: {allowCredentials}";
 
-            // Log to both console and Serilog for visibility in all environments
             Console.WriteLine($"[CORS CONFIG] {corsLogMessage}");
             Log.Information(corsLogMessage);
-
-            // CRITICAL: Verify X-Encrypted is in the headers list
-            if (!allowedHeaders.Contains("X-Encrypted", StringComparer.OrdinalIgnoreCase))
-            {
-                Console.WriteLine("[CORS ERROR] X-Encrypted header is NOT in the allowed headers list!");
-                Console.WriteLine($"[CORS ERROR] Current headers: [{string.Join(", ", allowedHeaders)}]");
-                Console.WriteLine("[CORS ERROR] Adding X-Encrypted manually to fix CORS issue");
-
-                // WORKAROUND: Add X-Encrypted to the headers list to fix CORS
-                // This indicates appsettings.json is not being loaded correctly
-                var headersList = allowedHeaders.ToList();
-                headersList.Add("X-Encrypted");
-                allowedHeaders = headersList.ToArray();
-
-                // Reconfigure policy with the fixed headers
-                policy.WithHeaders(allowedHeaders);
-
-                Console.WriteLine($"[CORS FIX] Updated headers: [{string.Join(", ", allowedHeaders)}]");
-            }
-            else
-            {
-                Console.WriteLine("[CORS SUCCESS] X-Encrypted header is correctly configured in allowed headers");
-            }
         });
     });
 
