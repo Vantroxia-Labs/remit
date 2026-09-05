@@ -1,4 +1,4 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using AegisEInvoicing.Domain.Extensions;
 using AegisEInvoicing.Interswitch.Converters;
 using AegisEInvoicing.ERP.API.Filters;
@@ -332,26 +332,31 @@ public static class ServiceCollectionExtensions
         services.AddResponseCaching();
 
         // Health Checks
-        services.AddHealthChecks()
+        var healthChecks = services.AddHealthChecks()
             .AddCheck("database", () => HealthCheckResult.Healthy("Database is available"))
             .AddCheck<HealthChecks.SubscriptionHealthCheck>(
-                "subscription",
-                failureStatus: HealthStatus.Unhealthy,
-                tags: ["ready", "unhealthy"])
+                 "subscription",
+                 failureStatus: HealthStatus.Unhealthy,
+                 tags: ["ready", "unhealthy"])
             .AddRedis(
-                configuration.GetConnectionString("Redis") ?? string.Empty,
-                name: "redis",
-                failureStatus: HealthStatus.Degraded)
+                 configuration.GetConnectionString("Redis") ?? string.Empty,
+                 name: "redis",
+                 failureStatus: HealthStatus.Degraded)
             .AddRabbitMQ(
-                name: "rabbitmq",
-                failureStatus: HealthStatus.Degraded)
-            .AddUrlGroup(
-                options =>
-                {
-                    options.AddUri(GetRequiredAbsoluteUri(configuration, "ExternalApi:HealthCheckUrl"));
-                },
-                name: "external-api",
-                failureStatus: HealthStatus.Degraded);
+                 name: "rabbitmq",
+                 failureStatus: HealthStatus.Degraded);
+
+        var externalApiUrl = configuration["ExternalApi:HealthCheckUrl"];
+        if (!string.IsNullOrWhiteSpace(externalApiUrl) && Uri.TryCreate(externalApiUrl, UriKind.Absolute, out var externalUri))
+        {
+            healthChecks.AddUrlGroup(
+                 options =>
+                 {
+                     options.AddUri(externalUri);
+                 },
+                 name: "external-api",
+                 failureStatus: HealthStatus.Degraded);
+        }
 
         return services;
     }
