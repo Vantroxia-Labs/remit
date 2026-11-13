@@ -1,7 +1,7 @@
 # ═══════════════════════════════════════════════════════════════════════════
-# Vantroxia-Labs/remit — CI Pipeline
-# Triggers: push to main, pull requests
-# Steps: build → test → Docker build → push to ghcr.io → trigger deploy
+# Vantroxia-Labs/remit — CI + Dokploy deploy
+# push main          → build, test, push 3 images, migrator → APIs
+# pull_request main  → build + test only
 # ═══════════════════════════════════════════════════════════════════════════
 name: CI
 
@@ -10,19 +10,21 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
   PORTAL_API_IMAGE: ghcr.io/vantroxia-labs/remit-portal-api
   ERP_API_IMAGE: ghcr.io/vantroxia-labs/remit-erp-api
   MIGRATOR_IMAGE: ghcr.io/vantroxia-labs/remit-migrator
-  # NOTE: SFTP API is not deployed (uploads go via admin → Portal → NRS).
-  # Dockerfile.sftp-api remains in the repo but no image is built/pushed.
+  # NOTE: SFTP API not deployed (uploads go via admin → Portal → NRS).
+  # Dockerfile.sftp-api stays in repo; no image built/pushed.
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # ─────────────────────────────────────────────────────────────────────────
-  # Step 1: Build + Test
-  # ─────────────────────────────────────────────────────────────────────────
   build-and-test:
     runs-on: ubuntu-latest
     steps:
@@ -42,34 +44,21 @@ jobs:
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
 
-      # TODO: Uncomment when test coverage is stable
-      # - name: Check coverage threshold
-      #   run: |
-      #     COVERAGE=$(find ./coverage -name "coverage.cobertura.xml" -exec grep -oP 'line-rate="\K[^"]+' {} \; | head -1)
-      #     echo "Coverage: $COVERAGE"
-      #     if (( $(echo "$COVERAGE < 0.80" | bc -l) )); then
-      #       echo "Coverage $COVERAGE is below 80% threshold"
-      #       exit 1
-      #     fi
-
-  # ─────────────────────────────────────────────────────────────────────────
-  # Step 2: Build + Push Docker Images (only on main push)
-  # ─────────────────────────────────────────────────────────────────────────
   docker:
     needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     outputs:
       sha_tag: ${{ steps.tags.outputs.sha_tag }}
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -79,63 +68,82 @@ jobs:
         id: tags
         run: |
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "sha_tag=$SHA" >> $GITHUB_OUTPUT
-          echo "date_tag=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+          echo "sha_tag=$SHA" >> "$GITHUB_OUTPUT"
 
-      # ── Portal API Image ──────────────────────────────────────────────
-      - name: Build and push Portal API image
-        uses: docker/build-push-action@v5
+      - name: Build + push Portal API
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile.portal-api
           push: true
+          platforms: linux/amd64
           tags: |
-            ${{ env.PORTAL_API_IMAGE }}:latest
-            ${{ env.PORTAL_API_IMAGE }}:${{ steps.tags.outputs.sha_tag }}
-            ${{ env.PORTAL_API_IMAGE }}:${{ steps.tags.outputs.date_tag }}
+            ${{ env.PORTAL_API_IMAGE }}:staging
+            ${{ env.PORTAL_API_IMAGE }}:sha-${{ steps.tags.outputs.sha_tag }}
+          cache-from: type=gha,scope=portal
+          cache-to: type=gha,mode=max,scope=portal
 
-      # ── ERP API Image ─────────────────────────────────────────────────
-      - name: Build and push ERP API image
-        uses: docker/build-push-action@v5
+      - name: Build + push ERP API
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile.erp-api
           push: true
+          platforms: linux/amd64
           tags: |
-            ${{ env.ERP_API_IMAGE }}:latest
-            ${{ env.ERP_API_IMAGE }}:${{ steps.tags.outputs.sha_tag }}
-            ${{ env.ERP_API_IMAGE }}:${{ steps.tags.outputs.date_tag }}
+            ${{ env.ERP_API_IMAGE }}:staging
+            ${{ env.ERP_API_IMAGE }}:sha-${{ steps.tags.outputs.sha_tag }}
+          cache-from: type=gha,scope=erp
+          cache-to: type=gha,mode=max,scope=erp
 
-      # ── DB Migrator Image (EF bundle, run before apps roll) ────────────
-      - name: Build and push DB migrator image
-        uses: docker/build-push-action@v5
+      - name: Build + push Migrator
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile.migrator
           push: true
+          platforms: linux/amd64
           tags: |
-            ${{ env.MIGRATOR_IMAGE }}:latest
-            ${{ env.MIGRATOR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}
-            ${{ env.MIGRATOR_IMAGE }}:${{ steps.tags.outputs.date_tag }}
+            ${{ env.MIGRATOR_IMAGE }}:staging
+            ${{ env.MIGRATOR_IMAGE }}:sha-${{ steps.tags.outputs.sha_tag }}
+          cache-from: type=gha,scope=migrator
+          cache-to: type=gha,mode=max,scope=migrator
 
-  # ─────────────────────────────────────────────────────────────────────────
-  # Step 3: Trigger deployment in infra repo
-  # ─────────────────────────────────────────────────────────────────────────
-  trigger-deploy:
+  deploy-migrator:
     needs: docker
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch deploy workflow
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.INFRA_DEPLOY_TOKEN }}
-          repository: Vantroxia-Labs/infra
-          event-type: deploy
-          client-payload: |
-            {
-              "service": "all-apis",
-              "image_tag": "${{ needs.docker.outputs.sha_tag || 'latest' }}",
-              "triggered_by": "${{ github.repository }}",
-              "commit_sha": "${{ github.sha }}",
-              "commit_message": ${{ toJson(github.event.head_commit.message) }}
-            }
+      - name: Redeploy migrator on Dokploy
+        env:
+          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+          APP_ID: ${{ vars.DOKPLOY_MIGRATOR_APP_ID }}
+        run: |
+          curl -fsS -X POST "$DOKPLOY_URL/api/application.deploy" \
+            -H "accept: application/json" \
+            -H "x-api-key: $DOKPLOY_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"applicationId\": \"$APP_ID\"}"
+      - name: Wait for migrator to finish
+        run: sleep 45
+
+  deploy-apis:
+    needs: deploy-migrator
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [portal-api, erp-api]
+    steps:
+      - name: Redeploy ${{ matrix.app }} on Dokploy
+        env:
+          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+          APP_ID: ${{ matrix.app == 'portal-api' && vars.DOKPLOY_PORTAL_API_APP_ID || vars.DOKPLOY_ERP_API_APP_ID }}
+        run: |
+          curl -fsS -X POST "$DOKPLOY_URL/api/application.deploy" \
+            -H "accept: application/json" \
+            -H "x-api-key: $DOKPLOY_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"applicationId\": \"$APP_ID\"}"
